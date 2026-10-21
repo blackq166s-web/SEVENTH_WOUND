@@ -98,7 +98,7 @@ export function drawHud(ctx, g, w, h) {
   ctx.textAlign = 'left';
   ctx.font = `800 13px ${FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.fillText(g.mode === 'quest' ? '关卡' : '波次', 26, 28);
+  ctx.fillText(g.mode === 'quest' ? '层' : '潮汐', 26, 28);
 
   ctx.font = `800 26px ${FONT}`;
   ctx.fillStyle = '#fff';

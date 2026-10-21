@@ -7,7 +7,7 @@ let nextId = 1;
  */
 export const ENEMY_TYPES = {
   zombie: {
-    name: '僵尸', hp: 24, speed: 70, dmg: 8, r: 13, xp: 1, score: 10,
+    name: '腐化者', hp: 24, speed: 70, dmg: 8, r: 13, xp: 1, score: 10,
     spriteSet: 'zombie', spriteScale: 1, blood: '#a51622', mass: 1,
     behavior: 'chase', attackCd: 0.8
   },
@@ -17,22 +17,22 @@ export const ENEMY_TYPES = {
     behavior: 'chase', attackCd: 0.65
   },
   spider: {
-    name: '毒蛛', hp: 13, speed: 158, dmg: 5, r: 9, xp: 1, score: 16,
+    name: '织网者', hp: 13, speed: 158, dmg: 5, r: 9, xp: 1, score: 16,
     spriteSet: 'spider', spriteScale: 1, blood: '#3f6b2a', mass: 0.6,
     behavior: 'erratic', attackCd: 0.6
   },
   lizard: {
-    name: '蜥蜴射手', hp: 38, speed: 82, dmg: 7, r: 13, xp: 2, score: 28,
+    name: '哨眼', hp: 38, speed: 82, dmg: 7, r: 13, xp: 2, score: 28,
     spriteSet: 'lizard', spriteScale: 1, blood: '#4c7a26', mass: 1,
     behavior: 'ranged', attackCd: 0.8, keepDist: 250, shootCd: 1.9, projSpeed: 480, projDmg: 9
   },
   alien: {
-    name: '异形', hp: 100, speed: 66, dmg: 14, r: 17, xp: 4, score: 55,
+    name: '融生体', hp: 100, speed: 66, dmg: 14, r: 17, xp: 4, score: 55,
     spriteSet: 'alien', spriteScale: 1, blood: '#6b2b93', mass: 2.2,
     behavior: 'chase', attackCd: 0.85
   },
   brute: {
-    name: '巨兽', hp: 850, speed: 54, dmg: 26, r: 27, xp: 16, score: 400,
+    name: '守层者', hp: 850, speed: 54, dmg: 26, r: 27, xp: 16, score: 400,
     spriteSet: 'brute', spriteScale: 1, blood: '#8f1220', mass: 6,
     behavior: 'chase', attackCd: 1.0, isBoss: true
   }

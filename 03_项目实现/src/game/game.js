@@ -511,7 +511,7 @@ export class Game {
       this.waveTimer = 0;
       this.wave++;
       this.audio.wave();
-      this.banner = { text: `第 ${this.wave} 波`, sub: '', t: 2.2 };
+      this.banner = { text: `第 ${this.wave} 次潮汐`, sub: '', t: 2.2 };
 
       // 新波次开场：成组涌入
       const hpMul = 1 + (this.wave - 1) * 0.13;
@@ -522,7 +522,7 @@ export class Game {
 
       if (this.wave % 5 === 0) {
         const e = this.spawn('brute', { hpMul, dmgMul: 1 + this.wave * 0.05, speedMul: 1 });
-        if (e) this.banner = { text: '巨兽出现', sub: '小心它的撞击', t: 2.6 };
+        if (e) this.banner = { text: '守层者苏醒', sub: '它曾经和你一样', t: 2.6 };
       }
     }
   }

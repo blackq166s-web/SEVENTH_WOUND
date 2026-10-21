@@ -109,12 +109,12 @@ export class UI {
 
   showDead(s) {
     const rows = [
-      ['存活时间', fmtTime(s.time)],
-      ['击杀数', String(s.kills)],
-      ['最终等级', String(s.level)],
-      ['到达波次', String(s.wave)],
-      ['本局得分', String(s.score)],
-      ['历史最高', String(s.best)]
+      ['残留时长', fmtTime(s.time)],
+      ['击杀', String(s.kills)],
+      ['残响等级', String(s.level)],
+      ['潮汐', String(s.wave)],
+      ['残响量', String(s.score)],
+      ['最深残留', String(s.best)]
     ];
     this.deadStats.innerHTML = rows
       .map(([k, v]) => `<div class="srow"><span>${k}</span><b>${v}</b></div>`)
@@ -129,10 +129,10 @@ export class UI {
   showClear(def, index, isLast, s) {
     this.nextIsLast = isLast;
     this.clearText.innerHTML = isLast
-      ? `<b>${def.name}</b> 完成 —— 你已经通关全部关卡。<br/><span class="dim">得分 ${s.score} · 击杀 ${s.kills} · 等级 ${s.level}</span>`
-      : `<b>${def.name}</b> 完成。<br/><span class="dim">得分 ${s.score} · 击杀 ${s.kills} · 生命 ${Math.ceil(this.game.player.hp)}</span>`;
+      ? `<b>${def.name}</b> 已清理 —— 六层回廊到头了，下面就是竞技场。<br/><span class="dim">残响量 ${s.score} · 击杀 ${s.kills} · 等级 ${s.level}</span>`
+      : `<b>${def.name}</b> 已清空。<br/><span class="dim">残响量 ${s.score} · 击杀 ${s.kills} · 生命 ${Math.ceil(this.game.player.hp)}</span>`;
     const btn = $('btnNext');
-    if (btn) btn.textContent = isLast ? '重新挑战' : '进入下一关';
+    if (btn) btn.textContent = isLast ? '再入地渊' : '继续下潜';
     this.show('clear');
   }
 }
