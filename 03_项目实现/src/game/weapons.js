@@ -50,6 +50,41 @@ export const WEAPONS = {
     name: '蜂巢 · 转轮机枪', tier: 4, dmg: 9, rate: 0.042, speed: 1300, spread: 0.13,
     pellets: 1, mag: 120, reload: 2.2, pierce: 0, knockback: 55,
     color: '#ffe8b5', size: 2.4, life: 1.0, sound: 'minigun'
+  },
+
+  // ---------- v0.3 新增 6 把（S6-C） ----------
+  // 遗留：对称、工业感，靠"手艺"而不是蛮力
+  whistle: {
+    name: '口哨 · 精准手枪', tier: 2, dmg: 27, rate: 0.42, speed: 1500, spread: 0.004,
+    pellets: 1, mag: 8, reload: 0.95, pierce: 1, knockback: 150,
+    color: '#ffeacd', size: 2.8, life: 1.3, sound: 'pistol'
+  },
+  catechism: {
+    name: '教诲 · 三连点射', tier: 2, dmg: 10, rate: 0.62, burst: 3, burstGap: 0.06,
+    speed: 1350, spread: 0.02, pellets: 1, mag: 27, reload: 1.25, pierce: 0, knockback: 70,
+    color: '#ffd8a0', size: 2.4, life: 1.0, sound: 'rifle'
+  },
+  // 再铸：生物感的持续输出
+  acidbag: {
+    name: '酸囊 · 腐蚀喷洒', tier: 3, dmg: 3.4, rate: 0.045, speed: 400, spread: 0.2,
+    pellets: 1, mag: 170, reload: 1.7, pierce: 99, knockback: 8,
+    color: '#9dff2b', size: 8, life: 0.26, sound: 'flame', kind: 'acid', poison: 3
+  },
+  bonesaw: {
+    name: '碎骨 · 链锯枪', tier: 3, dmg: 7.5, rate: 0.052, speed: 1000, spread: 0.34,
+    pellets: 1, mag: 200, reload: 2.0, pierce: 1, knockback: 40,
+    color: '#e8d9b0', size: 2.6, life: 0.13, sound: 'minigun', kind: 'saw'
+  },
+  // 重火力：控场与爆发
+  cryo: {
+    name: '裂层 · 冰冻射线', tier: 4, dmg: 4.6, rate: 0.035, speed: 760, spread: 0.05,
+    pellets: 1, mag: 260, reload: 1.8, pierce: 1, knockback: 6,
+    color: '#a8f0ff', size: 4, life: 0.5, sound: 'plasma', kind: 'cryo', slow: 1.2
+  },
+  hymn: {
+    name: '圣咏 · 轨道炮', tier: 4, dmg: 170, rate: 1.5, speed: 3600, spread: 0.002,
+    pellets: 1, mag: 3, reload: 2.2, pierce: 99, knockback: 300,
+    color: '#fff3c4', size: 3.6, life: 1.8, sound: 'gauss', kind: 'rail', charge: 0.6
   }
 };
 
@@ -105,7 +140,8 @@ export function fireWeapon(g, p) {
       splash: w.splash || null,
       knockback: (w.knockback || 0) * (1 + (st.knockbackBonus || 0)),
       burn: w.burn ? (w.burn + (st.burnBonus || 0)) : (st.fireChance > random() ? 0.4 : 0),
-      poison: st.poisonChance > random() ? 3 : 0,
+      poison: w.poison ? w.poison : (st.poisonChance > random() ? 3 : 0),
+      slow: w.slow || 0,
       homing: st.homing || 0,
       crit: isCrit
     });

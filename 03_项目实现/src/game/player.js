@@ -29,6 +29,9 @@ export function createPlayer(x, y) {
     perkCounts: {},
     hurtFlash: 0,
     muzzle: 0,
+    burstLeft: 0,    // 连发剩余发数（三连点射）
+    burstTimer: 0,
+    chargeT: 0,      // 蓄力进度（轨道炮）
     stats: {
       dmgMul: 1,
       speedMul: 1,
@@ -99,10 +102,12 @@ export function giveWeapon(g, p, id) {
 
 export function updatePlayer(g, p, dt) {
   const input = g.input;
+  const wDef = WEAPONS[p.weapon];
 
-  // 移动
+  // 移动（蓄力时拖慢脚步，换那一发大伤害）
   const mv = input.moveVector();
-  const speed = p.speed * p.stats.speedMul;
+  const chargeSlow = wDef.charge ? 1 - 0.4 * Math.min(1, (p.chargeT || 0) / wDef.charge) : 1;
+  const speed = p.speed * p.stats.speedMul * chargeSlow;
   const k = damp(15, dt);
   p.vx += (mv.x * speed - p.vx) * k;
   p.vy += (mv.y * speed - p.vy) * k;
@@ -138,13 +143,39 @@ export function updatePlayer(g, p, dt) {
 
   p.cd = Math.max(0, p.cd - dt);
 
+  // 连发补射（三连点射：自动补完剩下的两发）
+  if (p.burstLeft > 0) {
+    p.burstTimer -= dt;
+    if (p.burstTimer <= 0 && p.ammo > 0) {
+      fireWeapon(g, p);
+      p.burstLeft--;
+      p.burstTimer = wDef.burstGap || 0.06;
+      p.muzzle = 0.05;
+    }
+    if (p.ammo <= 0) p.burstLeft = 0;
+  }
+
+  // 蓄力（轨道炮）：按住蓄满才放；松开就泄掉
+  if (wDef.charge) {
+    if (input.mouse.down && p.reloading <= 0) p.chargeT = Math.min(wDef.charge, p.chargeT + dt);
+    else p.chargeT = Math.max(0, p.chargeT - dt * 4);
+  } else if (p.chargeT) {
+    p.chargeT = 0;
+  }
+
   // 开火
   if (input.mouse.down && p.reloading <= 0 && p.cd <= 0) {
-    if (p.ammo > 0) {
+    const charged = !wDef.charge || p.chargeT >= wDef.charge;
+    if (p.ammo > 0 && charged) {
       fireWeapon(g, p);
-      p.cd = WEAPONS[p.weapon].rate;
-      p.muzzle = 0.06;
-    } else {
+      p.cd = wDef.rate;
+      p.muzzle = wDef.charge ? 0.1 : 0.06;
+      if (wDef.charge) p.chargeT = 0;
+      if (wDef.burst > 1) {
+        p.burstLeft = wDef.burst - 1;
+        p.burstTimer = wDef.burstGap || 0.06;
+      }
+    } else if (p.ammo <= 0) {
       g.audio.empty();
       startReload(g, p);
       p.cd = 0.15;

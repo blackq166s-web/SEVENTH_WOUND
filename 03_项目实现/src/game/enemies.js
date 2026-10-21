@@ -62,6 +62,8 @@ export function spawnEnemy(g, type, x, y, mods = {}) {
     burnDps: 0,
     poison: 0,
     poisonDps: 0,
+    slow: 0,          // 冰冻减速剩余时间
+    slowMul: 1,       // 减速倍率（越小越慢）
     phase: rand(0, TAU),
     born: 0.45,
     sprites: g.sprites[t.spriteSet],
@@ -77,6 +79,7 @@ export function updateEnemy(g, e, dt) {
   e.born = Math.max(0, e.born - dt);
   e.flash = Math.max(0, e.flash - dt);
   e.atkCd = Math.max(0, e.atkCd - dt);
+  if (e.slow > 0) e.slow = Math.max(0, e.slow - dt);
 
   const dx = p.x - e.x;
   const dy = p.y - e.y;
@@ -133,9 +136,11 @@ export function updateEnemy(g, e, dt) {
   const slowMul = 1 - Math.min(0.6, p.stats.enemySlow || 0);
   // 侵蚀 ≥70：地渊开始"认得"你了，所有敌人（含已在场的）移速 +10%
   const erosionMul = (p.erosion || 0) >= 70 ? 1.1 : 1;
+  // 冰冻（裂层射线）：优先于其它加速，减速期间再快也快不起来
+  const frostMul = e.slow > 0 ? e.slowMul : 1;
   const k = damp(8, dt);
-  e.vx += (tx * e.speed * spawnMul * slowMul * chargeMul * erosionMul - e.vx) * k;
-  e.vy += (ty * e.speed * spawnMul * slowMul * chargeMul * erosionMul - e.vy) * k;
+  e.vx += (tx * e.speed * spawnMul * slowMul * chargeMul * erosionMul * frostMul - e.vx) * k;
+  e.vy += (ty * e.speed * spawnMul * slowMul * chargeMul * erosionMul * frostMul - e.vy) * k;
 
   // 击退衰减
   const kd = Math.exp(-6 * dt);

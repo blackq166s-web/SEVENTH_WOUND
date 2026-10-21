@@ -18,6 +18,14 @@ import { fxRandom, fxRand } from '../core/fx.js';
 const WORLD_W = 2600;
 const WORLD_H = 2000;
 
+// 武器箱子按 tier 上色：远处一眼看出值不值得冲过去捡
+const TIER_COLORS = {
+  1: { core: 'rgba(168,196,224,0.55)', beam: 'rgba(168,196,224,0.20)' },
+  2: { core: 'rgba(255,209,102,0.68)', beam: 'rgba(255,209,102,0.28)' },
+  3: { core: 'rgba(124,231,255,0.72)', beam: 'rgba(124,231,255,0.32)' },
+  4: { core: 'rgba(255,77,94,0.78)', beam: 'rgba(255,77,94,0.38)' }
+};
+
 // 左臂布条颜色 = 该层主色（STORY §10 配色分区），最多 4 条
 const STRIPE_COLORS = ['#8f2a1c', '#a51622', '#4c7a26', '#6b2b93'];
 
@@ -99,6 +107,9 @@ export class Game {
 
     // 种子 RNG（P4-0）：null = 用 Math.random，行为与改动前一致
     this.seed = null;
+    // 武器掉落计时（S6-C）：保底用
+    this.lastWeaponDropAt = 0;
+    this.firstWeaponGiven = false;
     // 侵蚀值（P4-1）：本局峰值，死亡面板用
     this.maxErosion = 0;
     this.heartTimer = 0;
@@ -172,6 +183,8 @@ export class Game {
     this.intro = null;
     this.maxErosion = 0;
     this.heartTimer = 0;
+    this.lastWeaponDropAt = 0;
+    this.firstWeaponGiven = false;
     this.voice.reset();
     this.cam.snapTo(this.player.x, this.player.y);
     this.cam.shakeAmt = 0;
@@ -299,6 +312,15 @@ export class Game {
     }
     if (er >= 70) this.voice.say('erosionHigh');
 
+    // 开局保底（S6-C）：22 秒内在附近必掉一把，不依赖击杀。
+    // 叙事上这就是"捡到的第一把枪"，玩法上保证前 30 秒一定能换枪。
+    if (!this.firstWeaponGiven && this.time >= 22) {
+      this.firstWeaponGiven = true;
+      const a = M.rand(0, M.TAU);
+      this.dropWeapon(p.x + Math.cos(a) * 120, p.y + Math.sin(a) * 120, 2);
+      this.particles.ring(p.x + Math.cos(a) * 120, p.y + Math.sin(a) * 120, 40, 'rgba(255,209,102,0.8)', 0.6);
+    }
+
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (e.dead) continue;
@@ -377,7 +399,18 @@ export class Game {
       b.life -= dt;
 
       // 尾迹
-      if (b.kind === 'flame') {
+      if (b.kind === 'acid') {
+        if (fxRandom() < dt * 40) {
+          this.particles.add({
+            type: 'smoke',
+            x: b.x + M.rand(-4, 4), y: b.y + M.rand(-4, 4),
+            vx: b.vx * 0.05 + M.rand(-18, 18),
+            vy: b.vy * 0.05 + M.rand(-18, 18),
+            life: M.rand(0.18, 0.34), size: M.rand(4, 9),
+            color: 'rgba(157,255,43,0.35)', drag: 3
+          });
+        }
+      } else if (b.kind === 'flame') {
         if (M.random() < dt * 55) {
           this.particles.add({
             type: 'smoke',
@@ -432,6 +465,11 @@ export class Game {
           if (b.poison > 0) {
             e.poison = Math.max(e.poison, 2.5);
             e.poisonDps = Math.max(e.poisonDps, b.dmg * 0.3);
+          }
+          // 冰冻（裂层射线）：减速 1.2s，最低 45% 速度
+          if (b.slow > 0) {
+            e.slow = Math.max(e.slow, b.slow);
+            e.slowMul = Math.min(e.slowMul || 1, 0.45);
           }
 
           if (b.splash) {
@@ -731,20 +769,38 @@ export class Game {
     if (M.chance(0.045)) {
       this.pickups.push({ type: 'health', x: e.x, y: e.y, vx: M.rand(-40, 40), vy: M.rand(-40, 40), t: 0 });
     }
-    const dropChance = e.def.isBoss ? 1 : 0.032;
+    // 掉落：5% 概率 + 保底（连续 90 秒没掉就必掉），Boss 必掉
+    const sinceDrop = this.time - this.lastWeaponDropAt;
+    const pity = sinceDrop >= 90;
+    const dropChance = e.def.isBoss ? 1 : pity ? 1 : 0.05;
     if (M.chance(dropChance)) {
       const maxTier = e.def.isBoss ? 4 : Math.min(4, 1 + Math.floor(this.wave / 3));
-      this.pickups.push({
-        type: 'weapon',
-        weapon: randomWeaponDrop(maxTier, p.weapon),
-        x: e.x, y: e.y, vx: M.rand(-40, 40), vy: M.rand(-40, 40), t: 0
-      });
+      this.dropWeapon(e.x, e.y, maxTier);
     }
 
     // 死亡时钟
     if (M.chance(p.stats.explodeOnKill)) {
       this.explode(e.x, e.y, 92, 45, false);
     }
+  }
+
+  /**
+   * 掉一把武器。tier 决定箱子颜色；同时刷新保底计时。
+   * @returns {string} 掉落的武器 id
+   */
+  dropWeapon(x, y, maxTier = 2) {
+    const id = randomWeaponDrop(maxTier, this.player ? this.player.weapon : null);
+    this.pickups.push({
+      type: 'weapon',
+      weapon: id,
+      tier: WEAPONS[id].tier,
+      x, y,
+      vx: M.rand(-40, 40),
+      vy: M.rand(-40, 40),
+      t: 0
+    });
+    this.lastWeaponDropAt = this.time;
+    return id;
   }
 
   _bloodRgba(hex) {
@@ -963,6 +1019,38 @@ export class Game {
         ctx.drawImage(s.canvas, it.x - s.size / 2, it.y - s.size / 2 + bob, s.size, s.size);
       } else {
         const s = this.sprites.crate;
+        // 按 tier 上色：地面光晕 + 一道向上的光柱，混战里也能看见。
+        // 渐变按 tier 缓存（原点建一次，绘制时只平移），否则每个箱子每帧都要建两个渐变。
+        const tier = it.tier || 1;
+        if (!this._tierGrad) this._tierGrad = {};
+        let cache = this._tierGrad[tier];
+        if (!cache) {
+          const col = TIER_COLORS[tier] || TIER_COLORS[1];
+          const gl = ctx.createRadialGradient(0, 0, 2, 0, 0, 38);
+          gl.addColorStop(0, col.core);
+          gl.addColorStop(1, 'rgba(0,0,0,0)');
+          const beam = ctx.createLinearGradient(0, -96, 0, 0);
+          beam.addColorStop(0, 'rgba(0,0,0,0)');
+          beam.addColorStop(1, col.beam);
+          cache = { gl, beam };
+          this._tierGrad[tier] = cache;
+        }
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.translate(it.x, it.y);
+        ctx.fillStyle = cache.gl;
+        ctx.beginPath();
+        ctx.arc(0, 0, 38, 0, M.TAU);
+        ctx.fill();
+        ctx.fillStyle = cache.beam;
+        ctx.fillRect(-9, -120, 18, 120);
+        // 地面上的光圈，让"这里有东西"在余光里也能看见
+        ctx.strokeStyle = cache.beam;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.ellipse(0, 4, 26, 12, 0, 0, M.TAU);
+        ctx.stroke();
+        ctx.restore();
         ctx.drawImage(s.canvas, it.x - s.size / 2, it.y - s.size / 2 + bob, s.size, s.size);
       }
     }
@@ -1107,6 +1195,30 @@ export class Game {
     ctx.roundRect(6 + len * 0.55, -1.6, len * 0.42, 3.2, 1.5);
     ctx.fill();
 
+    // 蓄力聚能（轨道炮）：枪口一个越来越亮的球，蓄满后一圈白边
+    if (wDef.charge && p.chargeT > 0) {
+      const k = Math.min(1, p.chargeT / wDef.charge);
+      const mx = 6 + len + 4;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const cg = ctx.createRadialGradient(mx, 0, 0, mx, 0, 6 + k * 14);
+      cg.addColorStop(0, 'rgba(255,253,242,' + (0.5 + k * 0.45) + ')');
+      cg.addColorStop(0.5, 'rgba(255,214,120,' + (0.25 + k * 0.35) + ')');
+      cg.addColorStop(1, 'rgba(255,150,40,0)');
+      ctx.fillStyle = cg;
+      ctx.beginPath();
+      ctx.arc(mx, 0, 6 + k * 14, 0, M.TAU);
+      ctx.fill();
+      if (k >= 1) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(mx, 0, 15, 0, M.TAU);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // 枪口火焰
     if (p.muzzle > 0) {
       const mx = 6 + len + 3;
@@ -1142,6 +1254,79 @@ export class Game {
         ctx.beginPath();
         ctx.arc(b.x, b.y, 3, 0, M.TAU);
         ctx.fill();
+        continue;
+      }
+
+      if (b.kind === 'acid') {
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = fxRandom() < 0.5 ? '#9dff2b' : '#d2ff7a';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * fxRand(0.7, 1.1), 0, M.TAU);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      if (b.kind === 'saw') {
+        const spin = this.time * 42;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(spin);
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * M.TAU;
+          ctx.lineTo(Math.cos(a) * b.r * 1.9, Math.sin(a) * b.r * 1.9);
+          ctx.lineTo(Math.cos(a + 0.52) * b.r * 0.85, Math.sin(a + 0.52) * b.r * 0.85);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
+
+      if (b.kind === 'cryo') {
+        ctx.save();
+        ctx.strokeStyle = col;
+        ctx.globalAlpha = 0.8;
+        ctx.lineWidth = b.r * 1.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.x - b.vx * 0.022, b.y - b.vy * 0.022);
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#eaffff';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 0.5, 0, M.TAU);
+        ctx.fill();
+        continue;
+      }
+
+      if (b.kind === 'rail') {
+        const tx = b.x - b.vx * 0.032;
+        const ty = b.y - b.vy * 0.032;
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(255,243,196,0.28)';
+        ctx.lineWidth = 11;
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 3.6;
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.strokeStyle = '#fffdf2';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.restore();
         continue;
       }
 

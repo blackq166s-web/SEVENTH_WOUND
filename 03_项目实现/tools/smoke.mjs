@@ -370,6 +370,81 @@ assert(enemyKeys.every((k) => sp[k][0].size >= 50), '敌人精灵尺寸不应小
 assert(!!(sp.orb && sp.health && sp.crate), '三种拾取物精灵必须存在');
 assert(sp.orb.size < sp.brute[0].size, '掉落物应比 Boss 小得多');
 
+// 武器表（S6-C）：15 把、字段齐全、名字唯一
+const { WEAPONS, WEAPON_IDS } = await import('../src/game/weapons.js');
+assert(WEAPON_IDS.length === 15, `应有 15 把武器，实际 ${WEAPON_IDS.length}`);
+const badW = WEAPON_IDS.filter((id) => {
+  const w = WEAPONS[id];
+  return !w.name || !w.tier || !w.dmg || !w.rate || !w.mag || !w.reload;
+});
+assert(badW.length === 0, `武器字段缺失：${badW.join(',')}`);
+const wNames = new Set(WEAPON_IDS.map((id) => WEAPONS[id].name));
+assert(wNames.size === WEAPON_IDS.length, '武器名不能重复');
+const KINDS = new Set(['bullet', 'plasma', 'flame', 'gauss', 'rocket', 'acid', 'saw', 'cryo', 'rail']);
+const badKind = WEAPON_IDS.filter((id) => WEAPONS[id].kind && !KINDS.has(WEAPONS[id].kind));
+assert(badKind.length === 0, `未实现的子弹类型：${badKind.join(',')}`);
+assert(WEAPON_IDS.some((id) => WEAPONS[id].burst > 1), '应存在连发武器');
+assert(WEAPON_IDS.some((id) => WEAPONS[id].charge > 0), '应存在蓄力武器');
+assert(WEAPON_IDS.some((id) => WEAPONS[id].slow > 0), '应存在减速武器');
+
+// 三连点射：一次扣扳机打三发
+game.start('survival');
+game.enemies.length = 0;
+game.bullets.length = 0;
+giveWeapon(game, game.player, 'catechism');
+input.mouse.down = true;
+game.player.cd = 0;
+const ammoBeforeBurst = game.player.ammo;
+game.update(STEP);
+for (let i = 0; i < 20; i++) { game.update(STEP); input.endFrame(); }
+assert(ammoBeforeBurst - game.player.ammo >= 3, `三连点射应耗 3 发，实际 ${ammoBeforeBurst - game.player.ammo}`);
+input.mouse.down = false;
+
+// 蓄力：没蓄满不放，蓄满才放
+game.start('survival');
+game.enemies.length = 0;
+game.bullets.length = 0;
+giveWeapon(game, game.player, 'hymn');
+input.mouse.down = true;
+for (let i = 0; i < 18; i++) { game.update(STEP); input.endFrame(); }  // 0.30s < 0.6s
+assert(game.bullets.length === 0, `蓄力未满不应开火，实际 ${game.bullets.length} 发`);
+assert(game.player.chargeT > 0, '蓄力进度应在累积');
+for (let i = 0; i < 24; i++) { game.update(STEP); input.endFrame(); }  // 累计 0.7s
+assert(game.bullets.length > 0, '蓄满应开火');
+input.mouse.down = false;
+
+// 冰冻：命中后敌人被减速
+game.start('survival');
+game.enemies.length = 0;
+const frostTarget = game.spawn('zombie', {});
+frostTarget.x = game.player.x + 200;
+frostTarget.y = game.player.y;
+frostTarget.born = 0;
+game.addBullet({ x: frostTarget.x - 12, y: frostTarget.y, vx: 800, vy: 0, r: 3, dmg: 1, pierce: 0, life: 1, color: '#a8f0ff', kind: 'cryo', slow: 1.2 });
+game.update(STEP);
+assert(frostTarget.slow > 0, `冰冻应设置减速计时，实际 ${frostTarget.slow}`);
+assert(frostTarget.slowMul <= 0.5, `冰冻倍率应 ≤0.5，实际 ${frostTarget.slowMul}`);
+
+// 掉落保底：22 秒必掉一把（不依赖击杀）
+game.start('survival');
+game.pickups.length = 0;
+game.firstWeaponGiven = false;
+game.time = 22.1;
+game.update(STEP);
+assert(game.pickups.some((it) => it.type === 'weapon'), '22 秒应保底掉一把武器');
+const openingDrop = game.pickups.find((it) => it.type === 'weapon');
+assert(openingDrop.tier >= 1 && openingDrop.tier <= 4, '掉落物应带合法 tier');
+
+// 保底：超过 90 秒没掉，下一只怪必掉
+game.start('survival');
+game.pickups.length = 0;
+game.enemies.length = 0;
+game.lastWeaponDropAt = game.time - 91;
+const pityZombie = game.spawn('zombie', {});
+pityZombie.hp = 1;
+damageEnemy(game, pityZombie, 999, {});
+assert(game.pickups.some((it) => it.type === 'weapon'), '超 90 秒未掉落应触发保底');
+
 // 边缘威胁指示器
 const { offscreenThreats } = await import('../src/game/threats.js');
 game.start('survival');
