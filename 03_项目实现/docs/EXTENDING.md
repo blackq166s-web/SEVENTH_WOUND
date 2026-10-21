@@ -128,14 +128,20 @@ Perk 图标用的是单个汉字/符号，直接改 `icon` 就行。
 
 ## 7. 调平衡的地方
 
+> **先固定种子再调参**：`?seed=balance-2026`，然后 `node tools/determinism.mjs` 确认三遍一致，再改数值、再跑同一 seed 对比。
+> 否则你分不清"改动生效了"和"这次运气不同"。
+
 | 想改什么 | 改哪里 |
 | --- | --- |
 | 敌人数量压力 | `game.js` → `updateWaveSpawner()` 的 `interval` / `maxAlive` |
 | 难度成长 | 同上的 `hpMul` / `dmgMul` / `speedMul` 公式 |
 | 升级速度 | `player.js` 的 `xpNext` 初值 + `game.js` `gainXp()` 里的成长公式 |
-| 掉落率 | `game.js` → `killEnemy()` 的 `0.05`（血包）/ `0.032`（武器） |
+| 掉落率 | `game.js` → `killEnemy()` 的 `0.045`（血包）/ `0.032`（武器） |
 | 玩家手感 | `player.js` 的 `speed`、`r`，`updatePlayer()` 里的 `damp(15, dt)` 加速度 |
 | 镜头 | `core/camera.js` 的 `zoom`、`pad`；`game.js` 里准星前探系数 `0.16` |
+| 侵蚀累积速度 | `perks.js` 的 `EROSION_PER_STACK`（默认 8）/ `EROSION_MAX`（100） |
+| 侵蚀阈值 | `game.js` `updateWorld()` 的 `>= 40`（红移+心跳）；`enemies.js` 的 `>= 70`（移速 ×1.1）；`voice.js` 的 `erosionHigh` 触发点同 `game.js` |
+| 红移强度 | `game.js` `drawVignette()` 的 `0.18 + k * 0.34`（越大越红） |
 
 ---
 
@@ -145,4 +151,5 @@ Perk 图标用的是单个汉字/符号，直接改 `icon` 就行。
 - 世界固定 2600×2000（`game.js` 顶部 `WORLD_W/WORLD_H`）。
 - 固定步长 1/60 秒更新，渲染每帧一次；`update(dt)` 里不要依赖帧率。
 - 每个敌人被击杀要调用 `g.killEnemy()`，它会统一处理掉落/得分/经验。
-- 改完跑一下 `node tools/smoke.mjs`，能抓到 90% 的低级错误。
+- **随机一律用 `core/math.js` 的 `random()` / `rand()` / `chance()` / `pick()` / `shuffle()`**，不要直接写 `Math.random()`——直写会让 `?seed=` 复现失效。唯一例外是 `core/audio.js`（首次交互时机不可控）。
+- 改完跑一下 `node tools/smoke.mjs`，能抓到 90% 的低级错误；动过随机源或数值就再跑 `node tools/determinism.mjs`。

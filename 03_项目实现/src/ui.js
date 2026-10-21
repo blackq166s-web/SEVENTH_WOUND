@@ -121,6 +121,7 @@ export class UI {
       ['残留时长', fmtTime(s.time)],
       ['击杀', String(s.kills)],
       ['残响等级', String(s.level)],
+      ['最高侵蚀', String(s.maxErosion || 0)],
       ['潮汐', String(s.wave)],
       ['残响量', String(s.score)],
       ['最深残留', String(s.best)]

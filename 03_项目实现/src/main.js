@@ -9,8 +9,12 @@ const ctx = canvas.getContext('2d', { alpha: false });
 const input = new Input();
 const audio = new Audio();
 
+// ?seed=xxx → 固定随机序列（复现/调平衡用）；不传则用 Math.random，与旧版行为一致
+const params = new URLSearchParams(location.search);
+
 const game = new Game(canvas, ctx, input, audio, null);
 game.ui = new UI(game);
+game.setSeed(params.get('seed'));
 window.__game = game; // 调试入口
 
 function resize() {
@@ -68,7 +72,6 @@ requestAnimationFrame(frame);
 
 // 开发用快捷入口： ?auto=survival&warm=600&bot=1
 // （自动开局并快进若干帧，便于截图/自动化测试；bot=1 时用简易机器人瞄准射击）
-const params = new URLSearchParams(location.search);
 if (params.get('auto')) {
   const warm = Number(params.get('warm') || 0);
   const bot = params.get('bot') === '1';

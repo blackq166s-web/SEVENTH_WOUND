@@ -1,4 +1,4 @@
-import { rand, TAU, clamp, angleLerp, damp } from '../core/math.js';
+import { rand, random, TAU, clamp, angleLerp, damp } from '../core/math.js';
 
 let nextId = 1;
 
@@ -131,9 +131,11 @@ export function updateEnemy(g, e, dt) {
   // 距离远时加速接近，减少"空场等怪"的时间
   const chargeMul = distToPlayer > 460 ? 1.35 : 1;
   const slowMul = 1 - Math.min(0.6, p.stats.enemySlow || 0);
+  // 侵蚀 ≥70：地渊开始"认得"你了，所有敌人（含已在场的）移速 +10%
+  const erosionMul = (p.erosion || 0) >= 70 ? 1.1 : 1;
   const k = damp(8, dt);
-  e.vx += (tx * e.speed * spawnMul * slowMul * chargeMul - e.vx) * k;
-  e.vy += (ty * e.speed * spawnMul * slowMul * chargeMul - e.vy) * k;
+  e.vx += (tx * e.speed * spawnMul * slowMul * chargeMul * erosionMul - e.vx) * k;
+  e.vy += (ty * e.speed * spawnMul * slowMul * chargeMul * erosionMul - e.vy) * k;
 
   // 击退衰减
   const kd = Math.exp(-6 * dt);
@@ -151,7 +153,7 @@ export function updateEnemy(g, e, dt) {
   if (e.burn > 0) {
     e.burn -= dt;
     damageEnemy(g, e, e.burnDps * dt, { silent: true, noKnockback: true });
-    if (Math.random() < dt * 22) {
+    if (random() < dt * 22) {
       g.particles.add({
         type: 'smoke', x: e.x + rand(-6, 6), y: e.y + rand(-6, 6),
         vx: rand(-20, 20), vy: rand(-60, -20), life: 0.4, size: rand(3, 7),
@@ -183,8 +185,8 @@ export function damageEnemy(g, e, dmg, opts = {}) {
     const col = opts.color || '#ffffff';
     g.particles.blood(e.x, e.y, Math.atan2(e.y - g.player.y, e.x - g.player.x), 2, e.def.blood, 0.5);
     if (opts.crit) g.particles.text(e.x, e.y - e.r - 6, Math.round(dmg) + '!', '#ffd166', 17);
-    else if (Math.random() < 0.22) g.particles.text(e.x, e.y - e.r - 4, Math.round(dmg), col, 12);
-    if (Math.random() < 0.4) g.audio.hit();
+    else if (random() < 0.22) g.particles.text(e.x, e.y - e.r - 4, Math.round(dmg), col, 12);
+    if (random() < 0.4) g.audio.hit();
   }
 
   if (!opts.noKnockback && opts.knockback) {

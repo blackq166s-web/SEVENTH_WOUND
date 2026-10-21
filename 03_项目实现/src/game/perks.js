@@ -113,6 +113,10 @@ export const PERKS = [
 
 export const PERK_MAP = Object.fromEntries(PERKS.map((p) => [p.id, p]));
 
+/** 每拿一层"侵蚀"线刻印累积的侵蚀值（STORY §8：越强越不像人） */
+export const EROSION_PER_STACK = 8;
+export const EROSION_MAX = 100;
+
 export function perkStacks(p, id) {
   return p.perkCounts[id] || 0;
 }
@@ -129,4 +133,9 @@ export function rollPerks(p, n = 3) {
 export function applyPerk(p, perk) {
   perk.apply(p);
   p.perkCounts[perk.id] = perkStacks(p, perk.id) + 1;
+  // 代价：走"侵蚀"这条线就要付侵蚀值（钢铁 / 本能不能白拿，它们也不涨侵蚀）
+  if (perk.line === 'erosion') {
+    p.erosion = Math.min(EROSION_MAX, (p.erosion || 0) + EROSION_PER_STACK);
+  }
+  return p.erosion || 0;
 }

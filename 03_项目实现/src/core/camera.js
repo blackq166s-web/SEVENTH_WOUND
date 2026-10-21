@@ -1,4 +1,4 @@
-import { clamp, damp } from './math.js';
+import { clamp, damp, random } from './math.js';
 
 export class Camera {
   constructor(worldW, worldH, zoom = 1.3) {
@@ -61,8 +61,8 @@ export class Camera {
 
   update(dt) {
     if (this.shakeAmt > 0.05) {
-      this.ox = (Math.random() * 2 - 1) * this.shakeAmt;
-      this.oy = (Math.random() * 2 - 1) * this.shakeAmt;
+      this.ox = (random() * 2 - 1) * this.shakeAmt;
+      this.oy = (random() * 2 - 1) * this.shakeAmt;
       this.shakeAmt *= Math.pow(0.0008, dt);
     } else {
       this.shakeAmt = 0;

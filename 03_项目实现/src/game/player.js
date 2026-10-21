@@ -1,4 +1,4 @@
-import { clamp, damp, angleLerp, TAU, rand } from '../core/math.js';
+import { clamp, damp, angleLerp, TAU, rand, random } from '../core/math.js';
 import { WEAPONS, fireWeapon, magSize, reloadDuration } from './weapons.js';
 
 export function createPlayer(x, y) {
@@ -17,6 +17,7 @@ export function createPlayer(x, y) {
     xpNext: 6,
     pendingLevels: 0,
     stripes: 1,      // 左臂布条数 = 已下潜层数（STORY §2.3）
+    erosion: 0,      // 侵蚀值 0-100：每拿一层"侵蚀"线刻印 +8（STORY §8）
     weapon: 'pistol',
     ammo: 12,
     cd: 0,
@@ -115,7 +116,7 @@ export function updatePlayer(g, p, dt) {
   // 移动尾迹
   const moving = Math.hypot(p.vx, p.vy) > 30;
   p.walkPhase += Math.hypot(p.vx, p.vy) * dt * 0.05;
-  if (moving && Math.random() < dt * 14) {
+  if (moving && random() < dt * 14) {
     g.particles.add({
       type: 'smoke',
       x: p.x + rand(-5, 5) - Math.cos(p.body) * 8,
@@ -169,7 +170,7 @@ export function updatePlayer(g, p, dt) {
 export function hurtPlayer(g, dmg) {
   const p = g.player;
   if (p.hp <= 0) return;
-  if (Math.random() < p.stats.dodge) {
+  if (random() < p.stats.dodge) {
     g.particles.text(p.x, p.y - 26, '闪避', '#c9d6e5', 14);
     return;
   }

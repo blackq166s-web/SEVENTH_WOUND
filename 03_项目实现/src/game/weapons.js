@@ -1,4 +1,4 @@
-import { rand, pick } from '../core/math.js';
+import { rand, pick, random } from '../core/math.js';
 
 /**
  * 武器定义（数据驱动）。新增武器只需在这里加一项。
@@ -87,7 +87,7 @@ export function fireWeapon(g, p) {
     const ox = Math.cos(p.aim) * 17;
     const oy = Math.sin(p.aim) * 17;
     const sp = (w.speed || 900) * (1 + (st.bulletSpeedBonus || 0));
-    const isCrit = Math.random() < (st.critChance || 0);
+    const isCrit = random() < (st.critChance || 0);
     const dmg = (w.dmg || 1) * st.dmgMul * (isCrit ? 2.2 : 1);
 
     g.addBullet({
@@ -104,8 +104,8 @@ export function fireWeapon(g, p) {
       glow: w.glow || 0,
       splash: w.splash || null,
       knockback: (w.knockback || 0) * (1 + (st.knockbackBonus || 0)),
-      burn: w.burn ? (w.burn + (st.burnBonus || 0)) : (st.fireChance > Math.random() ? 0.4 : 0),
-      poison: st.poisonChance > Math.random() ? 3 : 0,
+      burn: w.burn ? (w.burn + (st.burnBonus || 0)) : (st.fireChance > random() ? 0.4 : 0),
+      poison: st.poisonChance > random() ? 3 : 0,
       homing: st.homing || 0,
       crit: isCrit
     });

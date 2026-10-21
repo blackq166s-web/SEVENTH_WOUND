@@ -71,6 +71,20 @@ export class Game {
     this.questDone = false;
     this.questName = '';
     this.timeScale = 1;
+
+    // 种子 RNG（P4-0）：null = 用 Math.random，行为与改动前一致
+    this.seed = null;
+    // 侵蚀值（P4-1）：本局峰值，死亡面板用
+    this.maxErosion = 0;
+    this.heartTimer = 0;
+  }
+
+  /** 传 null/'' 恢复 Math.random；返回实际生效的种子（null 表示未启用） */
+  setSeed(seed) {
+    const s = seed === null || seed === undefined || seed === '' ? null : String(seed);
+    this.seed = s;
+    M.setRng(s === null ? null : M.makeRng(s));
+    return s;
   }
 
   setViewport(w, h, dpr) {
@@ -84,6 +98,8 @@ export class Game {
 
   start(mode) {
     this.mode = mode;
+    // 同一 seed 每局从头播同一条序列：重开即复现，不看上一局跑了多久
+    if (this.seed) this.setSeed(this.seed);
     this.reset();
     this.state = 'playing';
     this.ui.hide();
@@ -118,6 +134,8 @@ export class Game {
     this.questDone = false;
     this.questName = '';
     this.intro = null;
+    this.maxErosion = 0;
+    this.heartTimer = 0;
     this.voice.reset();
     this.cam.snapTo(this.player.x, this.player.y);
     this.cam.shakeAmt = 0;
@@ -228,6 +246,21 @@ export class Game {
     // 首次低血独白（每局一次，靠 voice 的去重）
     if (p.hp > 0 && p.hp / p.maxHp < 0.3) this.voice.say('firstLowHp');
 
+    // 侵蚀值（P4-2）：>=40 心跳开始加快，>=70 台词开始"不像人"
+    const er = p.erosion || 0;
+    if (er > this.maxErosion) this.maxErosion = er;
+    if (er >= 40) {
+      this.heartTimer -= dt;
+      if (this.heartTimer <= 0) {
+        const k = M.clamp((er - 40) / 60, 0, 1); // 40 → 0，100 → 1
+        this.heartTimer = 1.15 - 0.6 * k;        // 1.15s 加快到 0.55s
+        this.audio.heartbeat(0.7 + k * 0.5);
+      }
+    } else {
+      this.heartTimer = 0;
+    }
+    if (er >= 70) this.voice.say('erosionHigh');
+
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (e.dead) continue;
@@ -307,18 +340,18 @@ export class Game {
 
       // 尾迹
       if (b.kind === 'flame') {
-        if (Math.random() < dt * 55) {
+        if (M.random() < dt * 55) {
           this.particles.add({
             type: 'smoke',
             x: b.x + M.rand(-4, 4), y: b.y + M.rand(-4, 4),
             vx: b.vx * 0.06 + M.rand(-30, 30),
             vy: b.vy * 0.06 + M.rand(-30, 30),
             life: M.rand(0.12, 0.28), size: M.rand(5, 11),
-            color: Math.random() < 0.5 ? 'rgba(255,170,60,0.55)' : 'rgba(255,90,30,0.45)',
+            color: M.random() < 0.5 ? 'rgba(255,170,60,0.55)' : 'rgba(255,90,30,0.45)',
             drag: 3
           });
         }
-      } else if (b.glow && Math.random() < dt * 30) {
+      } else if (b.glow && M.random() < dt * 30) {
         this.particles.add({
           type: 'dot', x: b.x, y: b.y, vx: 0, vy: 0,
           life: 0.18, size: b.r * 0.8, color: b.color
@@ -537,7 +570,7 @@ export class Game {
 
     let total = 0;
     for (const it of pool) total += it[1];
-    let r = Math.random() * total;
+    let r = M.random() * total;
     for (const it of pool) {
       r -= it[1];
       if (r <= 0) return it[0];
@@ -741,7 +774,9 @@ export class Game {
       level: p ? p.level : 1,
       best: this.best,
       wave: this.wave,
-      mode: this.mode
+      mode: this.mode,
+      erosion: p ? Math.round(p.erosion || 0) : 0,
+      maxErosion: this.maxErosion
     };
   }
 
@@ -839,6 +874,26 @@ export class Game {
     ctx.fillRect(0, 0, w, h);
 
     const p = this.player;
+
+    // 侵蚀：≥40 画面开始泛红，越接近 100 越重，并按心跳节奏搏动
+    // （和低血预警用同一套红，STORY §10"红色不是装饰，是状态"）
+    const er = p ? p.erosion || 0 : 0;
+    if (er >= 40) {
+      const k = M.clamp((er - 40) / 60, 0, 1);
+      const beat = 0.5 + Math.sin(this.time * (3 + k * 4)) * 0.5;
+      // 40 时约 0.18，100 时约 0.52，搏动幅度随侵蚀加大
+      const a = (0.18 + k * 0.34) * (0.78 + beat * 0.22);
+      const rg = ctx.createRadialGradient(
+        w / 2, h / 2, Math.min(w, h) * 0.20,
+        w / 2, h / 2, Math.max(w, h) * 0.72
+      );
+      rg.addColorStop(0, 'rgba(190,18,46,0)');
+      rg.addColorStop(0.30, `rgba(190,18,46,${(a * 0.5).toFixed(3)})`);
+      rg.addColorStop(1, `rgba(176,14,40,${a.toFixed(3)})`);
+      ctx.fillStyle = rg;
+      ctx.fillRect(0, 0, w, h);
+    }
+
     if (p && p.hurtFlash > 0) {
       ctx.fillStyle = `rgba(190,10,30,${p.hurtFlash * 0.22})`;
       ctx.fillRect(0, 0, w, h);
@@ -1032,7 +1087,7 @@ export class Game {
 
       if (b.kind === 'flame') {
         ctx.globalAlpha = 0.5;
-        ctx.fillStyle = Math.random() < 0.5 ? '#ff7a2a' : '#ffbb4d';
+        ctx.fillStyle = M.random() < 0.5 ? '#ff7a2a' : '#ffbb4d';
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r * M.rand(0.8, 1.2), 0, M.TAU);
         ctx.fill();

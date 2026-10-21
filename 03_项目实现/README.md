@@ -51,6 +51,8 @@ node tools/serve.mjs 8123
 
 **成长**
 - 20 个可叠加 Perk（伤害、移速、装填、弹匣、追踪弹、点燃、中毒、穿透、暴击、闪避、时缓、备用武器槽……）
+- 三条刻印路线：钢铁 / 本能 / 侵蚀，升级卡上标出路线
+- **侵蚀值**：每拿一层"侵蚀"线刻印 +8（封顶 100）。≥40 画面泛红、心跳加快；≥70 敌人移速 +10%，独白开始"不像人"
 - 升级时三选一，可连续升级连续选择
 - 经验晶体掉落 + 磁吸拾取
 
@@ -66,6 +68,11 @@ node tools/serve.mjs 8123
 - 独白系统：屏幕底部打字机，非阻塞（不暂停 `update`、不挡输入），开局 / 首次升级 / 层主登场 / 首次低血 / 死亡各一句
 - 层间文本卡与层主登场：眉批 + 主标题 + 副题的中央横幅，1.6s 镜头轻推（不改缩放，准星不偏）
 
+**可复现**（调平衡用）
+- 全库随机走 `core/math.js` 的可注入随机源；加 `?seed=xxx` 即固定随机序列，同一 seed 每次跑出一模一样的数据
+- 不带 `?seed=` 时退回 `Math.random`，行为与改动前一致
+- 校验：`node tools/determinism.mjs`（同 seed 三遍逐项比对）
+
 ---
 
 ## 模块索引
@@ -73,26 +80,28 @@ node tools/serve.mjs 8123
 | 模块 | 路径 | 行数 | 职责 |
 | --- | --- | --- | --- |
 | 入口页面 | `index.html` | 422 | 画布、菜单/HUD 覆盖层、全部样式 |
-| 引导 | `src/main.js` | 118 | 画布尺寸、固定步长主循环、`?auto=` 调试快进 |
+| 引导 | `src/main.js` | 121 | 画布尺寸、固定步长主循环、`?seed=` / `?auto=` |
 | UI 交互 | `src/ui.js` | 153 | 菜单 / 升级三选一 / 死亡 / 暂停 / 通关 |
-| 数学 | `src/core/math.js` | 46 | clamp / damp / angleLerp / rand |
+| 数学 | `src/core/math.js` | 91 | clamp / damp / angleLerp / rand，**可注入种子随机源** |
 | 输入 | `src/core/input.js` | 66 | 键鼠，含边沿触发 `tap()` |
-| 音频 | `src/core/audio.js` | 188 | WebAudio 实时合成，无音频文件 |
+| 音频 | `src/core/audio.js` | 198 | WebAudio 实时合成，无音频文件（唯一保留 `Math.random` 的模块） |
 | 镜头 | `src/core/camera.js` | 73 | 跟随、震动、缩放、边界钳制 |
-| 核心 | `src/game/game.js` | 1091 | 状态机、波次/关卡调度、碰撞、渲染管线 |
-| 玩家 | `src/game/player.js` | 192 | 移动、瞄准、开火、装填、受伤 |
+| 核心 | `src/game/game.js` | 1146 | 状态机、波次/关卡调度、碰撞、渲染管线、种子与侵蚀值 |
+| 玩家 | `src/game/player.js` | 193 | 移动、瞄准、开火、装填、受伤、侵蚀值 |
 | 武器 | `src/game/weapons.js` | 126 | 武器数据表 + 开火逻辑 |
-| 敌人 | `src/game/enemies.js` | 197 | 敌人数据表 + AI + 受伤 |
-| Perk | `src/game/perks.js` | 132 | 20 个可叠加 Perk 数据表 |
+| 敌人 | `src/game/enemies.js` | 199 | 敌人数据表 + AI + 受伤（含侵蚀加速） |
+| Perk | `src/game/perks.js` | 141 | 20 个可叠加 Perk 数据表 + 侵蚀计费 |
 | 关卡 | `src/game/quests.js` | 51 | 6 个手工关卡数据 |
 | 粒子 | `src/game/particles.js` | 199 | 血、火花、尸块、烟雾、飘字 |
 | 血迹 | `src/game/decals.js` | 86 | 离屏 0.5 分辨率，定期淡出 |
-| HUD | `src/game/hud.js` | 179 | 画布内 HUD、中央横幅（潮汐 / 层间卡 / 层主条） |
+| HUD | `src/game/hud.js` | 190 | 画布内 HUD（含侵蚀条）、中央横幅 |
 | 威胁指示器 | `src/game/threats.js` | 110 | 视野外敌人的屏幕边缘提示（计算与绘制分离） |
 | 独白 | `src/game/voice.js` | 160 | 非阻塞独白队列 + 打字机渲染（不暂停世界） |
 | 精灵 | `src/render/sprites.js` | 438 | 程序化精灵 + 地面瓦片 |
 | 静态服务 | `tools/serve.mjs` | 54 | 零依赖 http 服务 |
-| 冒烟测试 | `tools/smoke.mjs` | 383 | DOM 桩，node 内跑 1.5 万帧 |
+| 冒烟测试 | `tools/smoke.mjs` | 379 | DOM 桩，node 内跑 1.5 万帧 |
+| DOM 桩 | `tools/dom-stub.mjs` | 88 | smoke 与 determinism 共用的最小 DOM/Canvas 桩 |
+| 复现校验 | `tools/determinism.mjs` | 140 | 同 seed 三遍比对，逐项数据必须一致 |
 | 截图 | `tools/shoot.mjs` | 152 | 本机 Chrome + playwright-core，输出到 `shots/` |
 | 帧率 | `tools/fps.mjs` | 14 | 端到端 rAF 帧率 |
 | 扩展文档 | `docs/EXTENDING.md` | — | 加武器/敌人/Perk/关卡/模式 |

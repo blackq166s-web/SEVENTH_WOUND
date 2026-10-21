@@ -1,5 +1,5 @@
 // 程序化生成的精灵缓存（无图片资源）。约定：绘制方向为 +X（朝右）
-import { TAU } from '../core/math.js';
+import { TAU, random } from '../core/math.js';
 
 const CACHE = new Map();
 
@@ -374,10 +374,10 @@ export function makeGroundTile() {
 
   // 大尺度斑驳，避免地面死板（9 次绘制保证瓦片无缝）
   for (let i = 0; i < 34; i++) {
-    const x = Math.random() * S;
-    const y = Math.random() * S;
-    const r = 18 + Math.random() * 52;
-    const bright = Math.random() > 0.45;
+    const x = random() * S;
+    const y = random() * S;
+    const r = 18 + random() * 52;
+    const bright = random() > 0.45;
     const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
     g.addColorStop(0, bright ? 'rgba(72,82,98,0.34)' : 'rgba(8,9,12,0.40)');
     g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -396,23 +396,23 @@ export function makeGroundTile() {
   }
 
   for (let i = 0; i < 850; i++) {
-    const x = Math.random() * S;
-    const y = Math.random() * S;
-    const v = Math.random();
+    const x = random() * S;
+    const y = random() * S;
+    const v = random();
     ctx.fillStyle = v > 0.7
       ? 'rgba(118,132,152,0.26)'
       : v > 0.38 ? 'rgba(52,60,72,0.6)' : 'rgba(6,7,9,0.7)';
-    ctx.fillRect(x, y, 1 + Math.random() * 2.6, 1 + Math.random() * 2.6);
+    ctx.fillRect(x, y, 1 + random() * 2.6, 1 + random() * 2.6);
   }
 
   // 碎石
   for (let i = 0; i < 46; i++) {
-    const x = 6 + Math.random() * (S - 12);
-    const y = 6 + Math.random() * (S - 12);
-    const r = 1.4 + Math.random() * 2.6;
+    const x = 6 + random() * (S - 12);
+    const y = 6 + random() * (S - 12);
+    const r = 1.4 + random() * 2.6;
     ctx.fillStyle = 'rgba(96,108,126,0.16)';
     ctx.beginPath();
-    ctx.ellipse(x, y, r, r * 0.75, Math.random() * 3, 0, Math.PI * 2);
+    ctx.ellipse(x, y, r, r * 0.75, random() * 3, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath();
@@ -425,11 +425,11 @@ export function makeGroundTile() {
   ctx.lineWidth = 1;
   for (let i = 0; i < 7; i++) {
     ctx.beginPath();
-    let x = Math.random() * S, y = Math.random() * S;
+    let x = random() * S, y = random() * S;
     ctx.moveTo(x, y);
     for (let k = 0; k < 5; k++) {
-      x += (Math.random() - 0.5) * 60;
-      y += (Math.random() - 0.5) * 60;
+      x += (random() - 0.5) * 60;
+      y += (random() - 0.5) * 60;
       ctx.lineTo(x, y);
     }
     ctx.stroke();

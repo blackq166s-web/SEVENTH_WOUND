@@ -26,10 +26,12 @@ SECRETS.local.md           敏感信息（不入库）
 ## 验证
 
 ```bash
-node 03_项目实现/tools/smoke.mjs    # 无头冒烟：SMOKE_OK + 功能校验 PASS
-node 03_项目实现/tools/shoot.mjs    # 真浏览器截图 → 03_项目实现/shots/（需先起 8124 服务）
+node 03_项目实现/tools/smoke.mjs          # 无头冒烟：SMOKE_OK + 功能校验 PASS
+node 03_项目实现/tools/determinism.mjs    # 同 seed 三遍复现：DETERMINISM_OK
+node 03_项目实现/tools/shoot.mjs          # 真浏览器截图 → 03_项目实现/shots/（需先起 8124 服务）
 ```
 
 ## 当前进度
 
-见 `STAGE.md`。S1（手感与信息可读性）：D1 边缘威胁指示器已完成，接着 D2 冲刺、D3 受击反馈。
+见 `STAGE.md`。S1（手感与信息可读性）：D1 边缘威胁指示器已完成，D2 冲刺、D3 受击反馈挂起。
+S2 世界观 v1.0 已冻结，S3 设定落地四批（P1 文案 / P2 数据 / P3 叙事 / P4 种子 RNG + 侵蚀值）已全部交付；下一步定打包形态。

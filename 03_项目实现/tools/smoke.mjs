@@ -1,83 +1,8 @@
 // 无浏览器环境下的冒烟测试：用最小 DOM/Canvas 桩跑几千帧，捕获运行时异常
 // 运行： node tools/smoke.mjs
-const noop = () => {};
+import { installDom, makeCanvas } from './dom-stub.mjs';
 
-function makeCtx(canvas) {
-  const target = {
-    canvas,
-    measureText: () => ({ width: 12 }),
-    createLinearGradient: () => ({ addColorStop: noop }),
-    createRadialGradient: () => ({ addColorStop: noop }),
-    createPattern: () => ({ setTransform: noop }),
-    getImageData: () => ({ data: new Uint8ClampedArray(4) }),
-    save: noop,
-    restore: noop
-  };
-  return new Proxy(target, {
-    get(t, k) {
-      if (k in t) return t[k];
-      return noop;
-    },
-    set(t, k, v) { t[k] = v; return true; }
-  });
-}
-
-function makeCanvas(w = 300, h = 150) {
-  const c = { width: w, height: h, style: {} };
-  c.getContext = () => (c._ctx || (c._ctx = makeCtx(c)));
-  return c;
-}
-
-class El {
-  constructor(tag = 'div') {
-    this.tagName = tag;
-    this.children = [];
-    this.style = { setProperty: noop };
-    this._cls = new Set();
-    this.classList = {
-      add: (c) => this._cls.add(c),
-      remove: (c) => this._cls.delete(c),
-      toggle: (c, on) => { if (on) this._cls.add(c); else this._cls.delete(c); },
-      contains: (c) => this._cls.has(c)
-    };
-    this.innerHTML = '';
-    this.textContent = '';
-  }
-  addEventListener() {}
-  removeEventListener() {}
-  appendChild(c) { this.children.push(c); return c; }
-  setAttribute() {}
-  getBoundingClientRect() { return { left: 0, top: 0, width: 1280, height: 720 }; }
-  focus() {}
-}
-
-const elements = new Map();
-globalThis.document = {
-  createElement: (tag) => (tag === 'canvas' ? makeCanvas() : new El(tag)),
-  getElementById: (id) => {
-    if (!elements.has(id)) elements.set(id, new El());
-    return elements.get(id);
-  },
-  addEventListener: noop,
-  hidden: false,
-  body: new El('body')
-};
-
-globalThis.window = {
-  innerWidth: 1280,
-  innerHeight: 720,
-  devicePixelRatio: 1,
-  addEventListener: noop,
-  removeEventListener: noop
-};
-
-const store = new Map();
-globalThis.localStorage = {
-  getItem: (k) => (store.has(k) ? store.get(k) : null),
-  setItem: (k, v) => store.set(k, String(v))
-};
-globalThis.performance = { now: () => Date.now() };
-globalThis.requestAnimationFrame = (fn) => setTimeout(() => fn(Date.now()), 16);
+installDom();
 
 const { Game } = await import('../src/game/game.js');
 const { Input } = await import('../src/core/input.js');
@@ -342,6 +267,77 @@ for (let i = 0; i < 30; i++) { game.update(STEP); input.endFrame(); }
 assert(game.cam.zoom === zBefore, '登场演出不得改动缩放（否则世界坐标换算会错位）');
 for (let i = 0; i < 120; i++) { game.update(STEP); input.endFrame(); }
 assert(game.intro === null, '登场演出应在 1.6s 后自动结束');
+
+// 种子 RNG（P4-0）：同 seed 同序列，无 seed 回到 Math.random
+const M = await import('../src/core/math.js');
+game.setSeed('smoke-seed');
+assert(M.usingSeed() === true, 'setSeed 后应启用种子流');
+const seedA = M.random();
+const seedB = M.random();
+game.setSeed('smoke-seed');
+assert(M.random() === seedA && M.random() === seedB, '同 seed 的随机序列必须完全一致');
+assert(M.hashSeed('smoke-seed') === M.hashSeed('smoke-seed'), 'hashSeed 应稳定');
+game.setSeed(null);
+assert(M.usingSeed() === false, 'setSeed(null) 应恢复 Math.random');
+
+// 侵蚀值（P4-1）：只有"侵蚀"线刻印涨侵蚀，封顶 100
+const { EROSION_PER_STACK, EROSION_MAX } = await import('../src/game/perks.js');
+game.start('survival');
+const pe = game.player;
+assert(pe.erosion === 0, `开局侵蚀应为 0，实际 ${pe.erosion}`);
+game.setState('levelup');
+game.pickPerk(PERK_MAP.pyromaniac);
+assert(pe.erosion === EROSION_PER_STACK, `侵蚀线刻印应 +${EROSION_PER_STACK}，实际 ${pe.erosion}`);
+game.setState('levelup');
+game.pickPerk(PERK_MAP.bloody_mess);
+assert(pe.erosion === EROSION_PER_STACK, '钢铁线刻印不应涨侵蚀');
+for (let i = 0; i < 30; i++) {
+  game.setState('levelup');
+  game.pickPerk(PERK_MAP.pyromaniac);
+}
+assert(pe.erosion === EROSION_MAX, `侵蚀应封顶 ${EROSION_MAX}，实际 ${pe.erosion}`);
+
+// 侵蚀峰值 + ≥70 的独白与死亡面板数据（P4-2 / P4-3）
+game.start('survival');
+game.player.erosion = 80;
+game.update(STEP);
+assert(game.maxErosion === 80, `峰值侵蚀应被记录，实际 ${game.maxErosion}`);
+assert(game.voice.seen.has('erosionHigh') === true, '侵蚀 ≥70 应触发"不像人"的独白');
+const sum = game.summary();
+assert(sum.maxErosion === 80 && sum.erosion === 80, `summary 应带侵蚀数据，实际 ${JSON.stringify({ e: sum.erosion, m: sum.maxErosion })}`);
+
+// ≥70 敌人移速 +10%（同 seed 下对比 1 秒位移）
+function enemyTravel(erosion) {
+  game.start('survival');
+  game.enemies.length = 0;
+  game.bullets.length = 0;
+  input.mouse.down = false;
+  game.setSeed('speed-test');
+  game.player.erosion = erosion;
+  const e = game.spawn('zombie', {});
+  e.x = game.player.x + 500;
+  e.y = game.player.y;
+  e.born = 0;
+  const x0 = e.x;
+  for (let i = 0; i < 60; i++) { game.update(STEP); input.endFrame(); }
+  return x0 - e.x;
+}
+const travel0 = enemyTravel(0);
+const travel70 = enemyTravel(70);
+assert(
+  travel70 > travel0 * 1.05,
+  `侵蚀 ≥70 敌人应更快：${travel0.toFixed(1)} → ${travel70.toFixed(1)}`
+);
+
+// 高侵蚀下渲染不崩（HUD 侵蚀条 + 全屏红移）
+let renderErr = null;
+try {
+  game.player.erosion = 100;
+  game.render();
+} catch (e) {
+  renderErr = e;
+}
+assert(renderErr === null, `高侵蚀渲染异常：${renderErr && renderErr.message}`);
 
 // 边缘威胁指示器
 const { offscreenThreats } = await import('../src/game/threats.js');

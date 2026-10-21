@@ -57,12 +57,23 @@ export function drawHud(ctx, g, w, h) {
   const xpRatio = p.xp / p.xpNext;
   bar(ctx, bx, by + 24, bw, 7, xpRatio, '#2fb4ff', '#7ce7ff', 'rgba(255,255,255,0.08)');
 
+  // 侵蚀条（P4-3）：没有侵蚀刻印时整条不出现，避免开局多一条空条
+  const er = clamp(p.erosion || 0, 0, 100);
+  if (er > 0) {
+    const hot = er >= 70;
+    bar(ctx, bx, by + 34, bw, 5, er / 100, '#6b2b93', hot ? '#ff2d3f' : '#c8202b', 'rgba(255,255,255,0.07)');
+    ctx.textAlign = 'right';
+    ctx.font = `700 10px ${FONT}`;
+    ctx.fillStyle = hot ? '#ff8a72' : 'rgba(196,160,220,0.8)';
+    ctx.fillText(`侵蚀 ${Math.round(er)}`, bx + bw, by + 48);
+  }
+
   // 层数提示（Perk 数量）
   const perks = Object.values(p.perkCounts).reduce((a, b) => a + b, 0);
   ctx.textAlign = 'left';
   ctx.font = `600 11px ${FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillText(`PERKS ${perks}`, bx, by + 44);
+  ctx.fillText(`PERKS ${perks}`, bx, by + 48);
 
   // ---------- 右下：武器 ----------
   const wDef = WEAPONS[p.weapon];

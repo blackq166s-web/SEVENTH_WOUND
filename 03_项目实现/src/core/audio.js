@@ -21,6 +21,9 @@ export class Audio {
     const len = Math.floor(this.ctx.sampleRate * 0.8);
     const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
     const d = buf.getChannelData(0);
+    // 这里故意用 Math.random（不走 math.js 的种子流）：音频在"首次用户交互"时才初始化，
+    // 时机不可控，若消耗种子流会让同 seed 的数值复现随交互时刻漂移。
+    // 音效不参与任何数值计算，所以这个例外是安全的（见 math.js 顶部说明）。
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     this.noiseBuf = buf;
   }
@@ -151,6 +154,13 @@ export class Audio {
     if (!this._ok()) return;
     this.tone(220, 300, 0.16, 'triangle', 0.13);
     this.tone(330, 440, 0.2, 'triangle', 0.11, 0.14);
+  }
+
+  // 侵蚀值心跳（P4-2）：power 0.7-1.2，侵蚀越高越重、越急（节奏由 game.js 控制）
+  heartbeat(power = 1) {
+    if (!this._ok()) return;
+    this.tone(64, 38, 0.16, 'sine', 0.15 * power);
+    this.tone(52, 30, 0.2, 'sine', 0.09 * power, 0.15);
   }
 
   // 守层者登场：把采样率压到 8kHz 做失真，制造"庞然大物"的压迫感（STORY §10）

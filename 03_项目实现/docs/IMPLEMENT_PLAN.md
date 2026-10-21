@@ -1,7 +1,7 @@
 # 实现计划 · S3 设定落地
 
 > 上游：`STORY.md` v1.0（已拍板）、`DESIGN_MAP.md`（映射与改动分级）
-> 制定：2026-10-21 · 状态：**P1–P3 已交付**，下一批 P4（种子 RNG + 侵蚀值）
+> 制定：2026-10-21 · 状态：**P1–P4 全部交付**（S3 完成），下一步定打包形态
 
 ---
 
@@ -34,7 +34,7 @@
 | **P1** | 文案层：让世界"贴"上去 | A（纯字符串） | 无 | 6 文件 | **✅ 已完成** |
 | **P2** | 数据层：Perk 路线 + 主角布条 | B（小逻辑） | P1 | 5 文件 | **✅ 已完成** |
 | **P3** | 叙事层：独白 / 层间卡 / 守层者登场 | C（新系统，最小可行） | P2 | 6 文件 | **✅ 已完成** |
-| **P4** | 机制层：侵蚀值（前置：种子 RNG） | C（平衡风险） | P3 + RNG | 4 文件 | 待评估 |
+| **P4** | 机制层：侵蚀值（前置：种子 RNG） | C（平衡风险） | P3 + RNG | 9 文件 + 2 脚本 | **✅ 已完成** |
 
 **P1 是必做项**，P2–P4 每批执行前再过一次确认。
 
@@ -221,3 +221,46 @@ verify-p3.mjs    → P3_VERIFY_OK 17 项全 PASS / NO_PAGE_ERRORS
 1. **死亡独白不能画在画布上**：死亡是 DOM 面板，画布被整个盖住。所以 `MONO.death` 由 `ui.showDead()` 填进 `#deadVoice`。同一份数据，两个出口。
 2. **登场演出不能用 zoom 做推镜**：`cam.zoom` 同时参与鼠标世界坐标换算（`cam.x + (mouse.x - cam.ox) / zoom`），临时改它会让准星和子弹方向错位 1.6 秒。改成"把取景目标向 Boss 偏 32% 权重"，`cam.x/y` 每帧照常更新，坐标换算不受影响——断言 `cam.zoom` 全程不变就是锁这个。
 3. **`Voice` 的生命周期只跟字数有关**（`len / 26 + 2.5`），不跟帧数。这样回放、断言、同 seed 复现都能对齐；测试里别按"跑 8 秒"拍脑袋，先算 `len/26 + 2.5`。
+
+### P4 · 机制层（2026-10-21 完成）
+
+改动 9 文件 + 2 个新脚本：`core/math.js`（随机源）、`core/audio.js`（`heartbeat`）、`game.js`（`setSeed` / 侵蚀峰值 / 心跳 / 红移 / summary）、`player.js`（`erosion` 字段）、`perks.js`（`EROSION_PER_STACK` / `applyPerk` 计费）、`enemies.js`（≥70 移速 ×1.1）、`hud.js`（侵蚀条）、`ui.js`（最高侵蚀）、`voice.js`（`erosionHigh`）；新增 `tools/dom-stub.mjs`、`tools/determinism.mjs`。**未改任何既有武器/敌人/Perk 数值。**
+
+**P4-0 种子 RNG：只换实现，不改调用**
+
+```js
+// math.js
+let _rng = Math.random;            // 默认就是 Math.random，无参时一个数都不变
+export function random() { return _rng(); }
+export function setRng(fn) { _rng = typeof fn === 'function' ? fn : Math.random; }
+export function makeRng(seed) { /* mulberry32 */ }
+```
+
+全库 `Math.random()` → `random()` 共 32 处（`game` 5 / `player` 2 / `enemies` 3 / `weapons` 3 / `camera` 2 / `sprites` 17）。**唯一例外：`core/audio.js` 的 2 处保留 `Math.random`** ——它在"首次用户交互"时才建噪声缓冲，时机不可控，若消耗种子流会让同 seed 的结果随交互时刻漂移。音效不参与任何数值计算，所以这个例外是安全的。
+
+`start()` 里会按 `this.seed` 重新播种，因此"重开一局"永远从序列头开始，不看上一局跑了多久。
+
+**P4-1/2/3 侵蚀值**
+
+| 项 | 落地 |
+| --- | --- |
+| 累积 | `applyPerk` 里判 `perk.line === 'erosion'` → `p.erosion += 8`，封顶 100 |
+| ≥40 | 画面红移（径向渐变，`a = 0.18 + k*0.34`，随心跳搏动）+ 心跳音（1.15s → 0.55s 加快） |
+| ≥70 | 所有敌人（含已在场）移速 ×1.1；触发一次独白「这双手……不是我的。」「别再往里读了。」 |
+| HUD | HP 条下方 5px 侵蚀条（0 时不显示），右侧 `侵蚀 N`，≥70 转红 |
+| 死亡面板 | 新增「最高侵蚀」行 |
+
+**P4-4 验收：同 seed 三遍完全一致**
+
+```
+node tools/determinism.mjs                  → DETERMINISM_OK（60s，3 遍逐项一致）
+node tools/determinism.mjs balance-2026 18000 → DETERMINISM_OK（300s）
+跨进程两次运行 → 指纹同为 7c38ae31bed3ab08
+反证：换 seed 结果不同 ✓ / setSeed(null) 恢复 Math.random ✓
+```
+
+比对字段：`state / time / kills / score / level / wave / hp / shots / damage / enemies / bullets / pickups / erosion / maxErosion / posHash`。`posHash` 是场上敌人位置与血量的加权和，用来防"总分一样但过程不同"。
+
+**踩坑**：红移第一版太淡（侵蚀 45 时截图几乎看不出来）。原因是渐变中段 alpha 只有 `a*0.35`，且起始半径偏大，红色全挤在画面最外圈。改成中段 `a*0.5`、基值 `0.18` 后，45 能看出泛红、100 明显但不影响读敌人。
+
+**另一条经验**：浏览器里验复现不能靠 `?auto=...&warm=N` 后直接取数——warm 结束后 rAF 还在跑，两次加载会差几帧。正确做法是在 `page.evaluate` 里跑完固定帧数后立刻 `setState('paused')` 冻结世界，再取指纹（`_staging/.../verify-p4.mjs`）。
