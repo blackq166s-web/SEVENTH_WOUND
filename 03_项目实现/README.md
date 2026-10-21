@@ -11,7 +11,8 @@
 | 输入 | `src/core/input.js` | 66 | 键鼠，含边沿触发 `tap()` |
 | 音频 | `src/core/audio.js` | 155 | WebAudio 实时合成，无音频文件 |
 | 镜头 | `src/core/camera.js` | 73 | 跟随、震动、缩放、边界钳制 |
-| 核心 | `src/game/game.js` | 1010 | 状态机、波次/关卡调度、碰撞、渲染管线 |
+| 核心 | `src/game/game.js` | 1012 | 状态机、波次/关卡调度、碰撞、渲染管线 |
+| 威胁指示器 | `src/game/threats.js` | 110 | 视野外敌人的屏幕边缘提示（计算与绘制分离） |
 | 玩家 | `src/game/player.js` | 191 | 移动、瞄准、开火、装填、受伤 |
 | 武器 | `src/game/weapons.js` | 126 | 武器数据表 + 开火逻辑 |
 | 敌人 | `src/game/enemies.js` | 197 | 敌人数据表 + AI + 受伤 |

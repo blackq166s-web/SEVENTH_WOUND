@@ -7,6 +7,7 @@ import { WEAPONS, magSize, randomWeaponDrop } from './weapons.js';
 import { spawnEnemy, updateEnemy, damageEnemy, ENEMY_TYPES } from './enemies.js';
 import { rollPerks, applyPerk } from './perks.js';
 import { drawHud } from './hud.js';
+import { drawThreatIndicators } from './threats.js';
 import { QUESTS, buildQuestQueue } from './quests.js';
 import { getSprites, makeGroundTile } from '../render/sprites.js';
 
@@ -732,6 +733,7 @@ export class Game {
     // 屏幕空间
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawVignette(ctx, w, h);
+    drawThreatIndicators(ctx, this, w, h);
     drawHud(ctx, this, w, h);
     this.drawCrosshair(ctx);
   }

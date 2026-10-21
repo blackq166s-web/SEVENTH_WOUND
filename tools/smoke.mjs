@@ -269,6 +269,33 @@ damageEnemy(game, boss, 999, {});
 assert(boss.dead === true, 'Boss 应可被击杀');
 assert(game.pickups.some((it) => it.type === 'weapon'), 'Boss 必掉武器');
 
+// 边缘威胁指示器
+const { offscreenThreats } = await import('../src/game/threats.js');
+game.start('survival');
+game.setState('playing');
+for (let i = 0; i < 24; i++) game.spawn('zombie', {});
+const threats = offscreenThreats(game, 1280, 720);
+assert(threats.length === 8, `视野外敌人过多时应截断到 8 个，实际 ${threats.length}`);
+assert(
+  threats.every((t) => t.x >= 0 && t.x <= 1280 && t.y >= 0 && t.y <= 720),
+  '指示器坐标应落在视口内'
+);
+assert(
+  threats.every((t, i) => i === 0 || threats[i - 1].dist <= t.dist),
+  '指示器应按距离升序（近的优先保留）'
+);
+// 视野内的敌人不该出现提示
+game.enemies.length = 0;
+const near = game.spawn('zombie', {});
+near.x = game.player.x + 8;
+near.y = game.player.y;
+assert(offscreenThreats(game, 1280, 720).length === 0, '视野内敌人不应产生边缘指示器');
+// 非战斗状态不提示
+for (let i = 0; i < 4; i++) game.spawn('zombie', {});
+game.setState('paused');
+assert(offscreenThreats(game, 1280, 720).length === 0, '暂停时不应显示边缘指示器');
+game.setState('playing');
+
 // 关卡推进
 game.start('quest');
 game.questQueue.length = 0;
