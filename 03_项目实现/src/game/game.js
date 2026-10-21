@@ -18,6 +18,24 @@ const WORLD_H = 2000;
 // 左臂布条颜色 = 该层主色（STORY §10 配色分区），最多 4 条
 const STRIPE_COLORS = ['#8f2a1c', '#a51622', '#4c7a26', '#6b2b93'];
 
+// localStorage 在 file:// 或隐私模式下可能直接抛异常（单文件发布版就是 file://）。
+// 存档只是"最高分"，丢了不影响玩，所以一律吞掉异常。
+function loadSave(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveBest(key, value) {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch (e) {
+    /* 存档不可用：忽略 */
+  }
+}
+
 export class Game {
   constructor(canvas, ctx, input, audio, ui) {
     this.canvas = canvas;
@@ -56,7 +74,7 @@ export class Game {
     this.score = 0;
     // 存档键于 2026-10-21 改名（CRIMSON ARENA → SEVENTH WOUND）。
     // 必须保留旧键回退：改名当天已有的玩家最高分写在 crimson_best 里。
-    const savedBest = localStorage.getItem('seventhwound_best') ?? localStorage.getItem('crimson_best');
+    const savedBest = loadSave('seventhwound_best') ?? loadSave('crimson_best');
     this.best = Number(savedBest || 0);
     this.banner = { text: '', sub: '', t: 0 };
     this.hitstop = 0;
@@ -760,7 +778,7 @@ export class Game {
     this.decals.splat(p.x, p.y, 30, 'rgba(160,20,30,0.85)');
     if (this.score > this.best) {
       this.best = this.score;
-      localStorage.setItem('seventhwound_best', String(this.best));
+      saveBest('seventhwound_best', this.best);
     }
     this.ui.showDead(this.summary());
   }

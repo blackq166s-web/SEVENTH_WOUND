@@ -20,8 +20,28 @@ node tools/serve.mjs 8123
 ```
 
 > 必须通过 http 访问。直接双击 `index.html`（file://）会因为 ES Module 的跨域限制加载失败。
+> 想"双击即玩"就用下面的发布版。
 
 要求：任意 2021 年后的 Chrome / Edge / Firefox。
+
+---
+
+## 发布（打包成单文件）
+
+```bash
+node tools/pack.mjs
+# → release/SEVENTH-WOUND-<version>.html  （双击即玩，file:// 可用）
+# → release/运行说明.txt
+```
+
+`pack.mjs` 只做一件事：把 18 个 ES Module 内联进一个 HTML：每个模块包成 IIFE 放进 `__mods` 注册表，`import` 变成从注册表取绑定。这样就不受 file:// 的 CORS 限制。
+
+几条约定：
+
+- **这不是构建**。开发时仍然直接跑 `index.html` + `src/`，不需要先生成任何东西；`src/` 是唯一真源，`release/` 是生成物（已 gitignore）。
+- 版本号只有**一个真源**：`package.json`。`index.html` 里 `#verLine` 必须与之一致，`pack.mjs` 会校验，不一致直接报错。
+- 打包会做自检：单文件里只要还残留 `<script src>`、相对 `href` 或 `import './'` 就失败。
+- 脚本不支持的写法会直接报错而不是静默产出坏包：跨行 `import`、动态 `import()`、`import.meta`、`export {}` / `export default`。
 
 ---
 
@@ -79,14 +99,14 @@ node tools/serve.mjs 8123
 
 | 模块 | 路径 | 行数 | 职责 |
 | --- | --- | --- | --- |
-| 入口页面 | `index.html` | 422 | 画布、菜单/HUD 覆盖层、全部样式 |
+| 入口页面 | `index.html` | 431 | 画布、菜单/HUD 覆盖层、全部样式 |
 | 引导 | `src/main.js` | 121 | 画布尺寸、固定步长主循环、`?seed=` / `?auto=` |
 | UI 交互 | `src/ui.js` | 153 | 菜单 / 升级三选一 / 死亡 / 暂停 / 通关 |
 | 数学 | `src/core/math.js` | 91 | clamp / damp / angleLerp / rand，**可注入种子随机源** |
 | 输入 | `src/core/input.js` | 66 | 键鼠，含边沿触发 `tap()` |
 | 音频 | `src/core/audio.js` | 198 | WebAudio 实时合成，无音频文件（唯一保留 `Math.random` 的模块） |
 | 镜头 | `src/core/camera.js` | 73 | 跟随、震动、缩放、边界钳制 |
-| 核心 | `src/game/game.js` | 1146 | 状态机、波次/关卡调度、碰撞、渲染管线、种子与侵蚀值 |
+| 核心 | `src/game/game.js` | 1164 | 状态机、波次/关卡调度、碰撞、渲染管线、种子与侵蚀值 |
 | 玩家 | `src/game/player.js` | 193 | 移动、瞄准、开火、装填、受伤、侵蚀值 |
 | 武器 | `src/game/weapons.js` | 126 | 武器数据表 + 开火逻辑 |
 | 敌人 | `src/game/enemies.js` | 199 | 敌人数据表 + AI + 受伤（含侵蚀加速） |
@@ -99,6 +119,7 @@ node tools/serve.mjs 8123
 | 独白 | `src/game/voice.js` | 160 | 非阻塞独白队列 + 打字机渲染（不暂停世界） |
 | 精灵 | `src/render/sprites.js` | 438 | 程序化精灵 + 地面瓦片 |
 | 静态服务 | `tools/serve.mjs` | 54 | 零依赖 http 服务 |
+| 打包发布 | `tools/pack.mjs` | 186 | 内联 18 个模块 → 单文件 HTML（file:// 可玩），校验版本一致 |
 | 冒烟测试 | `tools/smoke.mjs` | 379 | DOM 桩，node 内跑 1.5 万帧 |
 | DOM 桩 | `tools/dom-stub.mjs` | 88 | smoke 与 determinism 共用的最小 DOM/Canvas 桩 |
 | 复现校验 | `tools/determinism.mjs` | 140 | 同 seed 三遍比对，逐项数据必须一致 |

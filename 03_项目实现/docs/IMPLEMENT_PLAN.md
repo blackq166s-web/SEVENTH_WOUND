@@ -264,3 +264,51 @@ node tools/determinism.mjs balance-2026 18000 → DETERMINISM_OK（300s）
 **踩坑**：红移第一版太淡（侵蚀 45 时截图几乎看不出来）。原因是渐变中段 alpha 只有 `a*0.35`，且起始半径偏大，红色全挤在画面最外圈。改成中段 `a*0.5`、基值 `0.18` 后，45 能看出泛红、100 明显但不影响读敌人。
 
 **另一条经验**：浏览器里验复现不能靠 `?auto=...&warm=N` 后直接取数——warm 结束后 rAF 还在跑，两次加载会差几帧。正确做法是在 `page.evaluate` 里跑完固定帧数后立刻 `setState('paused')` 冻结世界，再取指纹（`_staging/.../verify-p4.mjs`）。
+
+### 发布 · 浏览器单文件包 v0.2.0（2026-10-21）
+
+**为什么要打包**：ES Module 在 `file://` 下会被 CORS 拦住，所以"把游戏发给别人、双击就能玩"必须先内联。这是发布需求，不是开发需求——开发仍然直接跑 `index.html` + `src/`，零构建。
+
+**做法**（`tools/pack.mjs`，零依赖，186 行）
+
+1. 从 `src/main.js` 出发做后序遍历，拿到 18 个模块的拓扑序（依赖先求值）。
+2. 每个模块包成 IIFE：
+   ```js
+   __mods['game/player.js'] = (function () {
+     'use strict';
+     const { clamp, damp, random } = __mods['core/math.js'];   // import → 从注册表取
+     ...模块正文（去掉 export 前缀）...
+     return { createPlayer, updatePlayer, hurtPlayer, ... };
+   })();
+   ```
+3. 把 `index.html` 里的 `<script type="module" src="./src/main.js">` 换成内联 `<script>`。
+4. 自检：产物里只要还有 `<script src>` / 相对 `href` / 残留 `import './'` 就失败退出。
+
+**不支持的写法会直接报错**，不产出坏包：跨行 `import`、动态 `import()`、`import.meta`、`export {}` / `export default` / `export *`。当前代码库全部是单行 `import` + `export const|function|class`，所以这条路是通的（改动代码时要守住这条，否则打包会失败——这是有意的，宁可炸在打包，也别悄悄产出跑不起来的包）。
+
+**版本号**：唯一真源是 `package.json`（`0.1.0` → `0.2.0`）。`index.html` 的帮助面板有 `#verLine`，`pack.mjs` 校验两者一致，不一致直接报错。
+
+**顺手修的一个真 bug**：`game.js` 里 `localStorage` 直接调用，在 `file://` 或隐私模式下会抛异常，导致整局起不来。改成 `loadSave` / `saveBest` 两个 try/catch 包裹的helper——最高分丢了不影响玩，但这个异常会让游戏直接白屏。
+
+**验证**
+
+```
+node tools/pack.mjs
+版本      : v0.2.0
+模块      : 18 个
+源码体积  : 105.1 KB
+产物      : release/SEVENTH-WOUND-0.2.0.html（125.0 KB）+ release/运行说明.txt
+PACK_OK 单文件无外部依赖，可直接双击打开
+
+浏览器 file:// 实测（_staging/.../verify-pack.mjs）
+  PASS  file:// 下能创建 Game 实例 / 初始 menu / 版本 v0.2.0 / 无外链 script
+  PASS  点开局进入 playing，时间推进 1.6s，生成 7 个敌人
+  PASS  按住左键开火 10 发
+  PASS  file:// 下 ?seed= 仍生效（seed=pack-test，快进 600 帧后 12 杀）
+  PASS  死亡面板正常，含最高侵蚀
+  NO_PAGE_ERRORS / PACK_VERIFY_OK
+```
+
+截图：`v-pack-menu.png`（单文件菜单，样式与开发版一致）、`v-pack-play.png`、`v-pack-dead.png`。
+
+**为什么不做 zip**：单文件 HTML 已经是最小可分发的形态；zip 只会多一层解压。要给别人就发那一个 125 KB 的 html。

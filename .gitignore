@@ -1,6 +1,8 @@
 node_modules/
 shots/*.png
 03_项目实现/shots/*.png
+# 发布产物由 tools/pack.mjs 生成，不入库（归档时另外拷一份到 01_阶段成果/）
+03_项目实现/release/
 *.log
 SECRETS.local.md
 _staging/
