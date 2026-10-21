@@ -156,6 +156,15 @@ export class Audio {
     this.tone(330, 440, 0.2, 'triangle', 0.11, 0.14);
   }
 
+  /** 捡到武器：三音上扬，和普通拾取（pickup）明确区分 */
+  weapon() {
+    if (!this._ok()) return;
+    this.tone(520, 660, 0.09, 'triangle', 0.16);
+    this.tone(660, 880, 0.1, 'triangle', 0.16, 0.08);
+    this.tone(880, 1180, 0.16, 'triangle', 0.14, 0.17);
+    this.noise(0.14, 0.1, 2400, 500);
+  }
+
   // 侵蚀值心跳（P4-2）：power 0.7-1.2，侵蚀越高越重、越急（节奏由 game.js 控制）
   heartbeat(power = 1) {
     if (!this._ok()) return;

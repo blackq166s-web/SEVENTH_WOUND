@@ -3,6 +3,14 @@ import { WEAPONS, magSize } from './weapons.js';
 
 const FONT = '"Segoe UI", system-ui, -apple-system, sans-serif';
 
+// 与 game.js 的 TIER_COLORS 同一套语义：箱子/提示都按等级上色
+const TIER_COLORS_HUD = {
+  1: 'rgba(168,196,224,0.9)',
+  2: 'rgba(255,209,102,0.95)',
+  3: 'rgba(124,231,255,0.95)',
+  4: 'rgba(255,77,94,0.95)'
+};
+
 function bar(ctx, x, y, w, h, ratio, c1, c2, bg = 'rgba(0,0,0,0.55)') {
   ctx.fillStyle = bg;
   ctx.beginPath();
@@ -174,6 +182,66 @@ export function drawHud(ctx, g, w, h) {
       ctx.fillText(b.sub, w / 2, cy + 34);
     }
     ctx.globalAlpha = 1;
+  }
+
+  // ---------- 拾取武器的大提示（S6-F） ----------
+  if (g.toast) {
+    const tst = g.toast;
+    const a = Math.min(1, (tst.total - tst.t) / 0.14, tst.t / 0.45);
+    const col = TIER_COLORS_HUD[tst.tier] || TIER_COLORS_HUD[1];
+    const modeText = tst.mode === 'secondary' ? '进入副武器槽'
+      : tst.mode === 'ammo' ? '弹药补满' : '已装备';
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, a);
+    ctx.textBaseline = 'middle';
+
+    ctx.font = `900 22px ${FONT}`;
+    const nameW = ctx.measureText(tst.name).width;
+    ctx.font = `700 11px ${FONT}`;
+    const tagW = 46;
+    const modeW = ctx.measureText(modeText).width;
+    const wBox = Math.min(w - 60, nameW + tagW + modeW + 82);
+    const yb = 92;
+    const x0 = w / 2 - wBox / 2;
+
+    // 底板
+    ctx.fillStyle = 'rgba(8,10,12,0.82)';
+    ctx.beginPath();
+    ctx.roundRect(x0, yb - 23, wBox, 46, 9);
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.globalAlpha = Math.max(0, a) * 0.9;
+    ctx.lineWidth = 1.6;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.roundRect(x0 + 0.8, yb - 22.2, wBox - 1.6, 44.4, 9);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = Math.max(0, a);
+
+    // 等级色条
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.roundRect(x0 + 1, yb - 22, 5, 44, 2.5);
+    ctx.fill();
+
+    // 「拾取」
+    ctx.textAlign = 'left';
+    ctx.font = `800 11px ${FONT}`;
+    ctx.fillStyle = col;
+    ctx.fillText('拾 取', x0 + 16, yb);
+
+    // 武器名
+    ctx.font = `900 22px ${FONT}`;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(tst.name, x0 + 18 + tagW, yb);
+
+    // 结果
+    ctx.font = `700 12px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText(modeText, x0 + 16 + tagW + nameW + 12, yb);
+    ctx.restore();
   }
 
   // ---------- 低血预警 ----------

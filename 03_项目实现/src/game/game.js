@@ -114,6 +114,8 @@ export class Game {
     this.mines = [];
     this.frostPools = [];
     this.rerollUsed = false;
+    // 拾取武器的大提示（S6-F）
+    this.toast = null;
     // 侵蚀值（P4-1）：本局峰值，死亡面板用
     this.maxErosion = 0;
     this.heartTimer = 0;
@@ -192,6 +194,7 @@ export class Game {
     this.mines.length = 0;
     this.frostPools.length = 0;
     this.rerollUsed = false;
+    this.toast = null;
     this.voice.reset();
     this.cam.snapTo(this.player.x, this.player.y);
     this.cam.shakeAmt = 0;
@@ -266,6 +269,10 @@ export class Game {
     }
 
     if (this.banner.t > 0) this.banner.t -= dt;
+    if (this.toast) {
+      this.toast.t -= dt;
+      if (this.toast.t <= 0) this.toast = null;
+    }
     // 独白只在真正打的时候走字：暂停/升级/结算时冻结，恢复后接着打，不会漏句
     if (this.state === 'playing') this.voice.update(dt);
     this.particles.update(this.state === 'playing' ? dt : dt * 0.4);
@@ -596,9 +603,9 @@ export class Game {
       this.audio.pickup();
       this.particles.ring(it.x, it.y, 26, 'rgba(93,255,155,0.9)', 0.4);
     } else if (it.type === 'weapon') {
-      giveWeapon(this, p, it.weapon);
-      this.audio.pickup();
-      this.particles.ring(it.x, it.y, 30, 'rgba(255,180,60,0.9)', 0.45);
+      const mode = giveWeapon(this, p, it.weapon);
+      this.onWeaponPickup(it.weapon, mode);
+      this.particles.ring(it.x, it.y, 34, 'rgba(255,180,60,0.9)', 0.5);
     }
   }
 
@@ -833,6 +840,24 @@ export class Game {
     if (M.chance(p.stats.explodeOnKill)) {
       this.explode(e.x, e.y, 92, 45, false);
     }
+  }
+
+  /**
+   * 捡到武器的大提示：顶部一条带稀有度的横幅 + 音效 + 玩家脚下光环。
+   * 走独立的 toast 通道，不占用 banner（banner 要留给潮汐/层间卡/层主）。
+   */
+  onWeaponPickup(id, mode = 'equip') {
+    const w = WEAPONS[id];
+    this.toast = {
+      name: w.name,
+      tier: w.tier,
+      mode,
+      t: 2.6,
+      total: 2.6
+    };
+    this.audio.weapon();
+    this.particles.ring(this.player.x, this.player.y, 40, 'rgba(255,209,102,0.85)', 0.5);
+    this.particles.sparks(this.player.x, this.player.y, -Math.PI / 2, 6, '#ffd166');
   }
 
   /** 重掷升级选项（每局一次）。返回是否成功 */

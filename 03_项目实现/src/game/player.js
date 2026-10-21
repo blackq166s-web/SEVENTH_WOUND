@@ -91,19 +91,17 @@ export function giveWeapon(g, p, id) {
   if (p.secondaryUnlocked && !p.secondary) {
     p.secondary = id;
     p.secondaryAmmo = cap;
-    g.particles.text(p.x, p.y - 32, '副武器 ' + WEAPONS[id].name, '#ffd166', 15);
-    return;
+    return 'secondary';
   }
   if (p.weapon === id) {
     p.ammo = cap;
-    g.particles.text(p.x, p.y - 32, '+弹药', '#ffd166', 14);
-    return;
+    return 'ammo';
   }
   p.weapon = id;
   p.ammo = cap;
   p.reloading = 0;
   p.cd = 0.1;
-  g.particles.text(p.x, p.y - 32, WEAPONS[id].name, WEAPONS[id].color || '#fff', 16);
+  return 'equip';
 }
 
 export function updatePlayer(g, p, dt) {

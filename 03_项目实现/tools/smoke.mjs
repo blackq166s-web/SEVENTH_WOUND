@@ -463,6 +463,23 @@ pityZombie.hp = 1;
 damageEnemy(game, pityZombie, 999, {});
 assert(game.pickups.some((it) => it.type === 'weapon'), '超 90 秒未掉落应触发保底');
 
+// 拾取武器的大提示（S6-F）
+game.start('survival');
+game.pickups.length = 0;
+game.toast = null;
+game.player.weapon = 'pistol';
+game.dropWeapon(game.player.x + 30, game.player.y, 3);
+const wpIt = game.pickups.find((it) => it.type === 'weapon');
+assert(!!wpIt, '应掉落一把武器');
+game.collect(wpIt);
+assert(!!game.toast, '拾取武器应弹出提示');
+assert(game.toast && game.toast.name && game.toast.name.length > 0, '提示应带武器名');
+assert(['equip', 'secondary', 'ammo'].includes(game.toast.mode), `提示应带结果模式，实际 ${game.toast && game.toast.mode}`);
+assert(game.toast.tier >= 1 && game.toast.tier <= 4, '提示应带合法等级');
+// 提示会自己消失
+for (let i = 0; i < 60 * 3; i++) game.update(STEP);
+assert(game.toast === null, '提示应在 2.6 秒后自动消失');
+
 // 机制型刻印的行为断言（S6-D）
 game.start('survival');
 game.enemies.length = 0;
