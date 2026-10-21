@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23e01b3c'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%23ff7a8a'/%3E%3C/svg%3E" />
+<title>CRIMSON ARENA · 血腥大地复刻</title>
+<style>
+  :root {
+    --red: #e01b3c;
+    --red-soft: #ff4d5e;
+    --gold: #ffd166;
+    --cyan: #7ce7ff;
+    --bg: #07080a;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: #e9ecf1;
+    font-family: "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    cursor: default;
+  }
+
+  #game {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: none;
+  }
+
+  /* ---------------- 覆盖层 ---------------- */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 50% 38%, rgba(120, 12, 28, 0.35), rgba(4, 5, 7, 0.94) 68%),
+      rgba(4, 5, 7, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: fadeIn 0.22s ease;
+  }
+
+  #overlay.on { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    max-width: 780px;
+    width: 100%;
+    animation: rise 0.26s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  .panel.hidden { display: none; }
+
+  /* ---------------- 标题 ---------------- */
+  .logo {
+    margin: 0;
+    font-size: clamp(38px, 7vw, 76px);
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    background: linear-gradient(180deg, #fff 10%, #ff5d6e 55%, #8f0d1f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 60px rgba(224, 27, 60, 0.35);
+  }
+
+  .logo span {
+    display: inline-block;
+    margin-left: 0.18em;
+    background: linear-gradient(180deg, #dfe8f2 10%, #7f93a8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .tagline {
+    margin: -6px 0 0;
+    font-size: 13px;
+    letter-spacing: 0.45em;
+    color: rgba(255, 255, 255, 0.38);
+    text-transform: uppercase;
+  }
+
+  .best {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.42);
+  }
+
+  .best b {
+    color: var(--gold);
+    font-size: 16px;
+    margin-left: 6px;
+  }
+
+  /* ---------------- 按钮 ---------------- */
+  .btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .btn {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    color: #e9ecf1;
+    font: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    padding: 13px 30px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn.primary {
+    background: linear-gradient(180deg, #ff3550, #b30f27);
+    border-color: rgba(255, 110, 125, 0.6);
+    box-shadow: 0 8px 30px -8px rgba(224, 27, 60, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .btn.primary:hover {
+    background: linear-gradient(180deg, #ff5069, #c8132e);
+    box-shadow: 0 12px 38px -8px rgba(224, 27, 60, 1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .btn.ghost {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .hint {
+    margin-top: 4px;
+    font-size: 11.5px;
+    line-height: 1.9;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: center;
+    max-width: 560px;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  h2.danger {
+    color: var(--red-soft);
+    text-shadow: 0 0 40px rgba(224, 27, 60, 0.6);
+  }
+
+  h2.ok { color: var(--cyan); text-shadow: 0 0 40px rgba(124, 231, 255, 0.45); }
+
+  /* ---------------- Perk 卡片 ---------------- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 100%;
+  }
+
+  .card {
+    --accent: #ff4d5e;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 20px 18px 18px;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background:
+      radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+      linear-gradient(180deg, rgba(26, 29, 34, 0.95), rgba(12, 13, 16, 0.95));
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-6px);
+    border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+    box-shadow: 0 18px 40px -18px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .card .key {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .card .icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    text-shadow: 0 0 22px var(--accent);
+  }
+
+  .card .name {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+
+  .card .desc {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .card .stacks {
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+  }
+
+  /* ---------------- 结算 ---------------- */
+  .statgrid {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .srow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 14px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 13px;
+  }
+
+  .srow span { color: rgba(255, 255, 255, 0.45); letter-spacing: 0.08em; }
+  .srow b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
+
+  .dim { color: rgba(255, 255, 255, 0.45); font-size: 13px; }
+
+  /* ---------------- 帮助 ---------------- */
+  .keys {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 22px;
+    width: 100%;
+    max-width: 620px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .keys li { display: flex; gap: 10px; align-items: center; }
+
+  kbd {
+    display: inline-block;
+    min-width: 26px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-bottom-width: 2px;
+    font: 700 11px/1.4 "Segoe UI", monospace;
+    color: #fff;
+    text-align: center;
+  }
+
+  @media (max-width: 720px) {
+    .cards { grid-template-columns: 1fr; }
+    .keys { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="overlay" class="on">
+  <section class="panel" id="p-menu">
+    <h1 class="logo">CRIMSON<span>ARENA</span></h1>
+    <p class="tagline">血腥大地 · 复刻</p>
+    <div class="best">历史最高分<b id="bestScore">0</b></div>
+    <div class="btns">
+      <button id="btnSurvival" class="btn primary">生存模式</button>
+      <button id="btnQuest" class="btn">关卡模式</button>
+      <button id="btnHelp" class="btn ghost">操作说明</button>
+    </div>
+    <p class="hint">
+      WASD 移动 · 鼠标瞄准 · 按住左键射击<br />
+      R 手动装填 · Q 切换副武器 · ESC 暂停 · M 静音
+    </p>
+  </section>
+
+  <section class="panel hidden" id="p-perks">
+    <h2>升级 · 选择一项能力</h2>
+    <div class="cards" id="perkCards"></div>
+  </section>
+
+  <section class="panel hidden" id="p-dead">
+    <h2 class="danger">你死了</h2>
+    <div class="statgrid" id="deadStats"></div>
+    <div class="btns">
+      <button id="btnRetry" class="btn primary">再来一局</button>
+      <button id="btnMenu" class="btn ghost">返回主菜单</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="p-pause">
+    <h2>已暂停</h2>
+    <div class="btns">
+      <button id="btnResume" class="btn primary">继续</button>
+      <button id="btnQuit" class="btn ghost">放弃本局</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="p-clear">
+    <h2 class="ok">关卡完成</h2>
+    <p id="clearText" style="text-align:center;line-height:1.9;margin:0"></p>
+    <div class="btns">
+      <button id="btnNext" class="btn primary">进入下一关</button>
+      <button id="btnMenu2" class="btn ghost">返回主菜单</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="p-help">
+    <h2>操作说明</h2>
+    <ul class="keys">
+      <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>移动</span></li>
+      <li><kbd>鼠标</kbd><span>瞄准</span></li>
+      <li><kbd>左键</kbd><span>射击（按住连发）</span></li>
+      <li><kbd>R</kbd><span>手动装填</span></li>
+      <li><kbd>Q</kbd><span>切换副武器</span></li>
+      <li><kbd>ESC</kbd><span>暂停 / 继续</span></li>
+      <li><kbd>M</kbd><span>开关音效</span></li>
+      <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>升级时选择能力</span></li>
+    </ul>
+    <p class="hint">击杀敌人掉落经验晶体，升级后可从三个随机能力中选择一个。<br />绿色十字是治疗包，金色箱子是武器补给。</p>
+    <button id="btnBack" class="btn">返回</button>
+  </section>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+node_modules/
+shots/*.png
+*.log
+SECRETS.local.md
+_staging/
+.workbuddy/
