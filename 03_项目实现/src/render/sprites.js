@@ -190,10 +190,10 @@ function drawPlayer(ctx, S, t = 0) {
   ctx.scale(K, K);
   ctx.translate(-c, -c);
 
-  // 背包（朝后）
+  // 背包：缩到躯干后缘里，只露一条，别让剪影变成"背箱子的机器人"
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c - 17, c - 8], [c - 10, c - 10], [c - 8, c + 10], [c - 15, c + 9]
-  ]), c - 12, c, 12, '#1a232e', '#3c4a5a', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.55)', 1.4);
+    [c - 14, c - 6], [c - 8, c - 8], [c - 7, c + 8], [c - 13, c + 7]
+  ]), c - 10, c, 9, '#1a232e', '#3c4a5a', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.55)', 1.3);
 
   // 腿（先画，被躯干压住上半）
   for (const s of [-1, 1]) {
@@ -203,9 +203,9 @@ function drawPlayer(ctx, S, t = 0) {
 
   // 躯干：肩宽、腰收、微微前倾
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c - 9, c - 9], [c - 4, c - 12.5], [c + 6, c - 11.5], [c + 11, c - 5],
-    [c + 10, c + 3], [c + 4, c + 8], [c - 5, c + 8], [c - 9, c + 3]
-  ]), c, c - 1, 13, '#33445a', '#7d97b5', 'rgba(4,6,10,0.66)', 'rgba(0,0,0,0.72)', 2);
+    [c - 7, c - 8.5], [c - 2, c - 11.5], [c + 5, c - 10.5], [c + 9.5, c - 5.5],
+    [c + 10, c + 2], [c + 6, c + 7], [c - 2, c + 8], [c - 7, c + 4]
+  ]), c, c - 1, 12, '#33445a', '#7d97b5', 'rgba(4,6,10,0.66)', 'rgba(0,0,0,0.72)', 2);
 
   // 护胸板：躯干同色系但更亮一档，把深色块拆开（远处也能看出这是个'人'）
   shadeBody(ctx, () => pathPoly(ctx, [
@@ -230,8 +230,8 @@ function drawPlayer(ctx, S, t = 0) {
   ctx.fill();
 
   // 左臂（缠布条，朝上侧）：布条本体由 game.js 按层数画彩色条
-  limb(ctx, c + 1, c - 10, c + 8.5, c - 14, 7.2, 5.2, '#d8cfc0');
-  ctx.strokeStyle = 'rgba(120,104,86,0.55)';
+  limb(ctx, c + 1, c - 10, c + 8.5, c - 14, 7.2, 5.2, '#6b6054');
+  ctx.strokeStyle = 'rgba(28,22,18,0.6)';
   ctx.lineWidth = 1;
   for (let i = 0; i < 3; i++) {
     ctx.beginPath();
@@ -239,6 +239,12 @@ function drawPlayer(ctx, S, t = 0) {
     ctx.lineTo(c + 4.4 + i * 2.6, c - 13 - i * 1.1);
     ctx.stroke();
   }
+
+  // 领口：把头和躯干连起来，否则头看着像浮着的球
+  ctx.fillStyle = '#1e2836';
+  ctx.beginPath();
+  ctx.ellipse(c + 7.5, c - 1.6, 4.6, 5.4, 0, 0, TAU);
+  ctx.fill();
 
   // 头：不戴头盔（要看清自己杀的是什么）
   shadeBody(ctx, () => pathEllipse(ctx, c + 8.6, c - 1.6, 5.6, 6), c + 8.6, c - 2.6, 6,
@@ -257,347 +263,423 @@ function drawPlayer(ctx, S, t = 0) {
   ctx.restore();
 }
 
-// ================= 腐化者（56px，地渊造物：不对称、前倾、胸口开口） =================
+// ================= 腐化者（56px，重铸失败的人：拖腿、烂胸、背后长菌） =================
+//
+// 俯视读人形的三条硬规矩（后面每只人形怪都照这个来）：
+//   头在前（+X）、肩在两翼（±Y 鼓包）、腿拖在后（-X）。缺一条就"不像人"。
 function drawZombie(ctx, S, t = 0) {
   const c = S / 2;
-  const lean = Math.sin(t * TAU) * 1.6;
+  const drag = Math.sin(t * TAU) * 1.5;
 
-  // 拖着的断腿（短、拖在后面，明显比另一条短）
-  limb(ctx, c - 9, c + 8, c - 20, c + 12 + lean, 7, 4.5, '#4b5a30');
-  // 完好的腿
-  limb(ctx, c - 4, c + 9, c - 7, c + 18, 7, 5, '#5d7140');
+  // 拖在后面的断腿（比另一条短一半，末端是创口）
+  limb(ctx, c - 7, c - 6, c - 17, c - 9 + drag, 6.5, 4, '#3f4c28');
+  ctx.fillStyle = 'rgba(120,30,30,0.85)';
+  ctx.beginPath();
+  ctx.ellipse(c - 17, c - 9 + drag, 3, 2.4, 0.4, 0, TAU);
+  ctx.fill();
+  // 完好的腿（后蹬）
+  limb(ctx, c - 6, c + 7, c - 15, c + 12, 7, 5, '#566c3b');
 
-  // 菌丝：从背部长出来的细丝（轮廓破口）
-  ctx.strokeStyle = 'rgba(180,200,150,0.5)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 4; i++) {
+  // 背后的菌丝：从破口里长出来，越往外越细
+  ctx.strokeStyle = 'rgba(190,210,160,0.45)';
+  for (let i = 0; i < 5; i++) {
+    ctx.lineWidth = 1.4 - i * 0.18;
     ctx.beginPath();
-    ctx.moveTo(c - 10 + i * 2, c - 2 + i * 2);
-    ctx.quadraticCurveTo(c - 18 - i * 2, c - 8 + i * 4, c - 24 - i * 3, c - 3 + i * 5);
+    ctx.moveTo(c - 9, c - 3 + i * 1.6);
+    ctx.quadraticCurveTo(c - 16 - i * 3, c - 9 + i * 3.4, c - 24 - i * 4, c - 6 + i * 4.5);
     ctx.stroke();
   }
 
-  // 躯干：前倾、一侧肩膀塌下去
+  // 躯干：肩宽腰窄的梯形，前倾（前端更宽）
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c - 13, c - 5], [c - 3, c - 12], [c + 9, c - 10], [c + 16, c - 3],
-    [c + 14, c + 5], [c + 3, c + 11], [c - 9, c + 9], [c - 15, c + 2]
-  ].map(([x, y], i) => [x, y + (i > 4 ? lean : 0)])), c, c - 1, 14,
-  '#6b7f47', '#a8bd72', 'rgba(14,22,8,0.65)', 'rgba(0,0,0,0.68)', 1.8);
+    [c - 9, c + 5], [c - 9, c - 5], [c - 2, c - 9.5], [c + 6, c - 8.5],
+    [c + 9, c - 3], [c + 9, c + 3], [c + 6, c + 8.5], [c - 2, c + 9.5]
+  ]), c, c, 11, '#6b7f47', '#a8bd72', 'rgba(14,22,8,0.68)', 'rgba(0,0,0,0.68)', 1.8);
 
-  // 胸口开口：暗洞 + 三根外露肋骨（不同长度 = 不对称）
-  ctx.fillStyle = 'rgba(18,10,10,0.9)';
-  pathPoly(ctx, [
-    [c + 1, c - 4], [c + 7, c - 5], [c + 9, c + 2], [c + 4, c + 6], [c, c + 2]
-  ]);
+  // 胸口烂穿：暗洞 + 三根不等长肋骨
+  ctx.fillStyle = 'rgba(16,8,8,0.92)';
+  pathPoly(ctx, [[c + 1, c - 5.5], [c + 7, c - 4], [c + 8, c + 2.5], [c + 3, c + 5], [c - 0.5, c + 1]]);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(226,214,190,0.8)';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(230,218,192,0.85)';
+  ctx.lineWidth = 1.4;
+  const ribLen = [5.4, 4.2, 3.2];
   for (let i = 0; i < 3; i++) {
     ctx.beginPath();
-    ctx.moveTo(c + 1.5 + i * 0.8, c - 2 + i * 2.6);
-    ctx.lineTo(c + 6.5 - i * 0.6, c - 1 + i * 2.4);
+    ctx.moveTo(c + 0.5, c - 3 + i * 2.4);
+    ctx.quadraticCurveTo(c + 3, c - 3.4 + i * 2.4, c + ribLen[i], c - 2.2 + i * 2.4);
     ctx.stroke();
   }
-
-  // 手臂：一条长一条短（不对称）
-  limb(ctx, c + 3, c - 8, c + 16, c - 4 + lean, 5.5, 4, '#5d7140');
-  limb(ctx, c + 2, c + 6, c + 12, c + 12 - lean, 5.5, 4.2, '#4f6236');
-
-  // 头：歪的，下颚缺一块
-  shadeBody(ctx, () => pathPoly(ctx, [
-    [c + 9, c - 9], [c + 17, c - 5], [c + 18, c + 2], [c + 12, c + 5], [c + 8, c - 1]
-  ]), c + 13, c - 2, 8, '#7d9152', '#b8cc82', 'rgba(16,24,10,0.6)', 'rgba(0,0,0,0.6)', 1.5);
-
-  glowEyes(ctx, [[c + 14, c - 3, 2.1], [c + 16.6, c - 0.4, 1.5]], 2, '#ffe066', 6);
-}
-
-// ================= 疾行者（52px，四肢着地、脊椎外露） =================
-function drawRunner(ctx, S, t = 0) {
-  const c = S / 2;
-  const gait = Math.sin(t * TAU) * 2.4;
-
-  // 后腿 / 前腿（着地，细长）
-  jointLimb(ctx, [[c - 12, c], [c - 16, c + 8], [c - 21, c + 11]], 3.4, '#8a4636');
-  jointLimb(ctx, [[c + 6, c - 2], [c + 10, c - 9], [c + 15, c - 11]], 3.4, '#8a4636');
-  // 另一对（摆动）
-  jointLimb(ctx, [[c - 8, c + 2], [c - 12, c + 9 + gait], [c - 17, c + 12 + gait]], 3.2, '#6f3529');
-  jointLimb(ctx, [[c + 10, c + 1], [c + 14, c + 9 - gait], [c + 19, c + 11 - gait]], 3.2, '#6f3529');
-
-  // 尾（拖在身后）
-  limb(ctx, c - 12, c - 1, c - 25, c - 6, 4.5, 1.6, '#7a3a2c');
-
-  // 躯干：细长、前窄后宽
-  shadeBody(ctx, () => pathPoly(ctx, [
-    [c - 14, c - 5], [c - 2, c - 8], [c + 12, c - 5], [c + 14, c + 1],
-    [c + 6, c + 5], [c - 8, c + 5], [c - 15, c + 1]
-  ]), c - 1, c - 1, 12, '#b5674f', '#e0a084', 'rgba(52,20,14,0.66)', 'rgba(0,0,0,0.66)', 1.6);
-
-  // 脊椎：一排外露的骨节（最有辨识度的剪影特征）
-  ctx.fillStyle = 'rgba(238,226,204,0.9)';
-  for (let i = 0; i < 6; i++) {
-    const x = c - 11 + i * 4.2;
-    const h = 2.6 + (i % 2) * 1.4;
-    pathPoly(ctx, [[x, c - 6], [x + 2.4, c - 9 - h], [x + 4, c - 6]]);
+  // 脊椎：背后一排骨节（俯视时的"人形"信号）
+  ctx.fillStyle = 'rgba(226,214,190,0.75)';
+  for (let i = 0; i < 4; i++) {
+    const x = c - 8 + i * 3.2;
+    ctx.beginPath();
+    ctx.ellipse(x, c, 1.5, 2.1, 0, 0, TAU);
     ctx.fill();
   }
 
-  // 头：低伏的楔形，嘴裂大
-  shadeBody(ctx, () => pathPoly(ctx, [
-    [c + 10, c - 4], [c + 20, c - 2], [c + 22, c + 2], [c + 12, c + 5]
-  ]), c + 15, c, 7, '#c07358', '#e8ac8c', 'rgba(60,22,16,0.6)', 'rgba(0,0,0,0.6)', 1.4);
-  ctx.strokeStyle = 'rgba(30,10,8,0.85)';
-  ctx.lineWidth = 1.2;
+  // 手臂：一条长且前伸，一条被折断只剩半截（不对称）
+  limb(ctx, c + 5, c - 8, c + 17, c - 10 + drag, 5.6, 4.2, '#63783f');
+  limb(ctx, c + 5, c + 8, c + 12, c + 13 - drag, 5.6, 4.4, '#4f6236');
+  ctx.fillStyle = 'rgba(120,30,30,0.8)';
   ctx.beginPath();
-  ctx.moveTo(c + 13, c + 3.4);
-  ctx.lineTo(c + 21, c + 2);
-  ctx.stroke();
+  ctx.arc(c + 12, c + 13 - drag, 2.2, 0, TAU);
+  ctx.fill();
 
-  glowEyes(ctx, [[c + 16, c - 1.6, 1.8], [c + 18.6, c - 0.6, 1.4]], 1.8, '#ff5b3d', 6);
+  // 头：在前端，歪着，下巴脱臼
+  shadeBody(ctx, () => pathEllipse(ctx, c + 11, c - 1.5, 6, 6.4, 0.2), c + 11, c - 2.5, 6.5,
+    '#7d9152', '#b8cc82', 'rgba(16,24,10,0.62)', 'rgba(0,0,0,0.62)', 1.5);
+  ctx.fillStyle = 'rgba(20,12,10,0.85)';
+  pathPoly(ctx, [[c + 12, c + 2], [c + 16.5, c + 1], [c + 15, c + 5.5]]);
+  ctx.fill();
+  glowEyes(ctx, [[c + 12.5, c - 3.4, 1.9], [c + 15.6, c - 0.6, 1.4]], 1.6, '#ffe066', 6);
 }
 
-// ================= 织网者（50px，一侧腿更多、腹部有卵囊） =================
-function drawSpider(ctx, S, t = 0) {
+// ================= 疾行者（52px，只会跑的人形骨架：前倾、长臂、后蹬腿） =================
+function drawRunner(ctx, S, t = 0) {
   const c = S / 2;
-  const step = Math.sin(t * TAU) * 1.8;
+  const gait = Math.sin(t * TAU) * 2.6;
 
-  // 腿：上侧 5 条、下侧 3 条（不对称），带关节
-  const legs = [
-    // [从体节出发, 关节, 末端]
-    [-1, -7, 10.5], [1, -8.5, 6], [3, -8, 2], [5, -6.5, -2], [7, -5, -5.5],
-    [0, 8, 7], [3, 7.5, 1.5], [6, 6, -3.5]
-  ];
-  for (let i = 0; i < legs.length; i++) {
-    const [ox, oy, ex] = legs[i];
-    const side = Math.sign(oy);
-    jointLimb(ctx, [
-      [c - 2 + ox * 0.7, c + oy * 0.6],
-      [c - 1 + ox * 2.1, c + oy * 1.55],
-      [c + ex * 1.15 + step * side, c + oy * 1.95 + Math.abs(ex) * 0.16]
-    ], 2.6, '#262636');
+  // 后蹬的双腿（拉得很开，是"跑"的关键剪影）
+  limb(ctx, c - 5, c - 5, c - 17, c - 8 + gait, 5.4, 3.4, '#8a4636');
+  limb(ctx, c - 5, c + 5, c - 16, c + 9 - gait, 5.4, 3.4, '#6f3529');
+  // 脚
+  ctx.fillStyle = '#e8d8c0';
+  ctx.beginPath();
+  ctx.ellipse(c - 18, c - 8 + gait, 2.6, 1.6, -0.3, 0, TAU);
+  ctx.ellipse(c - 17, c + 9 - gait, 2.6, 1.6, 0.3, 0, TAU);
+  ctx.fill();
+
+  // 躯干：细长、前倾（肩在前，胯在后）
+  shadeBody(ctx, () => pathPoly(ctx, [
+    [c - 8, c + 3.5], [c - 7, c - 3.5], [c + 2, c - 7], [c + 8, c - 5.5],
+    [c + 9, c + 1], [c + 8, c + 5.5], [c + 2, c + 7]
+  ]), c, c, 10, '#b5674f', '#e0a084', 'rgba(52,20,14,0.66)', 'rgba(0,0,0,0.68)', 1.6);
+
+  // 脊椎：一排不等长的骨刺（最有效的"被重铸过"信号）
+  ctx.fillStyle = 'rgba(240,228,206,0.92)';
+  for (let i = 0; i < 5; i++) {
+    const x = c - 6 + i * 3.2;
+    const h = 2.4 + (i % 3) * 1.2;
+    pathPoly(ctx, [[x, c - 3], [x + 2.2, c - 5 - h], [x + 4, c - 3]]);
+    ctx.fill();
   }
-
-  // 腹部（带卵囊膨起，重心偏后偏下）
-  shadeBody(ctx, () => pathEllipse(ctx, c - 6, c + 1, 9.5, 8.2, -0.15), c - 8, c - 1, 8,
-    '#33334a', '#66667f', 'rgba(4,4,8,0.72)', 'rgba(0,0,0,0.7)', 1.6);
-  // 卵囊
-  shadeBody(ctx, () => pathEllipse(ctx, c - 10, c + 5.5, 5.6, 4.4, 0.3), c - 11, c + 4, 5,
-    'rgba(150,180,120,0.85)', 'rgba(210,235,170,0.95)', 'rgba(40,60,30,0.6)', 'rgba(0,0,0,0.5)', 1.2);
-
-  // 头胸部
-  shadeBody(ctx, () => pathEllipse(ctx, c + 7, c - 1, 6.6, 5.6, 0.1), c + 6, c - 2, 6,
-    '#35354a', '#6a6a88', 'rgba(6,6,12,0.7)', 'rgba(0,0,0,0.66)', 1.3);
-
-  // 腹背斑纹（蛛丝感的浅色折线）
-  ctx.strokeStyle = 'rgba(190,210,180,0.35)';
-  ctx.lineWidth = 1;
+  // 侧面肋骨（露出来的三根）
+  ctx.strokeStyle = 'rgba(236,220,196,0.55)';
+  ctx.lineWidth = 1.1;
   for (let i = 0; i < 3; i++) {
     ctx.beginPath();
-    ctx.moveTo(c - 11 + i * 3.4, c - 5 + i * 0.6);
-    ctx.lineTo(c - 8 + i * 3.4, c + 2 + i * 0.6);
+    ctx.moveTo(c - 2 + i * 2.6, c + 4);
+    ctx.lineTo(c + 1 + i * 2.6, c + 6.4);
     ctx.stroke();
   }
 
-  glowEyes(ctx, [[c + 9, c - 2.6, 1.5], [c + 10.5, c + 0.4, 1.2], [c + 8, c + 1.4, 1.1]], 1.4, '#ff3b4d', 7);
+  // 双臂前伸（几乎要够到地面，跑姿）
+  limb(ctx, c + 6, c - 5, c + 16, c - 8 - gait * 0.6, 5, 3.6, '#c07358');
+  limb(ctx, c + 6, c + 5, c + 17, c + 7 + gait * 0.6, 5, 3.6, '#a55f47');
+  ctx.fillStyle = '#f0e2cc';
+  ctx.beginPath();
+  ctx.arc(c + 17, c - 8 - gait * 0.6, 2, 0, TAU);
+  ctx.arc(c + 18, c + 7 + gait * 0.6, 2, 0, TAU);
+  ctx.fill();
+
+  // 头：低伏、前伸，嘴裂开
+  shadeBody(ctx, () => pathPoly(ctx, [
+    [c + 9, c - 4.5], [c + 18, c - 3], [c + 20, c + 1], [c + 10, c + 4.5]
+  ]), c + 14, c, 7, '#c07358', '#e8ac8c', 'rgba(60,22,16,0.6)', 'rgba(0,0,0,0.62)', 1.4);
+  ctx.fillStyle = 'rgba(24,8,6,0.9)';
+  pathPoly(ctx, [[c + 12, c + 2.4], [c + 19.5, c + 1], [c + 18, c + 4.4], [c + 12.5, c + 4]]);
+  ctx.fill();
+  glowEyes(ctx, [[c + 14.5, c - 2.4, 1.7], [c + 17, c - 1, 1.3]], 1.5, '#ff5b3d', 6);
 }
 
-// ================= 哨眼（64px，独眼 + 背部射口） =================
+// ================= 织网者（50px，两节身体 + 长腿，卵囊藏在腹下） =================
+function drawSpider(ctx, S, t = 0) {
+  const c = S / 2;
+  const step = Math.sin(t * TAU) * 1.9;
+
+  // 腿：上侧 5 条、下侧 3 条（不对称），两段关节、末端更细
+  const legs = [
+    [-3, -6, 13, 3], [-1, -8, 9, 6], [1, -8, 3, 8], [3, -7, -3, 7], [5, -5, -8, 5],
+    [-1, 8, 10, 4], [2, 8, 2, 7], [5, 6, -6, 5]
+  ];
+  for (const [ox, oy, ex, mid] of legs) {
+    const side = Math.sign(oy);
+    jointLimb(ctx, [
+      [c - 1 + ox * 0.5, c + oy * 0.5],
+      [c + mid * 0.4 + ox * 0.3, c + oy * 1.5],
+      [c + ex * 1.05 + step * side * 0.7, c + oy * 1.75 + Math.abs(ex) * 0.18]
+    ], 2.3, '#282838');
+  }
+
+  // 腹部（后）+ 胸（前），两节结构才像蜘蛛
+  shadeBody(ctx, () => pathEllipse(ctx, c - 7, c + 1, 9.5, 8, -0.12), c - 9, c - 1, 8,
+    '#33334a', '#6a6a86', 'rgba(4,4,8,0.72)', 'rgba(0,0,0,0.7)', 1.6);
+  shadeBody(ctx, () => pathEllipse(ctx, c + 6, c - 1, 6, 5.2, 0.1), c + 5, c - 2, 5.5,
+    '#3d3d58', '#7a7a9c', 'rgba(6,6,12,0.7)', 'rgba(0,0,0,0.68)', 1.4);
+
+  // 腹下卵囊：暗色带一圈微光，不要糊一块浅色
+  ctx.fillStyle = 'rgba(40,48,30,0.9)';
+  ctx.beginPath();
+  ctx.ellipse(c - 10, c + 5, 4.6, 3.6, 0.35, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(190,220,150,0.4)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // 背部斑纹
+  ctx.strokeStyle = 'rgba(200,220,190,0.28)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(c - 12 + i * 3, c - 4.5 + i * 0.6);
+    ctx.lineTo(c - 9 + i * 3, c + 1 + i * 0.6);
+    ctx.stroke();
+  }
+
+  glowEyes(ctx, [[c + 8.5, c - 2.6, 1.4], [c + 9.8, c + 0.6, 1.1], [c + 7.4, c + 1.6, 1]], 1.3, '#ff3b4d', 7);
+}
+
+// ================= 哨眼（64px，蹲伏的活体哨塔：独眼 + 背部骨管） =================
 function drawLizard(ctx, S, t = 0) {
   const c = S / 2;
   const breathe = Math.sin(t * TAU) * 1.2;
-  const charge = t > 0.5;   // 后两帧：射口蓄能
+  const charge = t > 0.5;
 
-  // 尾：粗、渐变细，向后方弯
-  ctx.beginPath();
-  ctx.moveTo(c - 10, c - 5);
-  ctx.quadraticCurveTo(c - 24, c - 2 + breathe, c - 30, c + 6);
-  ctx.lineTo(c - 26, c + 8);
-  ctx.quadraticCurveTo(c - 20, c + 2, c - 10, c + 5);
-  ctx.closePath();
-  ctx.fillStyle = '#53703a';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-  ctx.lineWidth = 1.2;
-  ctx.stroke();
+  // 短尾（截断的，不是长尾巴——它是哨塔不是蜥蜴）
+  limb(ctx, c - 12, c + 1, c - 23, c + 5, 6, 2.4, '#4a6633');
 
-  // 四肢：蹲伏
-  jointLimb(ctx, [[c - 6, c + 4], [c - 10, c + 10], [c - 14, c + 12]], 3.6, '#46612f');
-  jointLimb(ctx, [[c + 6, c + 4], [c + 10, c + 10], [c + 14, c + 12]], 3.6, '#46612f');
-  jointLimb(ctx, [[c - 4, c - 5], [c - 9, c - 9], [c - 13, c - 10]], 3.2, '#3d5628');
-  jointLimb(ctx, [[c + 7, c - 6], [c + 11, c - 9], [c + 15, c - 10]], 3.2, '#3d5628');
+  // 四肢：蹲伏，肘往外撑
+  jointLimb(ctx, [[c - 5, c + 5], [c - 10, c + 11], [c - 15, c + 13]], 3.8, '#46612f');
+  jointLimb(ctx, [[c + 6, c + 5], [c + 9, c + 12], [c + 14, c + 14]], 3.8, '#46612f');
+  jointLimb(ctx, [[c - 4, c - 5], [c - 9, c - 10], [c - 14, c - 11]], 3.4, '#3d5628');
+  jointLimb(ctx, [[c + 6, c - 6], [c + 10, c - 10], [c + 15, c - 11]], 3.4, '#3d5628');
 
-  // 躯干：椭圆但前宽后窄（爬行动物）
+  // 躯干：矮胖（蹲着），前端隆起
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c - 12, c - 6], [c - 2, c - 10], [c + 10, c - 8], [c + 14, c - 1],
-    [c + 10, c + 7], [c - 4, c + 8], [c - 13, c + 3]
-  ]), c, c - 1, 13, '#7f9c4e', '#b9d179', 'rgba(24,38,14,0.62)', 'rgba(0,0,0,0.64)', 1.7);
+    [c - 12, c + 2], [c - 10, c - 6], [c - 1, c - 10], [c + 8, c - 8],
+    [c + 12, c - 1], [c + 10, c + 7], [c - 2, c + 9], [c - 11, c + 6]
+  ]), c - 1, c - 1, 12, '#77944a', '#b4cd76', 'rgba(22,36,12,0.64)', 'rgba(0,0,0,0.66)', 1.7);
 
-  // 背甲：三块硬鳞（人类做不到的对称 → 这里做成不等距，仍是不对称）
+  // 背甲：三块，间距不等
   ctx.fillStyle = '#d7e88a';
   for (let i = 0; i < 3; i++) {
-    const x = c - 7 + i * 5.2;
-    pathPoly(ctx, [[x, c - 8], [x + 3, c - 12.5 + i * 0.8], [x + 5.6, c - 8]]);
+    const x = c - 8 + i * 5.6;
+    pathPoly(ctx, [[x, c - 7], [x + 2.6, c - 12 - i * 0.6], [x + 5.4, c - 7]]);
     ctx.fill();
   }
 
-  // 背部射口：一截骨管，蓄能时发光
+  // 背部骨管：斜插在背上，蓄能时管口发绿光
   ctx.save();
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c + 1, c - 9], [c + 9, c - 12], [c + 11, c - 9], [c + 3, c - 6.5]
-  ]), c + 6, c - 9, 5, '#33452a', '#5f7a4a', 'rgba(8,14,6,0.6)', 'rgba(0,0,0,0.55)', 1.2);
+    [c - 1, c - 8], [c + 7, c - 13], [c + 9.5, c - 10], [c + 1.5, c - 5.5]
+  ]), c + 4, c - 9, 5, '#33452a', '#5f7a4a', 'rgba(8,14,6,0.6)', 'rgba(0,0,0,0.6)', 1.2);
   if (charge) {
     ctx.shadowColor = '#b6ff5c';
-    ctx.shadowBlur = 8;
-    ctx.fillStyle = 'rgba(182,255,92,0.85)';
+    ctx.shadowBlur = 9;
+    ctx.fillStyle = 'rgba(182,255,92,0.9)';
     ctx.beginPath();
-    ctx.arc(c + 10.4, c - 9.6, 2.2, 0, TAU);
+    ctx.arc(c + 8.4, c - 11.4, 2.2, 0, TAU);
     ctx.fill();
   }
   ctx.restore();
 
-  // 头：楔形，独眼占头部一半
+  // 头：宽扁，一只大眼占掉一半，后半段是骨质护片
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c + 11, c - 8], [c + 22, c - 4], [c + 23, c + 2], [c + 13, c + 5]
-  ]), c + 17, c - 1, 8, '#8aa955', '#c6dd8a', 'rgba(26,40,16,0.6)', 'rgba(0,0,0,0.62)', 1.5);
-  // 独眼
+    [c + 10, c - 7], [c + 20, c - 5], [c + 22, c + 1], [c + 12, c + 5]
+  ]), c + 16, c - 1, 7.5, '#8aa955', '#c6dd8a', 'rgba(26,40,16,0.6)', 'rgba(0,0,0,0.64)', 1.5);
+  ctx.fillStyle = 'rgba(60,80,40,0.9)';
+  pathPoly(ctx, [[c + 10, c - 7], [c + 14, c - 6.4], [c + 13, c - 2.6], [c + 9.6, c - 3.4]]);
+  ctx.fill();
+
   ctx.save();
   ctx.shadowColor = '#ffd166';
-  ctx.shadowBlur = charge ? 12 : 6;
+  ctx.shadowBlur = charge ? 13 : 6;
   ctx.fillStyle = '#ffe27a';
   ctx.beginPath();
-  ctx.ellipse(c + 18, c - 1.5, 3.6, 3, 0.2, 0, TAU);
+  ctx.ellipse(c + 16.5, c - 1, 3.8, 3.2, 0.15, 0, TAU);
   ctx.fill();
   ctx.restore();
-  ctx.fillStyle = '#1a1206';
+  ctx.fillStyle = '#160f04';
   ctx.beginPath();
-  ctx.ellipse(c + 18.6, c - 1.4, 1.2, 2.2, 0.2, 0, TAU);
+  ctx.ellipse(c + 17.2, c - 1, 1.1, 2.2, 0.15, 0, TAU);
   ctx.fill();
+  // 眼睑（一条横过的暗线，让眼睛有"看着你"的方向感）
+  ctx.strokeStyle = 'rgba(40,50,20,0.8)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(c + 12.6, c - 2.2);
+  ctx.lineTo(c + 20, c - 3);
+  ctx.stroke();
 }
 
-// ================= 融生体（68px，多个体块粘在一起 + 人类碎片） =================
+// ================= 融生体（68px，三团粘连 + 融进去的人手） =================
 function drawAlien(ctx, S, t = 0) {
   const c = S / 2;
-  const wob = Math.sin(t * TAU) * 1.8;
+  const wob = Math.sin(t * TAU) * 1.6;
 
-  // 三个大小不一的体块，重叠成一团（不对称，认不出原形）
-  shadeBody(ctx, () => pathEllipse(ctx, c - 8 + wob * 0.4, c + 7, 11, 9, 0.4), c - 10, c + 5, 10,
-    '#4a2666', '#8b57b0', 'rgba(14,4,24,0.65)', 'rgba(0,0,0,0.6)', 1.5);
-  shadeBody(ctx, () => pathEllipse(ctx, c + 5, c - 9 - wob * 0.3, 9.5, 8, -0.3), c + 4, c - 11, 9,
-    '#542c74', '#9a63c2', 'rgba(16,4,28,0.65)', 'rgba(0,0,0,0.6)', 1.5);
+  // 三个体块：大小、位置都不同，边缘有"破口"
+  shadeBody(ctx, () => pathEllipse(ctx, c - 9 + wob * 0.3, c + 7, 11, 9, 0.4), c - 11, c + 5, 10,
+    '#4a2666', '#8b57b0', 'rgba(14,4,24,0.66)', 'rgba(0,0,0,0.62)', 1.5);
+  shadeBody(ctx, () => pathEllipse(ctx, c + 4, c - 10 - wob * 0.25, 9, 7.5, -0.35), c + 3, c - 12, 8.5,
+    '#542c74', '#9a63c2', 'rgba(16,4,28,0.66)', 'rgba(0,0,0,0.62)', 1.5);
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c - 13, c - 3], [c - 2, c - 12], [c + 12, c - 4], [c + 11, c + 7],
-    [c - 2, c + 12], [c - 14, c + 6]
-  ]), c - 1, c, 14, '#5c3080', '#a86fd0', 'rgba(18,6,30,0.6)', 'rgba(0,0,0,0.64)', 1.7);
+    [c - 12, c - 4], [c - 3, c - 11], [c + 11, c - 5], [c + 12, c + 5],
+    [c + 2, c + 12], [c - 12, c + 7]
+  ]), c - 1, c, 13, '#5c3080', '#a86fd0', 'rgba(18,6,30,0.62)', 'rgba(0,0,0,0.66)', 1.7);
 
-  // 融进去的人类碎片：一只手（四根手指）从体块里伸出来
-  ctx.fillStyle = 'rgba(206,178,150,0.9)';
-  for (let i = 0; i < 4; i++) {
-    const a = -1.15 + i * 0.26;
-    limb(ctx, c + 4, c - 10, c + 4 + Math.cos(a) * 9, c - 10 + Math.sin(a) * 9, 2.8, 1.3,
-      'rgba(206,178,150,0.92)', 'rgba(0,0,0,0.5)');
+  // 一只人手从体块里伸出来：先手掌，再三根手指
+  ctx.fillStyle = 'rgba(206,178,150,0.92)';
+  ctx.beginPath();
+  ctx.ellipse(c + 3, c - 12, 3.6, 3, -0.4, 0, TAU);
+  ctx.fill();
+  for (let i = 0; i < 3; i++) {
+    const a = -1.5 + i * 0.42;
+    limb(ctx, c + 3, c - 12, c + 3 + Math.cos(a) * 8, c - 12 + Math.sin(a) * 8, 2.2, 1,
+      'rgba(214,188,160,0.92)', 'rgba(0,0,0,0.45)');
   }
-  // 兽爪：两根弯钩
+
+  // 兽爪：两根弯钩，朝前下
   ctx.strokeStyle = 'rgba(238,226,204,0.85)';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1.8;
   for (let i = 0; i < 2; i++) {
     ctx.beginPath();
-    ctx.moveTo(c + 6 + i * 4, c + 7);
-    ctx.quadraticCurveTo(c + 12 + i * 4, c + 10, c + 10 + i * 4, c + 15);
+    ctx.moveTo(c + 8 + i * 3.4, c + 6);
+    ctx.quadraticCurveTo(c + 14 + i * 3, c + 9, c + 12 + i * 3, c + 14);
     ctx.stroke();
   }
 
-  // 冷青血管（体块之间连着的"管路"）
-  ctx.strokeStyle = 'rgba(124,231,255,0.45)';
-  ctx.lineWidth = 1.4;
+  // 体块之间的冷青"管路"
+  ctx.strokeStyle = 'rgba(124,231,255,0.4)';
+  ctx.lineWidth = 1.3;
   ctx.beginPath();
-  ctx.moveTo(c - 12, c - 1);
+  ctx.moveTo(c - 13, c - 1);
   ctx.quadraticCurveTo(c - 4, c + 3 + wob, c + 3, c - 6);
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(c - 2, c + 10);
-  ctx.quadraticCurveTo(c + 4, c + 6, c + 9, c + 1);
+  ctx.quadraticCurveTo(c + 4, c + 7, c + 9, c + 2);
   ctx.stroke();
 
-  // 三只眼睛，大小不一
-  glowEyes(ctx, [[c + 9, c - 12, 2.2], [c + 13, c - 9, 1.4], [c + 6, c - 8, 1.6]], 1.6, '#7ce7ff', 8);
+  // 四只眼睛，大小不一（认不出原本是什么东西）
+  glowEyes(ctx, [[c + 8, c - 13, 1.9], [c + 11.4, c - 10, 1.3], [c + 5, c - 9, 1.5], [c - 2, c - 11, 1.1]], 1.4, '#7ce7ff', 8);
 }
 
 // ================= 守层者（96px，人形但比例错乱；一只手是炮管；胸口七道旧枪伤） =================
 function drawBrute(ctx, S, t = 0) {
   const c = S / 2;
-  const breathe = Math.sin(t * TAU) * 2.2;
+  const breathe = Math.sin(t * TAU) * 2;
 
-  // 腿：粗，一长一短（曾经是人，重铸时没对齐）
-  limb(ctx, c - 8, c + 8, c - 14, c + 30, 12, 10, '#3a1a1e');
-  limb(ctx, c + 6, c + 8, c + 12, c + 26, 12, 10, '#421d22');
+  // 腿：粗，一长一短（重铸时没对齐）
+  limb(ctx, c - 9, c + 9, c - 15, c + 31, 13, 10, '#3a1a1e');
+  limb(ctx, c + 5, c + 9, c + 11, c + 27, 13, 10, '#421d22');
+  ctx.fillStyle = '#1c0d10';
+  ctx.beginPath();
+  ctx.ellipse(c - 15, c + 33, 7, 4, 0, 0, TAU);
+  ctx.ellipse(c + 11, c + 29, 7, 4, 0, 0, TAU);
+  ctx.fill();
 
-  // 躯干：肩膀极宽、腰细，一侧肩更高
+  // 躯干：肩极宽、腰细，一侧肩更高（不对称）
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c - 22, c - 16], [c - 4, c - 24], [c + 16, c - 18],
-    [c + 20, c - 2], [c + 12, c + 12], [c - 10, c + 14],
-    [c - 20, c + 4]
-  ]), c - 2, c - 4, 24, '#7d1520', '#c0303c', 'rgba(30,4,8,0.62)', 'rgba(0,0,0,0.7)', 2.2);
+    [c - 22, c - 13], [c - 6, c - 23], [c + 14, c - 20],
+    [c + 20, c - 4], [c + 12, c + 12], [c - 8, c + 14],
+    [c - 20, c + 3]
+  ]), c - 2, c - 4, 23, '#7d1520', '#c0303c', 'rgba(30,4,8,0.64)', 'rgba(0,0,0,0.72)', 2.2);
 
-  // 胸口七道旧枪伤（自伤，STORY §2.2）
-  // 伤口边缘的结痂（暗）—— 必须画在伤口之前，否则会把七道线糊成一块红板
-  ctx.strokeStyle = 'rgba(60,8,14,0.55)';
-  ctx.lineWidth = 2;
+  // 胸前束带（残留的装备，人类的东西长在怪物身上）
+  ctx.strokeStyle = 'rgba(46,50,58,0.85)';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(c - 16, c - 12);
+  ctx.lineTo(c + 10, c + 6);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120,128,140,0.35)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(c - 16, c - 14);
+  ctx.lineTo(c + 10, c + 4);
+  ctx.stroke();
+
+  // 七道旧枪伤（自伤，STORY §2.2）：结痂先画，伤口后画，否则糊成一块红板
+  ctx.strokeStyle = 'rgba(58,8,14,0.6)';
+  ctx.lineWidth = 2.2;
   for (let i = 0; i < 7; i++) {
     ctx.beginPath();
-    ctx.moveTo(c - 10, c - 12.2 + i * 4.2);
-    ctx.lineTo(c + 8, c - 13.8 + i * 4.2);
+    ctx.moveTo(c - 10, c - 10.4 + i * 4.2);
+    ctx.lineTo(c + 8, c - 12.2 + i * 4.2);
     ctx.stroke();
   }
-  ctx.strokeStyle = 'rgba(255,86,96,0.85)';
+  ctx.strokeStyle = 'rgba(255,96,104,0.9)';
   for (let i = 0; i < 7; i++) {
-    ctx.lineWidth = i % 2 ? 1.3 : 1.9;
-    const inset = (i % 3) * 2;
+    ctx.lineWidth = i % 2 ? 1.2 : 1.8;
+    const inset = (i % 3) * 1.8;
     ctx.beginPath();
-    ctx.moveTo(c - 8 + inset, c - 11 + i * 4.2);
-    ctx.lineTo(c + 7 - inset * 0.5, c - 12.6 + i * 4.2);
+    ctx.moveTo(c - 9 + inset, c - 10.8 + i * 4.2);
+    ctx.lineTo(c + 7 - inset * 0.5, c - 12.4 + i * 4.2);
     ctx.stroke();
   }
 
-  // 左臂：普通粗臂，握拳
-  limb(ctx, c - 12, c - 12, c - 22, c + 2 + breathe, 11, 9, '#6d121c');
+  // 左臂：粗臂 + 拳
+  limb(ctx, c - 12, c - 11, c - 23, c + 3 + breathe, 12, 10, '#6d121c');
   ctx.fillStyle = '#8e1c26';
   ctx.beginPath();
-  ctx.arc(c - 24, c + 5 + breathe, 6, 0, TAU);
+  ctx.arc(c - 25, c + 6 + breathe, 6.5, 0, TAU);
   ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
 
-  // 右臂：前臂直接是炮管（人类武器被消化后长在身上）
-  limb(ctx, c + 10, c - 10, c + 20, c + 2, 11, 9, '#6d121c');
-  ctx.fillStyle = '#1b1d22';
-  pathPoly(ctx, [[c + 16, c - 4], [c + 32, c - 2], [c + 32, c + 6], [c + 16, c + 7]]);
+  // 右臂：前臂直接是炮管（圆管 + 炮口环 + 旧胶带）
+  limb(ctx, c + 9, c - 10, c + 19, c + 2, 12, 10, '#6d121c');
+  ctx.save();
+  ctx.translate(c + 19, c + 1);
+  ctx.fillStyle = '#20232a';
+  ctx.beginPath();
+  ctx.roundRect(0, -6, 16, 12, 3);
   ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 1.4;
   ctx.stroke();
-  // 炮口
-  ctx.fillStyle = '#0a0b0e';
+  // 炮口环
+  ctx.fillStyle = '#33383f';
   ctx.beginPath();
-  ctx.ellipse(c + 32, c + 2, 1.8, 4, 0, 0, TAU);
+  ctx.roundRect(13, -7.5, 5, 15, 2);
   ctx.fill();
-  // 炮管上的旧缠胶带（曾经是谁的枪）
-  ctx.strokeStyle = 'rgba(200,190,170,0.5)';
-  ctx.lineWidth = 2;
+  ctx.fillStyle = '#07080a';
   ctx.beginPath();
-  ctx.moveTo(c + 23, c - 4);
-  ctx.lineTo(c + 23, c + 7);
+  ctx.ellipse(18.5, 0, 2.4, 5, 0, 0, TAU);
+  ctx.fill();
+  // 旧胶带
+  ctx.strokeStyle = 'rgba(206,196,176,0.45)';
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(6, -6.4);
+  ctx.lineTo(7, 6.4);
   ctx.stroke();
+  ctx.restore();
 
-  // 头：残留的护甲片（对称的工业件长在不对称的身体上）
+  // 头：用一根粗脖子连到躯干上（别浮着）
   shadeBody(ctx, () => pathPoly(ctx, [
-    [c + 6, c - 24], [c + 18, c - 22], [c + 19, c - 12], [c + 7, c - 11]
-  ]), c + 12, c - 18, 9, '#2a2f36', '#5b646f', 'rgba(4,6,8,0.6)', 'rgba(0,0,0,0.65)', 1.6);
-  // 面甲缝里透出的两点光
-  glowEyes(ctx, [[c + 16, c - 17, 1.8], [c + 18.4, c - 13.4, 1.5]], 1.6, '#ff3b4d', 9);
+    [c + 2, c - 21], [c + 9, c - 20], [c + 10, c - 13], [c + 2, c - 12]
+  ]), c + 6, c - 17, 6, '#3a2026', '#7a4a52', 'rgba(10,2,4,0.6)', 'rgba(0,0,0,0.6)', 1.4);
+  shadeBody(ctx, () => pathPoly(ctx, [
+    [c + 6, c - 24], [c + 18, c - 23], [c + 19, c - 13], [c + 7, c - 12]
+  ]), c + 12, c - 18, 9, '#2a2f36', '#5b646f', 'rgba(4,6,8,0.6)', 'rgba(0,0,0,0.68)', 1.6);
+  // 面甲两道缝，缝里透红光
+  ctx.strokeStyle = 'rgba(10,12,16,0.9)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(c + 8, c - 18.4);
+  ctx.lineTo(c + 18, c - 17.6);
+  ctx.stroke();
+  glowEyes(ctx, [[c + 14, c - 19.4, 1.7], [c + 16.4, c - 15.6, 1.4]], 1.5, '#ff3b4d', 9);
 
-  // 腰间的破布条（残存的人味）
-  ctx.strokeStyle = 'rgba(160,150,140,0.35)';
+  // 腰间破布（最后一点人味）
+  ctx.strokeStyle = 'rgba(170,158,146,0.32)';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(c - 12, c + 12);
-  ctx.quadraticCurveTo(c - 4, c + 20, c + 8, c + 14);
+  ctx.moveTo(c - 14, c + 12);
+  ctx.quadraticCurveTo(c - 4, c + 20, c + 8, c + 13);
   ctx.stroke();
 }
 

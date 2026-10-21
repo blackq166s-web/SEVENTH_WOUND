@@ -1159,9 +1159,9 @@ export class Game {
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.body);
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.2;
       ctx.lineCap = 'round';
-      ctx.globalAlpha = 0.8;
+      ctx.globalAlpha = 0.85;
       // 左臂在 -Y 侧（朝右时是屏幕上方），布条沿手臂等分缠上去。
       // 坐标 = 精灵内手臂坐标 × 1.6（drawPlayer 里的整体放大系数 K）。
       const ax = 1.6;
@@ -1170,12 +1170,12 @@ export class Game {
       const by = -22.4;
       for (let i = 0; i < stripes; i++) {
         ctx.strokeStyle = STRIPE_COLORS[i];
-        const k = 0.34 + i * 0.15;
+        const k = 0.3 + i * 0.13;
         const px = ax + (bx - ax) * k;
         const py = ay + (by - ay) * k;
         ctx.beginPath();
-        ctx.moveTo(px - 1.4, py - 2.2);
-        ctx.lineTo(px + 1.4, py + 2.2);
+        ctx.moveTo(px - 1.2, py - 2.4);
+        ctx.lineTo(px + 1.2, py + 2.4);
         ctx.stroke();
       }
       ctx.restore();
