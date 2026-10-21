@@ -14,6 +14,9 @@ import { getSprites, makeGroundTile } from '../render/sprites.js';
 const WORLD_W = 2600;
 const WORLD_H = 2000;
 
+// 左臂布条颜色 = 该层主色（STORY §10 配色分区），最多 4 条
+const STRIPE_COLORS = ['#8f2a1c', '#a51622', '#4c7a26', '#6b2b93'];
+
 export class Game {
   constructor(canvas, ctx, input, audio, ui) {
     this.canvas = canvas;
@@ -117,6 +120,8 @@ export class Game {
     this.questIndex = i;
     this.questDef = QUESTS[i];
     this.questName = this.questDef.name;
+    // 每下一层，左臂多一条布条（设定 → 可见的进度标记）
+    if (this.player) this.player.stripes = i + 1;
     this.questQueue = buildQuestQueue(this.questDef);
     this.questTimer = 0.4;
     this.questDone = false;
@@ -901,6 +906,25 @@ export class Game {
     ctx.rotate(p.body);
     ctx.drawImage(s.canvas, -s.size / 2, -s.size / 2, s.size, s.size);
     ctx.restore();
+
+    // 左臂布条：每下一层多一条，颜色取该层主色（STORY §2.3）
+    const stripes = Math.min(p.stripes || 0, 4);
+    if (stripes > 0) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.body);
+      ctx.lineWidth = 1.8;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < stripes; i++) {
+        ctx.strokeStyle = STRIPE_COLORS[i];
+        const off = i * 2.6;
+        ctx.beginPath();
+        ctx.moveTo(-6.5, 0.5 + off);
+        ctx.lineTo(-1.5, 4.5 + off);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
 
     // 武器
     ctx.save();

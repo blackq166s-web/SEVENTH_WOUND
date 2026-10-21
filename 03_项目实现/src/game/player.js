@@ -16,6 +16,7 @@ export function createPlayer(x, y) {
     xp: 0,
     xpNext: 6,
     pendingLevels: 0,
+    stripes: 1,      // 左臂布条数 = 已下潜层数（STORY §2.3）
     weapon: 'pistol',
     ammo: 12,
     cd: 0,

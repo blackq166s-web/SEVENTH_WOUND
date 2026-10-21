@@ -1,5 +1,8 @@
 const $ = (id) => document.getElementById(id);
 
+// 刻印三路线（STORY §8）：钢铁=继承前人手艺 / 本能=身体被重铸 / 侵蚀=借地渊之力
+const LINE_LABEL = { steel: '钢铁', instinct: '本能', erosion: '侵蚀' };
+
 export class UI {
   constructor(game) {
     this.game = game;
@@ -91,6 +94,7 @@ export class UI {
       card.innerHTML = `
         <span class="key">${i + 1}</span>
         <span class="icon">${perk.icon}</span>
+        <span class="ln ${perk.line}">${LINE_LABEL[perk.line] || '残响'}</span>
         <span class="name">${perk.name}</span>
         <span class="desc">${perk.desc}</span>
         ${stacks > 0 ? `<span class="stacks">已持有 ×${stacks}</span>` : ''}

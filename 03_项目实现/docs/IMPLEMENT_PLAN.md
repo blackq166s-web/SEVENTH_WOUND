@@ -32,7 +32,7 @@
 | 批次 | 主题 | 级别 | 依赖 | 预估改动面 | 状态 |
 | --- | --- | --- | --- | --- | --- |
 | **P1** | 文案层：让世界"贴"上去 | A（纯字符串） | 无 | 6 文件 | **✅ 已完成** |
-| **P2** | 数据层：Perk 路线 + 主角布条 | B（小逻辑） | P1 | 4 文件 | 待执行 |
+| **P2** | 数据层：Perk 路线 + 主角布条 | B（小逻辑） | P1 | 5 文件 | **✅ 已完成** |
 | **P3** | 叙事层：独白 / 层间卡 / 守层者登场 | C（新系统，最小可行） | P2 | 5 文件 | 待执行 |
 | **P4** | 机制层：侵蚀值（前置：种子 RNG） | C（平衡风险） | P3 + RNG | 4 文件 | 待评估 |
 
@@ -172,3 +172,20 @@ node tools/shoot.mjs   → NO_PAGE_ERRORS
 ```
 
 截图：`shots/v-menu.png`（菜单新文案）、`v-play.png`（潮汐 + 双名武器）、`v-perks.png`（刻印卡）、`v-p1-quest6.png`（最长层名）、`v-p1-dead.png`（残响已被记录 + 新字段）、`v-p1-clear.png`（继续下潜）。
+
+### P2 · 数据层（2026-10-21 完成）
+
+改动 5 文件：`perks.js`（20 条加 `line`）、`player.js`（`stripes` 字段，默认 1）、`game.js`（`loadQuest` 写 `stripes = i+1`；`drawPlayer` 画布条；`STRIPE_COLORS` 四色）、`ui.js`（`LINE_LABEL` + 卡片路线标签）、`index.html`（`.card .ln` 三色样式）。
+
+验证：
+
+```
+smoke.mjs → 功能校验 PASS / SMOKE_OK（新增 4 条断言）
+  路线分布 8/7/5、每个 Perk 必须有合法 line
+  quest 首层 stripes=1 → loadQuest(3) 后 =4 → start('survival') 后回到 1
+升级卡实测：[{备用武器, 钢铁}, {闪避, 本能}, {厚皮, 本能}]
+```
+
+截图：`v-p2-perks.png`（刻印卡路线标签）、`v-p2-stripes.png`（第六层玩家特写，4 条布条封顶）、`v-p2-full.png`（整屏）。
+
+**踩坑**：定向截图时玩家总是不在画面中心。原因是镜头有 **look-ahead**（`game.update` 里 `lookX/Y = clamp((mouseWorld - p) * 0.16, ±110/±90)`），鼠标停在哪儿镜头就偏到哪儿。修法：截图前把 `input.mouse` 放到屏幕中心，让 look-ahead 归零。以后所有"对准玩家"的截图都要先做这一步。

@@ -227,7 +227,7 @@ console.log('Perk 压测:', {
 });
 
 // 功能点校验
-const { PERK_MAP } = await import('../src/game/perks.js');
+const { PERK_MAP, PERKS } = await import('../src/game/perks.js');
 const { giveWeapon, swapWeapon } = await import('../src/game/player.js');
 const { damageEnemy } = await import('../src/game/enemies.js');
 
@@ -268,6 +268,27 @@ boss.hp = 1;
 damageEnemy(game, boss, 999, {});
 assert(boss.dead === true, 'Boss 应可被击杀');
 assert(game.pickups.some((it) => it.type === 'weapon'), 'Boss 必掉武器');
+
+// 刻印三路线（钢铁 8 / 本能 7 / 侵蚀 5）
+const LINE_COUNT = { steel: 0, instinct: 0, erosion: 0 };
+const badLine = PERKS.filter((perk) => {
+  if (!(perk.line in LINE_COUNT)) return true;
+  LINE_COUNT[perk.line]++;
+  return false;
+});
+assert(badLine.length === 0, `每个 Perk 必须有合法 line，异常：${badLine.map((p) => p.id).join(',')}`);
+assert(
+  PERKS.length === 20 && LINE_COUNT.steel === 8 && LINE_COUNT.instinct === 7 && LINE_COUNT.erosion === 5,
+  `三路线应为 8/7/5，实际 ${LINE_COUNT.steel}/${LINE_COUNT.instinct}/${LINE_COUNT.erosion}`
+);
+
+// 左臂布条随层数（STORY §2.3）
+game.start('quest');
+assert(game.player.stripes === 1, `首层布条应为 1，实际 ${game.player.stripes}`);
+game.loadQuest(3);
+assert(game.player.stripes === 4, `第四层布条应为 4，实际 ${game.player.stripes}`);
+game.start('survival');
+assert(game.player.stripes === 1, `竞技场布条应回到 1，实际 ${game.player.stripes}`);
 
 // 边缘威胁指示器
 const { offscreenThreats } = await import('../src/game/threats.js');
