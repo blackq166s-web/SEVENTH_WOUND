@@ -152,7 +152,7 @@ console.log('Perk 压测:', {
 });
 
 // 功能点校验
-const { PERK_MAP, PERKS } = await import('../src/game/perks.js');
+const { PERK_MAP, PERKS, SYNERGY, synergyWith } = await import('../src/game/perks.js');
 const { giveWeapon, swapWeapon } = await import('../src/game/player.js');
 const { damageEnemy } = await import('../src/game/enemies.js');
 
@@ -194,7 +194,7 @@ damageEnemy(game, boss, 999, {});
 assert(boss.dead === true, 'Boss 应可被击杀');
 assert(game.pickups.some((it) => it.type === 'weapon'), 'Boss 必掉武器');
 
-// 刻印三路线（钢铁 8 / 本能 7 / 侵蚀 5）
+// 刻印三路线（v0.3：钢铁 11 / 本能 8 / 侵蚀 6）
 const LINE_COUNT = { steel: 0, instinct: 0, erosion: 0 };
 const badLine = PERKS.filter((perk) => {
   if (!(perk.line in LINE_COUNT)) return true;
@@ -203,9 +203,27 @@ const badLine = PERKS.filter((perk) => {
 });
 assert(badLine.length === 0, `每个 Perk 必须有合法 line，异常：${badLine.map((p) => p.id).join(',')}`);
 assert(
-  PERKS.length === 20 && LINE_COUNT.steel === 8 && LINE_COUNT.instinct === 7 && LINE_COUNT.erosion === 5,
-  `三路线应为 8/7/5，实际 ${LINE_COUNT.steel}/${LINE_COUNT.instinct}/${LINE_COUNT.erosion}`
+  PERKS.length === 25 && LINE_COUNT.steel === 11 && LINE_COUNT.instinct === 8 && LINE_COUNT.erosion === 6,
+  `三路线应为 11/8/6（共 25），实际 ${LINE_COUNT.steel}/${LINE_COUNT.instinct}/${LINE_COUNT.erosion} 共 ${PERKS.length}`
 );
+
+// 稀有度（S6-D）：每张卡都有合法稀有度；稀有=机制型；禁忌只有侵蚀线
+const RARITIES = new Set(['common', 'rare', 'forbidden']);
+const badRarity = PERKS.filter((perk) => !RARITIES.has(perk.rarity));
+assert(badRarity.length === 0, `稀有度非法：${badRarity.map((p) => p.id).join(',')}`);
+const rarePerks = PERKS.filter((perk) => perk.rarity === 'rare');
+assert(rarePerks.length === 5, `应有 5 个机制型（rare）刻印，实际 ${rarePerks.length}`);
+assert(rarePerks.every((perk) => perk.id && typeof perk.apply === 'function'), '稀有刻印必须有 apply');
+const forbidden = PERKS.filter((perk) => perk.rarity === 'forbidden');
+assert(forbidden.length >= 1 && forbidden.every((perk) => perk.line === 'erosion'), '禁忌刻印必须属于侵蚀线');
+
+// 协同表引用的 id 必须都存在
+const badSyn = [];
+for (const [id, partners] of Object.entries(SYNERGY)) {
+  if (!PERK_MAP[id]) badSyn.push(id);
+  for (const partner of partners) if (!PERK_MAP[partner]) badSyn.push(partner);
+}
+assert(badSyn.length === 0, `协同表引用了不存在的 id：${badSyn.join(',')}`);
 
 // 左臂布条随层数（STORY §2.3）
 game.start('quest');
@@ -444,6 +462,96 @@ const pityZombie = game.spawn('zombie', {});
 pityZombie.hp = 1;
 damageEnemy(game, pityZombie, 999, {});
 assert(game.pickups.some((it) => it.type === 'weapon'), '超 90 秒未掉落应触发保底');
+
+// 机制型刻印的行为断言（S6-D）
+game.start('survival');
+game.enemies.length = 0;
+game.bullets.length = 0;
+// 跳弹：子弹命中后应反弹而不是消失
+game.setState('levelup');
+game.pickPerk(PERK_MAP.ricochet);
+game.setState('playing');
+game.player.weapon = 'pistol';
+const bTgt = game.spawn('zombie', {});
+bTgt.x = game.player.x + 120;
+bTgt.y = game.player.y;
+bTgt.born = 0;
+const bTgt2 = game.spawn('zombie', {});
+bTgt2.x = bTgt.x + 40;
+bTgt2.y = bTgt.y + 60;
+bTgt2.born = 0;
+input.mouse.down = false;
+const hp2Before = bTgt2.hp;
+game.addBullet({ x: bTgt.x - 40, y: bTgt.y, vx: 900, vy: 0, r: 3, dmg: 10, pierce: 0, life: 1, color: '#fff', bounceLeft: 1 });
+for (let i = 0; i < 10; i++) { game.update(STEP); input.endFrame(); }
+assert(bTgt2.hp < hp2Before || game.bullets.length > 0, `跳弹应转向第二个敌人，实际血量 ${hp2Before}→${bTgt2.hp}，在场 ${game.bullets.length}`);
+
+// 连锁：命中应顺带打到第二个敌人
+game.start('survival');
+game.enemies.length = 0;
+game.bullets.length = 0;
+game.setState('levelup');
+game.pickPerk(PERK_MAP.chain);
+game.setState('playing');
+const cA = game.spawn('zombie', {});
+cA.x = game.player.x + 100; cA.y = game.player.y; cA.born = 0;
+const cB = game.spawn('zombie', {});
+cB.x = cA.x + 60; cB.y = cA.y + 8; cB.born = 0;
+const hpB0 = cB.hp;
+game.addBullet({ x: cA.x - 30, y: cA.y, vx: 900, vy: 0, r: 3, dmg: 20, pierce: 0, life: 1, color: '#fff' });
+for (let i = 0; i < 6; i++) { game.update(STEP); input.endFrame(); }
+assert(cB.hp < hpB0, `连锁应波及第二个敌人，实际 ${hpB0} → ${cB.hp}`);
+
+// 布雷：脚下应出现地雷，敌人踩到会炸
+game.start('survival');
+game.enemies.length = 0;
+game.mines.length = 0;
+game.setState('levelup');
+game.pickPerk(PERK_MAP.minefield);
+game.setState('playing');
+for (let i = 0; i < 12; i++) { game.update(STEP); input.endFrame(); }
+assert(game.mines.length >= 1, `布雷刻印应留下地雷，实际 ${game.mines.length}`);
+
+// 冰痕：移动后应留下粘液
+game.start('survival');
+game.frostPools.length = 0;
+game.setState('levelup');
+game.pickPerk(PERK_MAP.frosttrail);
+game.setState('playing');
+input.keys.clear();
+input.keys.add('KeyD');
+for (let i = 0; i < 30; i++) { game.update(STEP); input.endFrame(); }
+input.keys.clear();
+assert(game.frostPools.length >= 1, `冰痕应留下减速池，实际 ${game.frostPools.length}`);
+
+// 重掷：每局只能用一次
+game.start('survival');
+game.gainXp(60);
+assert(game.state === 'levelup', '应先进入升级界面');
+const beforeRoll = game.perkChoices.map((p) => p.id).join(',');
+const rolled = game.rerollPerks();
+assert(rolled === true, '第一次重掷应成功');
+assert(game.rerollPerks() === false, '第二次重掷应被拒绝');
+assert(game.rerollUsed === true, '重掷应被记为已用');
+assert(typeof beforeRoll === 'string', '重掷前后都应有候选');
+game.setState('playing');
+
+// 满血时不该出现"立即回满"类刻印
+game.start('survival');
+game.player.hp = game.player.maxHp;
+let doctorSeen = 0;
+for (let i = 0; i < 30; i++) {
+  for (const perk of game.perkChoices) if (perk.id === 'doctor') doctorSeen++;
+  game.gainXp(60);
+  if (game.state === 'levelup') game.pickPerk(game.perkChoices[0]);
+}
+assert(doctorSeen === 0, `满血时不应出现医学博士，出现了 ${doctorSeen} 次`);
+
+// 协同：同时持有跳弹与穿透时应能识别出协同
+game.start('survival');
+game.player.perkCounts = { ricochet: 1, piercing: 1 };
+const syn = synergyWith(game.player, PERK_MAP.ricochet);
+assert(syn.length >= 1 && syn.some((p) => p.id === 'piercing'), '跳弹 + 穿透应识别为协同');
 
 // 边缘威胁指示器
 const { offscreenThreats } = await import('../src/game/threats.js');

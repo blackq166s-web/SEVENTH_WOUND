@@ -142,6 +142,7 @@ export function fireWeapon(g, p) {
       burn: w.burn ? (w.burn + (st.burnBonus || 0)) : (st.fireChance > random() ? 0.4 : 0),
       poison: w.poison ? w.poison : (st.poisonChance > random() ? 3 : 0),
       slow: w.slow || 0,
+      bounceLeft: st.bounce || 0,
       homing: st.homing || 0,
       crit: isCrit
     });

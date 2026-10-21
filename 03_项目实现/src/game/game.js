@@ -110,6 +110,10 @@ export class Game {
     // 武器掉落计时（S6-C）：保底用
     this.lastWeaponDropAt = 0;
     this.firstWeaponGiven = false;
+    // 机制型刻印产生的场地物（S6-D）
+    this.mines = [];
+    this.frostPools = [];
+    this.rerollUsed = false;
     // 侵蚀值（P4-1）：本局峰值，死亡面板用
     this.maxErosion = 0;
     this.heartTimer = 0;
@@ -185,6 +189,9 @@ export class Game {
     this.heartTimer = 0;
     this.lastWeaponDropAt = 0;
     this.firstWeaponGiven = false;
+    this.mines.length = 0;
+    this.frostPools.length = 0;
+    this.rerollUsed = false;
     this.voice.reset();
     this.cam.snapTo(this.player.x, this.player.y);
     this.cam.shakeAmt = 0;
@@ -213,7 +220,7 @@ export class Game {
   // ================= 更新 =================
 
   update(dt) {
-    // 升级选择（数字键）
+    // 升级选择（数字键）+ 每局一次重掷（R）
     if (this.state === 'levelup') {
       for (let i = 0; i < this.perkChoices.length; i++) {
         if (this.input.tap('Digit' + (i + 1))) {
@@ -222,6 +229,7 @@ export class Game {
           break;
         }
       }
+      if (this.input.tap('KeyR')) this.rerollPerks();
     }
 
     // 暂停切换
@@ -331,6 +339,7 @@ export class Game {
 
     this.updateBullets(dt);
     this.updatePickups(dt);
+    this.updateTraps(dt);
 
     if (this.mode === 'quest') this.updateQuestSpawner(dt);
     else this.updateWaveSpawner(dt);
@@ -470,6 +479,46 @@ export class Game {
           if (b.slow > 0) {
             e.slow = Math.max(e.slow, b.slow);
             e.slowMul = Math.min(e.slowMul || 1, 0.45);
+          }
+
+          // 跳弹（跳弹刻印）：命中后把子弹弹向最近的另一个敌人，伤害衰减 25%
+          if (b.bounceLeft > 0) {
+            let target = null;
+            let bestD = 280 * 280;
+            for (let m = 0; m < es.length; m++) {
+              const e2 = es[m];
+              if (e2.dead || b.hit.has(e2.id)) continue;
+              const d2 = M.dist2(b.x, b.y, e2.x, e2.y);
+              if (d2 < bestD) { bestD = d2; target = e2; }
+            }
+            if (target) {
+              const ang2 = Math.atan2(target.y - b.y, target.x - b.x);
+              const sp2 = Math.hypot(b.vx, b.vy) || 900;
+              b.vx = Math.cos(ang2) * sp2;
+              b.vy = Math.sin(ang2) * sp2;
+              b.dmg *= 0.75;
+              b.bounceLeft--;
+              b.life = Math.max(b.life, 0.6);
+              this.particles.sparks(b.x, b.y, ang2, 4, b.color);
+              break;   // 本帧不再处理这颗子弹的后续碰撞
+            }
+          }
+
+          // 连锁（连锁刻印）：对最近的另一个敌人跳一次伤害
+          if (p.stats.chain > 0) {
+            let jumped = null;
+            let jd = 240 * 240;
+            for (let m = 0; m < es.length; m++) {
+              const e2 = es[m];
+              if (e2.dead || e2 === e) continue;
+              const d2 = M.dist2(e.x, e.y, e2.x, e2.y);
+              if (d2 < jd) { jd = d2; jumped = e2; }
+            }
+            if (jumped) {
+              damageEnemy(this, jumped, b.dmg * 0.4 * p.stats.chain, { silent: true, source: 'chain' });
+              this.particles.sparks(jumped.x, jumped.y, Math.atan2(jumped.y - e.y, jumped.x - e.x), 5, '#a8f0ff');
+              this.particles.ring(jumped.x, jumped.y, 14, 'rgba(168,240,255,0.7)', 0.22);
+            }
           }
 
           if (b.splash) {
@@ -784,6 +833,74 @@ export class Game {
     }
   }
 
+  /** 重掷升级选项（每局一次）。返回是否成功 */
+  rerollPerks() {
+    if (this.state !== 'levelup' || this.rerollUsed) return false;
+    this.rerollUsed = true;
+    this.perkChoices = rollPerks(this.player, 3);
+    this.audio.click();
+    this.ui.showPerks(this.perkChoices, this.player);
+    return true;
+  }
+
+  /** 地雷与冰痕：拉刻印带出来的场地物 */
+  updateTraps(dt) {
+    const p = this.player;
+
+    // 布雷
+    if (p.stats.mineRate > 0) {
+      p.mineTimer = (p.mineTimer || 0) - dt;
+      if (p.mineTimer <= 0) {
+        p.mineTimer = 1 / p.stats.mineRate;
+        if (this.mines.length < 24) {
+          this.mines.push({ x: p.x, y: p.y, t: 0, arm: 0.45 });
+        }
+      }
+    }
+    for (let i = this.mines.length - 1; i >= 0; i--) {
+      const m = this.mines[i];
+      m.t += dt;
+      m.arm -= dt;
+      if (m.t > 18) { this.mines.splice(i, 1); continue; }
+      if (m.arm > 0) continue;
+      let boom = false;
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const rr = e.r + 15;
+        if (M.dist2(m.x, m.y, e.x, e.y) > rr * rr) continue;
+        boom = true;
+        break;
+      }
+      if (boom) {
+        this.explode(m.x, m.y, 92, 34, false);
+        this.mines.splice(i, 1);
+      }
+    }
+
+    // 冰痕
+    if (p.stats.frostTrail > 0) {
+      p.frostTimer = (p.frostTimer || 0) - dt;
+      const moving = Math.hypot(p.vx, p.vy) > 40;
+      if (moving && p.frostTimer <= 0) {
+        p.frostTimer = 0.16;
+        if (this.frostPools.length > 90) this.frostPools.shift();
+        this.frostPools.push({ x: p.x, y: p.y, r: 14 + p.stats.frostTrail * 5, life: 3.2 });
+      }
+    }
+    for (let i = this.frostPools.length - 1; i >= 0; i--) {
+      const fr = this.frostPools[i];
+      fr.life -= dt;
+      if (fr.life <= 0) { this.frostPools.splice(i, 1); continue; }
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const rr = fr.r + e.r;
+        if (M.dist2(fr.x, fr.y, e.x, e.y) > rr * rr) continue;
+        e.slow = Math.max(e.slow, 0.35);
+        e.slowMul = Math.min(e.slowMul || 1, 0.6);
+      }
+    }
+  }
+
   /**
    * 掉一把武器。tier 决定箱子颜色；同时刷新保底计时。
    * @returns {string} 掉落的武器 id
@@ -917,6 +1034,7 @@ export class Game {
 
     // 血迹
     this.decals.draw(ctx, cam);
+    this.drawTraps(ctx);
 
     this.drawPickups(ctx);
     this.drawEnemies(ctx);
@@ -1002,6 +1120,39 @@ export class Game {
     if (p && p.hurtFlash > 0) {
       ctx.fillStyle = `rgba(190,10,30,${p.hurtFlash * 0.22})`;
       ctx.fillRect(0, 0, w, h);
+    }
+  }
+
+  /** 冰痕池与地雷（纯表现，不吃命中判定以外的东西） */
+  drawTraps(ctx) {
+    for (const fr of this.frostPools) {
+      const a = Math.min(1, fr.life / 1.6);
+      ctx.fillStyle = 'rgba(140,225,255,' + (a * 0.13).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(fr.x, fr.y, fr.r, 0, M.TAU);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(190,245,255,' + (a * 0.35).toFixed(3) + ')';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+    for (const m of this.mines) {
+      const blink = 0.5 + Math.sin(m.t * 9) * 0.5;
+      ctx.save();
+      ctx.translate(m.x, m.y);
+      ctx.fillStyle = 'rgba(18,20,24,0.9)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, M.TAU);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,96,96,' + (0.3 + blink * 0.6).toFixed(3) + ')';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, M.TAU);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,96,96,' + (0.2 + blink * 0.65).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(0, 0, 2.4, 0, M.TAU);
+      ctx.fill();
+      ctx.restore();
     }
   }
 

@@ -54,7 +54,13 @@ export function createPlayer(x, y) {
       knockbackBonus: 0,
       spreadPenalty: 0,
       enemySlow: 0,
-      xpMul: 1
+      xpMul: 1,
+      // 机制型刻印（S6-D）
+      bounce: 0,        // 跳弹次数
+      chain: 0,         // 连锁层数
+      mineRate: 0,      // 每秒布雷数
+      frostTrail: 0,    // 冰痕强度
+      dualWield: 0      // 双持（0/1）
     }
   };
 }
@@ -174,6 +180,20 @@ export function updatePlayer(g, p, dt) {
       if (wDef.burst > 1) {
         p.burstLeft = wDef.burst - 1;
         p.burstTimer = wDef.burstGap || 0.06;
+      }
+      // 双持：副武器同时打一发。临时换枪/换弹药，打完换回来，
+      // 这样弹匣、弹药、装填状态各归各的，不用给 fireWeapon 加参数。
+      if (p.stats.dualWield && p.secondary && p.secondaryAmmo > 0 && p.secondary !== p.weapon) {
+        const mainW = p.weapon;
+        const mainAmmo = p.ammo;
+        const mainReload = p.reloading;
+        p.weapon = p.secondary;
+        p.ammo = p.secondaryAmmo;
+        fireWeapon(g, p);
+        p.secondaryAmmo = p.ammo;
+        p.weapon = mainW;
+        p.ammo = mainAmmo;
+        p.reloading = mainReload;
       }
     } else if (p.ammo <= 0) {
       g.audio.empty();

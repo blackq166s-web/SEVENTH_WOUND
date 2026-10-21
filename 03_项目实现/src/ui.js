@@ -1,4 +1,5 @@
 import { DEATH_LINE } from './game/voice.js';
+import { synergyWith, RARITY_LABEL } from './game/perks.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -41,6 +42,7 @@ export class UI {
     on('btnResume', () => { g.setState('playing'); this.hide(); });
     on('btnQuit', () => this.toMenu());
     on('btnNext', () => this.nextLevel());
+    on('btnReroll', () => { if (g.rerollPerks()) this.showPerks(g.perkChoices, g.player); });
   }
 
   toMenu() {
@@ -90,15 +92,21 @@ export class UI {
     this.perkCards.innerHTML = '';
     perks.forEach((perk, i) => {
       const stacks = player.perkCounts[perk.id] || 0;
+      const rarity = perk.rarity || 'common';
+      const syn = synergyWith(player, perk);
       const card = document.createElement('button');
-      card.className = 'card';
+      card.className = 'card rar-' + rarity;
       card.style.setProperty('--accent', perk.color);
       card.innerHTML = `
         <span class="key">${i + 1}</span>
         <span class="icon">${perk.icon}</span>
-        <span class="ln ${perk.line}">${LINE_LABEL[perk.line] || '残响'}</span>
+        <span class="tags">
+          <span class="ln ${perk.line}">${LINE_LABEL[perk.line] || '残响'}</span>
+          <span class="rar ${rarity}">${RARITY_LABEL[rarity] || ''}</span>
+        </span>
         <span class="name">${perk.name}</span>
         <span class="desc">${perk.desc}</span>
+        ${syn.length ? `<span class="syn">＋协同 ${syn.map((x) => x.name).join(' · ')}</span>` : ''}
         ${stacks > 0 ? `<span class="stacks">已持有 ×${stacks}</span>` : ''}
       `;
       card.addEventListener('click', (e) => {
@@ -110,6 +118,13 @@ export class UI {
       });
       this.perkCards.appendChild(card);
     });
+    // 重掷按钮：本局只能用一次，用掉就置灰
+    const rr = $('btnReroll');
+    if (rr) {
+      const used = this.game.rerollUsed;
+      rr.disabled = used;
+      rr.textContent = used ? '本局已重掷过' : '重掷（R）· 本局一次';
+    }
     this.show('perks');
   }
 

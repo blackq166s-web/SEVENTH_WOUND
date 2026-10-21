@@ -67,15 +67,23 @@
 
 ---
 
-## 5. 二十个 Perk ↔ 三条路线
+## 5. 二十五个刻印 ↔ 三条路线 ↔ 稀有度
 
-文件：`src/game/perks.js`（A 级：`name` / `desc` 可改；B 级：新增 `line` 字段供 UI 显示路线标签）
+文件：`src/game/perks.js`（A 级：`name` / `desc` 可改；B 级：`line` 路线、`rarity` 稀有度；新增机制型要同时更新协同表）
 
-| 路线 | Perk id | 现有 name |
+| 路线 | 刻印 id | 名称 |
 | --- | --- | --- |
-| 钢铁（8） | bloody_mess / fastloader / ammomaniac / long_ranged / angry_bullets / scatter / piercing / alternate | 血肉横飞 / 快速装填 / 弹药狂徒 / 远程专精 / 愤怒子弹 / 散射改造 / 穿甲弹 / 备用武器 |
-| 本能（7） | ninja / thick_skin / regeneration / doctor / dodging / critical / bonus_magnet | 疾风步 / 厚皮 / 再生 / 医学博士 / 闪避 / 致命一击 / 磁力吸引 |
-| 侵蚀（5） | pyromaniac / toxic / death_clock / time_warp / uber | 纵火狂 / 剧毒之触 / 死亡时钟 / 时间扭曲 / 超级战士 |
+| 钢铁（11） | bloody_mess / fastloader / ammomaniac / long_ranged / angry_bullets / scatter / piercing / alternate / **ricochet** / **minefield** / **dualwield** | 血肉横飞 / 快速装填 / 弹药狂徒 / 远程专精 / 愤怒子弹 / 散射改造 / 穿甲弹 / 备用武器 / 跳弹 / 布雷 / 双持 |
+| 本能（8） | ninja / thick_skin / regeneration / doctor / dodging / critical / bonus_magnet / **frosttrail** | 疾风步 / 厚皮 / 再生 / 医学博士 / 闪避 / 致命一击 / 磁力吸引 / 冰痕 |
+| 侵蚀（6） | pyromaniac / toxic / death_clock† / time_warp / uber† / **chain** | 纵火狂 / 剧毒之触 / 死亡时钟† / 时间扭曲 / 超级战士† / 连锁 |
+
+† = 禁忌（侵蚀值 +16，卡面标红）。稀有 = 五个机制型，其余为普通。
+
+| 稀有度 | 数量 | 权重 | 含义 |
+| --- | --- | --- | --- |
+| 普通 common | 18 | 1.0 | 加数值 |
+| 稀有 rare | 5 | 0.55 | 改玩法（跳弹 / 连锁 / 布雷 / 冰痕 / 双持） |
+| 禁忌 forbidden | 2 | 0.6 | 侵蚀翻倍的大收益 |
 
 **约束**：以后新增 Perk 必须归入三条线之一，并说明"代价"（钢铁=依赖装备、本能=身体改造、侵蚀=侵蚀值）。没有代价的 Perk 不许进侵蚀线。
 
