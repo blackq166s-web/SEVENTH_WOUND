@@ -1,0 +1,5945 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23e01b3c'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%23ff7a8a'/%3E%3C/svg%3E" />
+<title>SEVENTH WOUND · 第七道伤</title>
+<style>
+  :root {
+    --red: #e01b3c;
+    --red-soft: #ff4d5e;
+    --gold: #ffd166;
+    --cyan: #7ce7ff;
+    --bg: #07080a;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: #e9ecf1;
+    font-family: "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    cursor: default;
+  }
+
+  #game {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: none;
+  }
+
+  /* ---------------- 覆盖层 ---------------- */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 50% 38%, rgba(120, 12, 28, 0.35), rgba(4, 5, 7, 0.94) 68%),
+      rgba(4, 5, 7, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: fadeIn 0.22s ease;
+  }
+
+  #overlay.on { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    max-width: 780px;
+    width: 100%;
+    animation: rise 0.26s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  .panel.hidden { display: none; }
+
+  /* ---------------- 标题 ---------------- */
+  .logo {
+    margin: 0;
+    font-size: clamp(38px, 7vw, 76px);
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    background: linear-gradient(180deg, #fff 10%, #ff5d6e 55%, #8f0d1f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 60px rgba(224, 27, 60, 0.35);
+  }
+
+  .logo span {
+    display: inline-block;
+    margin-left: 0.18em;
+    background: linear-gradient(180deg, #dfe8f2 10%, #7f93a8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .tagline {
+    margin: -6px 0 0;
+    font-size: 13px;
+    letter-spacing: 0.45em;
+    color: rgba(255, 255, 255, 0.38);
+    text-transform: uppercase;
+  }
+
+  .best {
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.42);
+  }
+
+  .best b {
+    color: var(--gold);
+    font-size: 16px;
+    margin-left: 6px;
+  }
+
+  /* ---------------- 按钮 ---------------- */
+  .btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .btn {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.04);
+    color: #e9ecf1;
+    font: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    padding: 13px 30px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .btn:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn.primary {
+    background: linear-gradient(180deg, #ff3550, #b30f27);
+    border-color: rgba(255, 110, 125, 0.6);
+    box-shadow: 0 8px 30px -8px rgba(224, 27, 60, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .btn.primary:hover {
+    background: linear-gradient(180deg, #ff5069, #c8132e);
+    box-shadow: 0 12px 38px -8px rgba(224, 27, 60, 1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .btn.ghost {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .hint {
+    margin-top: 4px;
+    font-size: 11.5px;
+    line-height: 1.9;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: center;
+    max-width: 560px;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  h2.danger {
+    color: var(--red-soft);
+    text-shadow: 0 0 40px rgba(224, 27, 60, 0.6);
+  }
+
+  h2.ok { color: var(--cyan); text-shadow: 0 0 40px rgba(124, 231, 255, 0.45); }
+
+  /* ---------------- Perk 卡片 ---------------- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 100%;
+  }
+
+  .card {
+    --accent: #ff4d5e;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 20px 18px 18px;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background:
+      radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 70%),
+      linear-gradient(180deg, rgba(40, 44, 52, 0.97), rgba(18, 20, 24, 0.97));
+    box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.9);
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-6px);
+    border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+    box-shadow: 0 18px 40px -18px var(--accent), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .card .key {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .card .icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    text-shadow: 0 0 22px var(--accent);
+  }
+
+  .card .name {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+
+  .card .ln {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    opacity: 0.8;
+  }
+
+  .card .ln.steel { color: #9fb4c9; }
+  .card .ln.instinct { color: #7ce7ff; }
+  .card .ln.erosion { color: #ff4d5e; }
+
+  /* 稀有度徽标（S6-D）：普通不抢眼，稀有描边，禁忌发红 */
+  .card .tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+  .card .rar {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .card .rar.rare {
+    color: #a8f0ff;
+    background: rgba(124, 231, 255, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(124, 231, 255, 0.45);
+  }
+
+  .card .rar.forbidden {
+    color: #ff8a72;
+    background: rgba(255, 45, 63, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(255, 45, 63, 0.55);
+    animation: forbidPulse 2.2s ease-in-out infinite;
+  }
+
+  @keyframes forbidPulse {
+    0%, 100% { box-shadow: inset 0 0 0 1px rgba(255, 45, 63, 0.55); }
+    50% { box-shadow: inset 0 0 0 1px rgba(255, 90, 100, 0.95), 0 0 18px -6px rgba(255, 45, 63, 0.8); }
+  }
+
+  /* 稀有 / 禁忌卡片整体加一点光，扫一眼就能分出层级 */
+  .card.rar-rare { border-color: rgba(124, 231, 255, 0.28); }
+  .card.rar-forbidden { border-color: rgba(255, 45, 63, 0.38); }
+
+  .card .syn {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #ffd166;
+  }
+
+  .card .desc {
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .card .stacks {
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+  }
+
+  /* ---------------- 结算 ---------------- */
+  .statgrid {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .srow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 14px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 13px;
+  }
+
+  .srow span { color: rgba(255, 255, 255, 0.45); letter-spacing: 0.08em; }
+  .srow b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
+
+  .dim { color: rgba(255, 255, 255, 0.45); font-size: 13px; }
+
+  /* 版本号（打包脚本会校验这里与 package.json 一致） */
+  .hint.ver {
+    margin-top: 0;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: rgba(255, 255, 255, 0.22);
+  }
+
+  /* 死亡面板里的最后一句独白（与画布独白同源，见 src/game/voice.js） */
+  .voice-line {
+    margin: -4px 0 0;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    color: rgba(228, 234, 242, 0.9);
+    text-shadow: 0 0 24px rgba(224, 27, 60, 0.45);
+    text-align: center;
+  }
+
+  .voice-line:empty { display: none; }
+
+  /* ---------------- 帮助 ---------------- */
+  .keys {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 22px;
+    width: 100%;
+    max-width: 620px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .keys li { display: flex; gap: 10px; align-items: center; }
+
+  kbd {
+    display: inline-block;
+    min-width: 26px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-bottom-width: 2px;
+    font: 700 11px/1.4 "Segoe UI", monospace;
+    color: #fff;
+    text-align: center;
+  }
+
+  @media (max-width: 720px) {
+    .cards { grid-template-columns: 1fr; }
+    .keys { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="overlay" class="on">
+  <section class="panel" id="p-menu">
+    <h1 class="logo">SEVENTH<span>WOUND</span></h1>
+    <p class="tagline">地渊之下 · 无尽潮汐</p>
+    <div class="best">最深残留<b id="bestScore">0</b></div>
+    <div class="btns">
+      <button id="btnSurvival" class="btn primary">竞技场 · 无尽潮汐</button>
+      <button id="btnQuest" class="btn">下潜 · 六层回廊</button>
+      <button id="btnHelp" class="btn ghost">操作说明</button>
+    </div>
+    <p class="hint">
+      WASD 移动 · 鼠标瞄准 · 按住左键射击<br />
+      R 手动装填 · Q 切换副武器 · ESC 暂停 · M 静音
+    </p>
+  </section>
+
+  <section class="panel hidden" id="p-perks">
+    <h2>刻印 · 选择一段残响</h2>
+    <div class="cards" id="perkCards"></div>
+    <button id="btnReroll" class="btn ghost">重掷（R）· 本局一次</button>
+  </section>
+
+  <section class="panel hidden" id="p-dead">
+    <h2 class="danger">你的残响已被记录</h2>
+    <p class="voice-line" id="deadVoice"></p>
+    <div class="statgrid" id="deadStats"></div>
+    <div class="btns">
+      <button id="btnRetry" class="btn primary">再入地渊</button>
+      <button id="btnMenu" class="btn ghost">返回主菜单</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="p-pause">
+    <h2>已暂停</h2>
+    <div class="btns">
+      <button id="btnResume" class="btn primary">继续</button>
+      <button id="btnQuit" class="btn ghost">放弃本局</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="p-clear">
+    <h2 class="ok">这一层清空了</h2>
+    <p id="clearText" style="text-align:center;line-height:1.9;margin:0"></p>
+    <div class="btns">
+      <button id="btnNext" class="btn primary">继续下潜</button>
+      <button id="btnMenu2" class="btn ghost">返回主菜单</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="p-help">
+    <h2>操作说明</h2>
+    <ul class="keys">
+      <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>移动</span></li>
+      <li><kbd>鼠标</kbd><span>瞄准</span></li>
+      <li><kbd>左键</kbd><span>射击（按住连发）</span></li>
+      <li><kbd>R</kbd><span>手动装填</span></li>
+      <li><kbd>Q</kbd><span>切换副武器</span></li>
+      <li><kbd>ESC</kbd><span>暂停 / 继续</span></li>
+      <li><kbd>M</kbd><span>开关音效</span></li>
+      <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>升级时选择能力</span></li>
+    </ul>
+    <p class="hint">击杀敌人掉落魔素结晶，升级后可从三个刻印中选一个。<br />绿色十字是治疗包，金色箱子是武器补给。</p>
+    <p class="hint ver" id="verLine">v0.3.0</p>
+    <button id="btnBack" class="btn">返回</button>
+  </section>
+</div>
+
+<script>
+(function () {
+/* SEVENTH WOUND — 单文件发布版（由 tools/pack.mjs 生成，别手改） */
+const __mods = Object.create(null);
+
+__mods["core/math.js"] = (function () {
+  'use strict';
+  // 基础数学工具
+  const TAU = Math.PI * 2;
+  
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  
+  const lerp = (a, b, t) => a + (b - a) * t;
+  
+  // ================= 随机源（P4-0） =================
+  // 默认就是 Math.random：不传 seed 时行为与改动前完全一致，一个数都不会变。
+  // 传了 seed（?seed=xxx）就换成 mulberry32，同一 seed 的序列固定，平衡数据才可复现。
+  // 唯一例外是 core/audio.js：它在首次交互时初始化，时机不可控，走 Math.random，
+  // 但音效不参与任何数值计算，所以不影响复现。
+  
+  let _rng = Math.random;
+  
+  function random() {
+    return _rng();
+  }
+  
+  /** 传函数则替换，传 null/undefined 则恢复 Math.random */
+  function setRng(fn) {
+    _rng = typeof fn === 'function' ? fn : Math.random;
+  }
+  
+  function usingSeed() {
+    return _rng !== Math.random;
+  }
+  
+  /** 任意字符串/数字 → 32 位种子（FNV-1a） */
+  function hashSeed(seed) {
+    if (typeof seed === 'number' && Number.isFinite(seed)) return (seed >>> 0) || 1;
+    const s = String(seed);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return (h >>> 0) || 1;
+  }
+  
+  /** mulberry32：小、快、序列足够散 */
+  function makeRng(seed) {
+    let a = hashSeed(seed);
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  
+  /** rand(1) => 0..1 ; rand(5,10) => 5..10 */
+  function rand(a = 1, b) {
+    if (b === undefined) { b = a; a = 0; }
+    return a + random() * (b - a);
+  }
+  
+  const randInt = (a, b) => Math.floor(a + random() * (b - a + 1));
+  
+  const pick = (arr) => arr[(random() * arr.length) | 0];
+  
+  const chance = (p) => random() < p;
+  
+  const dist = (ax, ay, bx, by) => Math.hypot(bx - ax, by - ay);
+  
+  function dist2(ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    return dx * dx + dy * dy;
+  }
+  
+  function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (random() * (i + 1)) | 0;
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  
+  /** 与帧率无关的平滑插值 */
+  const damp = (speed, dt) => 1 - Math.exp(-speed * dt);
+  
+  function angleLerp(a, b, t) {
+    let d = ((b - a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+    return a + d * t;
+  }
+  
+  /** 归一化角度到 -PI..PI */
+  function normAngle(a) {
+    return ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
+  }
+  
+  return { TAU, clamp, lerp, random, setRng, usingSeed, hashSeed, makeRng, rand, randInt, pick, chance, dist, dist2, shuffle, damp, angleLerp, normAngle };
+})();
+
+__mods["core/camera.js"] = (function () {
+  'use strict';
+  const { clamp, damp, random } = __mods["core/math.js"];
+  
+  class Camera {
+    constructor(worldW, worldH, zoom = 1.3) {
+      this.ww = worldW;
+      this.wh = worldH;
+      this.x = 0;
+      this.y = 0;
+      this.vw = 1280;
+      this.vh = 720;
+      this.zoom = zoom;
+      this.pad = 56; // 允许镜头略越过边界，避免贴墙时人卡在屏幕边缘
+      this.shakeAmt = 0;
+      this.ox = 0;
+      this.oy = 0;
+    }
+  
+    setViewport(w, h) {
+      this.vw = w;
+      this.vh = h;
+    }
+  
+    /** 可视区域的世界尺寸（受缩放影响） */
+    get vmw() { return this.vw / this.zoom; }
+    get vmh() { return this.vh / this.zoom; }
+  
+    /** 视口中心的世界坐标 */
+    get cx() { return this.x + this.vmw / 2; }
+    get cy() { return this.y + this.vmh / 2; }
+  
+    snapTo(tx, ty) {
+      this.x = this._clampX(tx - this.vmw / 2);
+      this.y = this._clampY(ty - this.vmh / 2);
+    }
+  
+    follow(tx, ty, dt, instant = false) {
+      const gx = this._clampX(tx - this.vmw / 2);
+      const gy = this._clampY(ty - this.vmh / 2);
+      if (instant) {
+        this.x = gx; this.y = gy;
+      } else {
+        const k = damp(7, dt);
+        this.x += (gx - this.x) * k;
+        this.y += (gy - this.y) * k;
+      }
+    }
+  
+    _clampX(v) {
+      if (this.ww <= this.vmw) return (this.ww - this.vmw) / 2;
+      return clamp(v, -this.pad, this.ww - this.vmw + this.pad);
+    }
+  
+    _clampY(v) {
+      if (this.wh <= this.vmh) return (this.wh - this.vmh) / 2;
+      return clamp(v, -this.pad, this.wh - this.vmh + this.pad);
+    }
+  
+    kick(amount) {
+      this.shakeAmt = Math.min(this.shakeAmt + amount, 30);
+    }
+  
+    update(dt) {
+      if (this.shakeAmt > 0.05) {
+        this.ox = (random() * 2 - 1) * this.shakeAmt;
+        this.oy = (random() * 2 - 1) * this.shakeAmt;
+        this.shakeAmt *= Math.pow(0.0008, dt);
+      } else {
+        this.shakeAmt = 0;
+        this.ox = 0;
+        this.oy = 0;
+      }
+    }
+  }
+  
+  return { Camera };
+})();
+
+__mods["game/decals.js"] = (function () {
+  'use strict';
+  const { rand, TAU } = __mods["core/math.js"];
+  
+  /**
+   * 血迹图层：世界尺寸的离屏 canvas（内部按 0.5 分辨率存储以省带宽），
+   * 只在可视区域 blit，并用 destination-out 定期淡出。
+   */
+  class Decals {
+    constructor(w, h, scale = 0.5) {
+      this.w = w;
+      this.h = h;
+      this.scale = scale;
+      this.cw = Math.ceil(w * scale);
+      this.ch = Math.ceil(h * scale);
+      const c = document.createElement('canvas');
+      c.width = this.cw;
+      c.height = this.ch;
+      this.canvas = c;
+      this.ctx = c.getContext('2d');
+      this.ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      this.fadeTimer = 0;
+    }
+  
+    clear() {
+      this.ctx.save();
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      this.ctx.clearRect(0, 0, this.cw, this.ch);
+      this.ctx.restore();
+    }
+  
+    /** 血溅 */
+    splat(x, y, radius, color = 'rgba(150,16,26,0.85)', count = 7) {
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.fillStyle = color;
+      // 主斑
+      ctx.beginPath();
+      ctx.ellipse(x, y, radius * rand(0.8, 1.2), radius * rand(0.65, 1.1), rand(0, TAU), 0, TAU);
+      ctx.fill();
+      // 飞溅小点
+      for (let i = 0; i < count; i++) {
+        const a = rand(0, TAU);
+        const d = rand(radius * 0.4, radius * 3.2);
+        const r = rand(0.8, radius * 0.35);
+        ctx.beginPath();
+        ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, r, 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  
+    scorch(x, y, radius) {
+      const ctx = this.ctx;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      g.addColorStop(0, 'rgba(0,0,0,0.55)');
+      g.addColorStop(0.55, 'rgba(8,6,6,0.35)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, TAU);
+      ctx.fill();
+    }
+  
+    fade(dt) {
+      this.fadeTimer += dt;
+      if (this.fadeTimer < 0.35) return;
+      this.fadeTimer = 0;
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,0.045)';
+      ctx.fillRect(0, 0, this.w, this.h);
+      ctx.restore();
+    }
+  
+    draw(ctx, cam) {
+      const vw = cam.vmw || cam.vw;
+      const vh = cam.vmh || cam.vh;
+      const s = this.scale;
+      const x = Math.max(0, cam.x - 24);
+      const y = Math.max(0, cam.y - 24);
+      const w = Math.min(this.w - x, vw + 48);
+      const h = Math.min(this.h - y, vh + 48);
+      if (w <= 0 || h <= 0) return;
+      ctx.drawImage(this.canvas, x * s, y * s, w * s, h * s, x, y, w, h);
+    }
+  }
+  
+  return { Decals };
+})();
+
+__mods["game/particles.js"] = (function () {
+  'use strict';
+  const { rand, TAU, clamp } = __mods["core/math.js"];
+  
+  const MAX = 1400;
+  
+  class Particles {
+    constructor() {
+      this.list = [];
+    }
+  
+    clear() { this.list.length = 0; }
+  
+    add(p) {
+      if (this.list.length >= MAX) this.list.shift();
+      p.age = 0;
+      this.list.push(p);
+      return p;
+    }
+  
+    blood(x, y, angle, count, color = '#b11a24', power = 1) {
+      for (let i = 0; i < count; i++) {
+        const a = angle + rand(-0.7, 0.7);
+        const sp = rand(60, 320) * power;
+        this.add({
+          type: 'dot',
+          x, y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp,
+          life: rand(0.25, 0.6),
+          size: rand(1.2, 3.4),
+          color,
+          drag: 3.2,
+          glow: 0
+        });
+      }
+    }
+  
+    sparks(x, y, angle, count, color = '#ffd27a') {
+      for (let i = 0; i < count; i++) {
+        const a = angle + rand(-0.9, 0.9);
+        const sp = rand(120, 520);
+        this.add({
+          type: 'line',
+          x, y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp,
+          life: rand(0.08, 0.22),
+          size: rand(1, 2.2),
+          color,
+          drag: 6
+        });
+      }
+    }
+  
+    gore(x, y, angle, count, color = '#8f1220') {
+      for (let i = 0; i < count; i++) {
+        const a = angle + rand(-1.4, 1.4);
+        const sp = rand(80, 420);
+        this.add({
+          type: 'chunk',
+          x, y,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp,
+          life: rand(0.35, 0.8),
+          size: rand(2, 5.5),
+          color,
+          drag: 2.6,
+          rot: rand(0, TAU),
+          spin: rand(-12, 12)
+        });
+      }
+    }
+  
+    smoke(x, y, count = 4, color = 'rgba(90,90,95,0.5)') {
+      for (let i = 0; i < count; i++) {
+        this.add({
+          type: 'smoke',
+          x: x + rand(-6, 6),
+          y: y + rand(-6, 6),
+          vx: rand(-40, 40),
+          vy: rand(-60, -10),
+          life: rand(0.4, 0.9),
+          size: rand(6, 16),
+          color,
+          drag: 1.2
+        });
+      }
+    }
+  
+    flash(x, y, radius, color = 'rgba(255,200,120,0.85)') {
+      this.add({
+        type: 'flash',
+        x, y,
+        vx: 0, vy: 0,
+        life: 0.09,
+        size: radius,
+        color
+      });
+    }
+  
+    ring(x, y, radius, color = 'rgba(255,120,90,0.9)', life = 0.35) {
+      this.add({ type: 'ring', x, y, vx: 0, vy: 0, life, size: radius, color });
+    }
+  
+    /** 残响外溢：击杀时从尸体上升起的细丝（比血块更"魂"） */
+    wisp(x, y, color = 'rgba(190,240,255,0.85)', count = 5) {
+      for (let i = 0; i < count; i++) {
+        this.add({
+          type: 'wisp',
+          x: x + rand(-8, 8),
+          y: y + rand(-6, 6),
+          vx: rand(-16, 16),
+          vy: rand(-70, -30),
+          life: rand(0.5, 1.1),
+          size: rand(1.2, 2.6),
+          color,
+          drag: 0.6
+        });
+      }
+    }
+  
+    text(x, y, str, color = '#fff', size = 14) {
+      this.add({
+        type: 'text', x, y,
+        vx: rand(-24, 24), vy: -70,
+        life: 0.75, size, color, str, drag: 1.5
+      });
+    }
+  
+    update(dt) {
+      const list = this.list;
+      for (let i = list.length - 1; i >= 0; i--) {
+        const p = list[i];
+        p.age += dt;
+        if (p.age >= p.life) {
+          list.splice(i, 1);
+          continue;
+        }
+        if (p.drag) {
+          const k = Math.exp(-p.drag * dt);
+          p.vx *= k;
+          p.vy *= k;
+        }
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        if (p.spin) p.rot += p.spin * dt;
+        if (p.type === 'smoke') p.size += dt * 14;
+      }
+    }
+  
+    draw(ctx) {
+      const list = this.list;
+      for (let i = 0; i < list.length; i++) {
+        const p = list[i];
+        const t = p.age / p.life;
+        const alpha = 1 - t;
+        ctx.globalAlpha = Math.max(0, alpha);
+        switch (p.type) {
+          case 'dot':
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * (1 - t * 0.35), 0, TAU);
+            ctx.fill();
+            break;
+          case 'line':
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = p.size;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - p.vx * 0.016, p.y - p.vy * 0.016);
+            ctx.stroke();
+            break;
+          case 'chunk':
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+            break;
+          case 'smoke':
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, TAU);
+            ctx.fill();
+            break;
+          case 'flash': {
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+            g.addColorStop(0, p.color);
+            g.addColorStop(1, 'rgba(255,160,60,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, TAU);
+            ctx.fill();
+            break;
+          }
+          case 'ring':
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 3 * (1 - t) + 0.5;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * (0.3 + t * 0.9), 0, TAU);
+            ctx.stroke();
+            break;
+          case 'wisp':
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = Math.max(0.4, p.size * (1 - t * 0.6));
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03);
+            ctx.stroke();
+            break;
+          case 'text':
+            ctx.globalAlpha = clamp(alpha * 1.6, 0, 1);
+            ctx.fillStyle = p.color;
+            ctx.font = `700 ${p.size}px "Segoe UI", system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(p.str, p.x, p.y);
+            break;
+          default:
+            break;
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  
+  return { Particles };
+})();
+
+__mods["game/weapons.js"] = (function () {
+  'use strict';
+  const { rand, pick, random } = __mods["core/math.js"];
+  
+  /**
+   * 武器定义（数据驱动）。新增武器只需在这里加一项。
+   * kind 决定子弹行为：bullet | plasma | flame | gauss | rocket
+   */
+  const WEAPONS = {
+    pistol: {
+      name: '第一声 · 手枪', tier: 1, dmg: 14, rate: 0.26, speed: 1080, spread: 0.022,
+      pellets: 1, mag: 12, reload: 0.85, pierce: 0, knockback: 90,
+      color: '#ffe6a3', size: 2.6, life: 1.0, sound: 'pistol', tier38: 1
+    },
+    rifle: {
+      name: '连祷 · 突击步枪', tier: 2, dmg: 11, rate: 0.095, speed: 1250, spread: 0.05,
+      pellets: 1, mag: 30, reload: 1.15, pierce: 0, knockback: 80,
+      color: '#ffd27a', size: 2.4, life: 1.0, sound: 'rifle'
+    },
+    smg: {
+      name: '口吃者 · 冲锋枪', tier: 2, dmg: 7, rate: 0.058, speed: 1180, spread: 0.095,
+      pellets: 1, mag: 45, reload: 1.2, pierce: 0, knockback: 40,
+      color: '#ffe0a0', size: 2.2, life: 0.9, sound: 'smg'
+    },
+    shotgun: {
+      name: '宽恕 · 霰弹枪', tier: 2, dmg: 9, rate: 0.72, speed: 980, spread: 0.19,
+      pellets: 9, mag: 8, reload: 1.35, pierce: 0, knockback: 320,
+      color: '#ffc46b', size: 2.6, life: 0.55, sound: 'shotgun'
+    },
+    flamer: {
+      name: '焚稿 · 火焰喷射器', tier: 3, dmg: 4, rate: 0.032, speed: 430, spread: 0.16,
+      pellets: 1, mag: 180, reload: 1.6, pierce: 99, knockback: 10,
+      color: '#ff8a3c', size: 9, life: 0.24, sound: 'flame', kind: 'flame', burn: 0.5
+    },
+    plasma: {
+      name: '结晶之喉 · 等离子枪', tier: 3, dmg: 27, rate: 0.3, speed: 820, spread: 0.03,
+      pellets: 1, mag: 18, reload: 1.2, pierce: 1, knockback: 130,
+      color: '#7ce7ff', size: 5, life: 1.4, sound: 'plasma', kind: 'plasma', glow: 26
+    },
+    gauss: {
+      name: '穿层者 · 电磁步枪', tier: 4, dmg: 90, rate: 0.95, speed: 2800, spread: 0.004,
+      pellets: 1, mag: 6, reload: 1.5, pierce: 6, knockback: 260,
+      color: '#b8ffef', size: 3.4, life: 1.6, sound: 'gauss', kind: 'gauss', glow: 20
+    },
+    rocket: {
+      name: '墓碑 · 火箭筒', tier: 4, dmg: 45, rate: 1.05, speed: 600, spread: 0.015,
+      pellets: 1, mag: 4, reload: 1.6, pierce: 0, knockback: 200,
+      color: '#ffb27a', size: 4.5, life: 2.4, sound: 'rocket', kind: 'rocket',
+      splash: { radius: 118, dmg: 75 }, glow: 14
+    },
+    minigun: {
+      name: '蜂巢 · 转轮机枪', tier: 4, dmg: 9, rate: 0.042, speed: 1300, spread: 0.13,
+      pellets: 1, mag: 120, reload: 2.2, pierce: 0, knockback: 55,
+      color: '#ffe8b5', size: 2.4, life: 1.0, sound: 'minigun'
+    },
+  
+    // ---------- v0.3 新增 6 把（S6-C） ----------
+    // 遗留：对称、工业感，靠"手艺"而不是蛮力
+    whistle: {
+      name: '口哨 · 精准手枪', tier: 2, dmg: 27, rate: 0.42, speed: 1500, spread: 0.004,
+      pellets: 1, mag: 8, reload: 0.95, pierce: 1, knockback: 150,
+      color: '#ffeacd', size: 2.8, life: 1.3, sound: 'pistol'
+    },
+    catechism: {
+      name: '教诲 · 三连点射', tier: 2, dmg: 10, rate: 0.62, burst: 3, burstGap: 0.06,
+      speed: 1350, spread: 0.02, pellets: 1, mag: 27, reload: 1.25, pierce: 0, knockback: 70,
+      color: '#ffd8a0', size: 2.4, life: 1.0, sound: 'rifle'
+    },
+    // 再铸：生物感的持续输出
+    acidbag: {
+      name: '酸囊 · 腐蚀喷洒', tier: 3, dmg: 3.4, rate: 0.045, speed: 400, spread: 0.2,
+      pellets: 1, mag: 170, reload: 1.7, pierce: 99, knockback: 8,
+      color: '#9dff2b', size: 8, life: 0.26, sound: 'flame', kind: 'acid', poison: 3
+    },
+    bonesaw: {
+      name: '碎骨 · 链锯枪', tier: 3, dmg: 7.5, rate: 0.052, speed: 1000, spread: 0.34,
+      pellets: 1, mag: 200, reload: 2.0, pierce: 1, knockback: 40,
+      color: '#e8d9b0', size: 2.6, life: 0.13, sound: 'minigun', kind: 'saw'
+    },
+    // 重火力：控场与爆发
+    cryo: {
+      name: '裂层 · 冰冻射线', tier: 4, dmg: 4.6, rate: 0.035, speed: 760, spread: 0.05,
+      pellets: 1, mag: 260, reload: 1.8, pierce: 1, knockback: 6,
+      color: '#a8f0ff', size: 4, life: 0.5, sound: 'plasma', kind: 'cryo', slow: 1.2
+    },
+    hymn: {
+      name: '圣咏 · 轨道炮', tier: 4, dmg: 170, rate: 1.5, speed: 3600, spread: 0.002,
+      pellets: 1, mag: 3, reload: 2.2, pierce: 99, knockback: 300,
+      color: '#fff3c4', size: 3.6, life: 1.8, sound: 'gauss', kind: 'rail', charge: 0.6
+    }
+  };
+  
+  const WEAPON_IDS = Object.keys(WEAPONS);
+  
+  function magSize(id, stats) {
+    const w = WEAPONS[id];
+    return Math.round(w.mag * (1 + (stats.magBonus || 0)));
+  }
+  
+  function reloadDuration(id, stats) {
+    const w = WEAPONS[id];
+    return w.reload * (1 - Math.min(stats.reloadBonus || 0, 0.7));
+  }
+  
+  /** 按难度层级随机掉落一把武器（尽量排除当前武器） */
+  function randomWeaponDrop(maxTier = 3, exclude = null) {
+    let pool = WEAPON_IDS.filter((id) => WEAPONS[id].tier <= maxTier && id !== exclude);
+    if (!pool.length) pool = WEAPON_IDS.filter((id) => WEAPONS[id].tier <= maxTier);
+    if (!pool.length) pool = WEAPON_IDS;
+    return pick(pool);
+  }
+  
+  /**
+   * 开火。返回本次产生的子弹数（用于统计/音效）。
+   */
+  function fireWeapon(g, p) {
+    const w = WEAPONS[p.weapon];
+    const st = p.stats;
+    const pellets = (w.pellets || 1) + (st.pelletsBonus || 0);
+    const spread = w.spread * (1 + (st.spreadPenalty || 0));
+  
+    for (let i = 0; i < pellets; i++) {
+      const a = p.aim + rand(-spread, spread);
+      const ox = Math.cos(p.aim) * 17;
+      const oy = Math.sin(p.aim) * 17;
+      const sp = (w.speed || 900) * (1 + (st.bulletSpeedBonus || 0));
+      const isCrit = random() < (st.critChance || 0);
+      const dmg = (w.dmg || 1) * st.dmgMul * (isCrit ? 2.2 : 1);
+  
+      g.addBullet({
+        x: p.x + ox,
+        y: p.y + oy,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        r: w.size || 2.5,
+        dmg,
+        pierce: (w.pierce || 0) + (st.pierceBonus || 0),
+        life: (w.life || 1.0) * (1 + (st.rangeBonus || 0)),
+        color: w.color,
+        kind: w.kind || 'bullet',
+        glow: w.glow || 0,
+        splash: w.splash || null,
+        knockback: (w.knockback || 0) * (1 + (st.knockbackBonus || 0)),
+        burn: w.burn ? (w.burn + (st.burnBonus || 0)) : (st.fireChance > random() ? 0.4 : 0),
+        poison: w.poison ? w.poison : (st.poisonChance > random() ? 3 : 0),
+        slow: w.slow || 0,
+        bounceLeft: st.bounce || 0,
+        homing: st.homing || 0,
+        crit: isCrit
+      });
+    }
+  
+    p.ammo--;
+    g.stats.shots += pellets;
+    g.audio.shoot(w.sound || 'pistol');
+  
+    // 枪口火花
+    const mx = p.x + Math.cos(p.aim) * 22;
+    const my = p.y + Math.sin(p.aim) * 22;
+    g.particles.sparks(mx, my, p.aim, w.kind === 'flame' ? 1 : 3, w.color);
+    if (w.kind !== 'flame') g.particles.flash(mx, my, 26, 'rgba(255,190,110,0.55)');
+    g.cam.kick(w.tier >= 4 ? 2.6 : w.tier >= 3 ? 1.6 : 1.0);
+  
+    return pellets;
+  }
+  
+  return { WEAPONS, WEAPON_IDS, magSize, reloadDuration, randomWeaponDrop, fireWeapon };
+})();
+
+__mods["game/player.js"] = (function () {
+  'use strict';
+  const { clamp, damp, angleLerp, TAU, rand, random } = __mods["core/math.js"];
+  const { WEAPONS, fireWeapon, magSize, reloadDuration } = __mods["game/weapons.js"];
+  
+  function createPlayer(x, y) {
+    return {
+      x, y,
+      vx: 0, vy: 0,
+      r: 14,
+      hp: 100,
+      maxHp: 100,
+      speed: 238,
+      aim: 0,
+      body: 0,
+      walkPhase: 0,
+      level: 1,
+      xp: 0,
+      xpNext: 6,
+      pendingLevels: 0,
+      stripes: 1,      // 左臂布条数 = 已下潜层数（STORY §2.3）
+      erosion: 0,      // 侵蚀值 0-100：每拿一层"侵蚀"线刻印 +8（STORY §8）
+      weapon: 'pistol',
+      ammo: 12,
+      cd: 0,
+      reloading: 0,
+      reloadTotal: 1,
+      secondary: null,
+      secondaryAmmo: 0,
+      secondaryUnlocked: false,
+      perkCounts: {},
+      hurtFlash: 0,
+      muzzle: 0,
+      burstLeft: 0,    // 连发剩余发数（三连点射）
+      burstTimer: 0,
+      chargeT: 0,      // 蓄力进度（轨道炮）
+      stats: {
+        dmgMul: 1,
+        speedMul: 1,
+        reloadBonus: 0,
+        magBonus: 0,
+        magnet: 240,
+        regen: 0,
+        healBonus: 0,
+        pierceBonus: 0,
+        pelletsBonus: 0,
+        critChance: 0,
+        dodge: 0,
+        fireChance: 0,
+        burnBonus: 0,
+        poisonChance: 0,
+        explodeOnKill: 0,
+        homing: 0,
+        bulletSpeedBonus: 0,
+        rangeBonus: 0,
+        knockbackBonus: 0,
+        spreadPenalty: 0,
+        enemySlow: 0,
+        xpMul: 1,
+        // 机制型刻印（S6-D）
+        bounce: 0,        // 跳弹次数
+        chain: 0,         // 连锁层数
+        mineRate: 0,      // 每秒布雷数
+        frostTrail: 0,    // 冰痕强度
+        dualWield: 0      // 双持（0/1）
+      }
+    };
+  }
+  
+  function startReload(g, p) {
+    if (p.reloading > 0) return;
+    const cap = magSize(p.weapon, p.stats);
+    if (p.ammo >= cap) return;
+    p.reloadTotal = reloadDuration(p.weapon, p.stats);
+    p.reloading = p.reloadTotal;
+    g.audio.reload();
+  }
+  
+  function swapWeapon(g, p) {
+    if (!p.secondary) return;
+    const w = p.weapon, ammo = p.ammo;
+    p.weapon = p.secondary;
+    p.ammo = p.secondaryAmmo;
+    p.secondary = w;
+    p.secondaryAmmo = ammo;
+    p.reloading = 0;
+    p.cd = Math.max(p.cd, 0.18);
+    g.audio.click();
+  }
+  
+  function giveWeapon(g, p, id) {
+    const cap = magSize(id, p.stats);
+    if (p.secondaryUnlocked && !p.secondary) {
+      p.secondary = id;
+      p.secondaryAmmo = cap;
+      g.particles.text(p.x, p.y - 32, '副武器 ' + WEAPONS[id].name, '#ffd166', 15);
+      return;
+    }
+    if (p.weapon === id) {
+      p.ammo = cap;
+      g.particles.text(p.x, p.y - 32, '+弹药', '#ffd166', 14);
+      return;
+    }
+    p.weapon = id;
+    p.ammo = cap;
+    p.reloading = 0;
+    p.cd = 0.1;
+    g.particles.text(p.x, p.y - 32, WEAPONS[id].name, WEAPONS[id].color || '#fff', 16);
+  }
+  
+  function updatePlayer(g, p, dt) {
+    const input = g.input;
+    const wDef = WEAPONS[p.weapon];
+  
+    // 移动（蓄力时拖慢脚步，换那一发大伤害）
+    const mv = input.moveVector();
+    const chargeSlow = wDef.charge ? 1 - 0.4 * Math.min(1, (p.chargeT || 0) / wDef.charge) : 1;
+    const speed = p.speed * p.stats.speedMul * chargeSlow;
+    const k = damp(15, dt);
+    p.vx += (mv.x * speed - p.vx) * k;
+    p.vy += (mv.y * speed - p.vy) * k;
+    p.x = clamp(p.x + p.vx * dt, p.r, g.W - p.r);
+    p.y = clamp(p.y + p.vy * dt, p.r, g.H - p.r);
+  
+    // 瞄准
+    p.aim = Math.atan2(g.mouseWorld.y - p.y, g.mouseWorld.x - p.x);
+    p.body = angleLerp(p.body, p.aim, damp(16, dt));
+  
+    // 移动尾迹
+    const moving = Math.hypot(p.vx, p.vy) > 30;
+    p.walkPhase += Math.hypot(p.vx, p.vy) * dt * 0.05;
+    if (moving && random() < dt * 14) {
+      g.particles.add({
+        type: 'smoke',
+        x: p.x + rand(-5, 5) - Math.cos(p.body) * 8,
+        y: p.y + rand(-5, 5) - Math.sin(p.body) * 8,
+        vx: rand(-14, 14), vy: rand(-14, 14),
+        life: 0.35, size: rand(2, 4.5),
+        color: 'rgba(120,130,145,0.22)', drag: 2
+      });
+    }
+  
+    // 装填
+    if (p.reloading > 0) {
+      p.reloading -= dt;
+      if (p.reloading <= 0) {
+        p.reloading = 0;
+        p.ammo = magSize(p.weapon, p.stats);
+      }
+    }
+  
+    p.cd = Math.max(0, p.cd - dt);
+  
+    // 连发补射（三连点射：自动补完剩下的两发）
+    if (p.burstLeft > 0) {
+      p.burstTimer -= dt;
+      if (p.burstTimer <= 0 && p.ammo > 0) {
+        fireWeapon(g, p);
+        p.burstLeft--;
+        p.burstTimer = wDef.burstGap || 0.06;
+        p.muzzle = 0.05;
+      }
+      if (p.ammo <= 0) p.burstLeft = 0;
+    }
+  
+    // 蓄力（轨道炮）：按住蓄满才放；松开就泄掉
+    if (wDef.charge) {
+      if (input.mouse.down && p.reloading <= 0) p.chargeT = Math.min(wDef.charge, p.chargeT + dt);
+      else p.chargeT = Math.max(0, p.chargeT - dt * 4);
+    } else if (p.chargeT) {
+      p.chargeT = 0;
+    }
+  
+    // 开火
+    if (input.mouse.down && p.reloading <= 0 && p.cd <= 0) {
+      const charged = !wDef.charge || p.chargeT >= wDef.charge;
+      if (p.ammo > 0 && charged) {
+        fireWeapon(g, p);
+        p.cd = wDef.rate;
+        p.muzzle = wDef.charge ? 0.1 : 0.06;
+        if (wDef.charge) p.chargeT = 0;
+        if (wDef.burst > 1) {
+          p.burstLeft = wDef.burst - 1;
+          p.burstTimer = wDef.burstGap || 0.06;
+        }
+        // 双持：副武器同时打一发。临时换枪/换弹药，打完换回来，
+        // 这样弹匣、弹药、装填状态各归各的，不用给 fireWeapon 加参数。
+        if (p.stats.dualWield && p.secondary && p.secondaryAmmo > 0 && p.secondary !== p.weapon) {
+          const mainW = p.weapon;
+          const mainAmmo = p.ammo;
+          const mainReload = p.reloading;
+          p.weapon = p.secondary;
+          p.ammo = p.secondaryAmmo;
+          fireWeapon(g, p);
+          p.secondaryAmmo = p.ammo;
+          p.weapon = mainW;
+          p.ammo = mainAmmo;
+          p.reloading = mainReload;
+        }
+      } else if (p.ammo <= 0) {
+        g.audio.empty();
+        startReload(g, p);
+        p.cd = 0.15;
+      }
+    }
+    p.muzzle = Math.max(0, p.muzzle - dt);
+  
+    if (p.ammo <= 0 && p.reloading <= 0) startReload(g, p);
+    if (input.tap('KeyR')) startReload(g, p);
+    if (input.tap('KeyQ') || input.mouse.rclicked) {
+      input.mouse.rclicked = false;
+      swapWeapon(g, p);
+    }
+  
+    // 自然回复
+    if (p.stats.regen > 0 && p.hp > 0) {
+      p.hp = Math.min(p.maxHp, p.hp + p.stats.regen * dt);
+    }
+  
+    p.hurtFlash = Math.max(0, p.hurtFlash - dt * 2.4);
+  }
+  
+  function hurtPlayer(g, dmg) {
+    const p = g.player;
+    if (p.hp <= 0) return;
+    if (random() < p.stats.dodge) {
+      g.particles.text(p.x, p.y - 26, '闪避', '#c9d6e5', 14);
+      return;
+    }
+    p.hp -= dmg;
+    p.hurtFlash = 1;
+    g.cam.kick(5 + dmg * 0.25);
+    g.audio.hurt();
+    g.particles.blood(p.x, p.y, rand(0, TAU), 8, '#c8202b', 0.9);
+    if (p.hp <= 0) {
+      p.hp = 0;
+      g.onPlayerDeath();
+    }
+  }
+  
+  function healPlayer(g, amount) {
+    const p = g.player;
+    const v = amount * (1 + p.stats.healBonus);
+    p.hp = Math.min(p.maxHp, p.hp + v);
+    g.particles.text(p.x, p.y - 26, '+' + Math.round(v), '#5dff9b', 15);
+  }
+  
+  return { createPlayer, startReload, swapWeapon, giveWeapon, updatePlayer, hurtPlayer, healPlayer };
+})();
+
+__mods["game/enemies.js"] = (function () {
+  'use strict';
+  const { rand, random, TAU, clamp, angleLerp, damp } = __mods["core/math.js"];
+  
+  let nextId = 1;
+  
+  /**
+   * 敌人定义（数据驱动）。behavior: chase | erratic | ranged
+   */
+  const ENEMY_TYPES = {
+    zombie: {
+      name: '腐化者', hp: 24, speed: 70, dmg: 8, r: 13, xp: 1, score: 10,
+      spriteSet: 'zombie', spriteScale: 1, blood: '#a51622', mass: 1,
+      behavior: 'chase', attackCd: 0.8
+    },
+    runner: {
+      name: '疾行者', hp: 16, speed: 150, dmg: 6, r: 11, xp: 1, score: 14,
+      spriteSet: 'runner', spriteScale: 1, blood: '#8f2a1c', mass: 0.8,
+      behavior: 'chase', attackCd: 0.65
+    },
+    spider: {
+      name: '织网者', hp: 13, speed: 158, dmg: 5, r: 9, xp: 1, score: 16,
+      spriteSet: 'spider', spriteScale: 1, blood: '#3f6b2a', mass: 0.6, shell: true,
+      behavior: 'erratic', attackCd: 0.6
+    },
+    lizard: {
+      name: '哨眼', hp: 38, speed: 82, dmg: 7, r: 13, xp: 2, score: 28,
+      spriteSet: 'lizard', spriteScale: 1, blood: '#4c7a26', mass: 1, shell: true,
+      behavior: 'ranged', attackCd: 0.8, keepDist: 250, shootCd: 1.9, projSpeed: 480, projDmg: 9
+    },
+    alien: {
+      name: '融生体', hp: 100, speed: 66, dmg: 14, r: 17, xp: 4, score: 55,
+      spriteSet: 'alien', spriteScale: 1, blood: '#6b2b93', mass: 2.2,
+      behavior: 'chase', attackCd: 0.85
+    },
+    brute: {
+      name: '守层者', hp: 850, speed: 54, dmg: 26, r: 27, xp: 16, score: 400,
+      spriteSet: 'brute', spriteScale: 1, blood: '#8f1220', mass: 6, shell: true,
+      behavior: 'chase', attackCd: 1.0, isBoss: true
+    }
+  };
+  
+  function spawnEnemy(g, type, x, y, mods = {}) {
+    const t = ENEMY_TYPES[type];
+    if (!t) return null;
+    const hpMul = mods.hpMul || 1;
+    const e = {
+      id: nextId++,
+      type,
+      def: t,
+      x, y,
+      vx: 0, vy: 0,
+      kx: 0, ky: 0,
+      hp: t.hp * hpMul,
+      maxHp: t.hp * hpMul,
+      r: t.r,
+      dmg: t.dmg * (mods.dmgMul || 1),
+      speed: t.speed * (mods.speedMul || 1),
+      face: rand(0, TAU),
+      atkCd: rand(0, 0.3),
+      shootCd: rand(0.4, 1.4),
+      flash: 0,
+      burn: 0,
+      burnDps: 0,
+      poison: 0,
+      poisonDps: 0,
+      slow: 0,          // 冰冻减速剩余时间
+      slowMul: 1,       // 减速倍率（越小越慢）
+      phase: rand(0, TAU),
+      born: 0.45,
+      sprites: g.sprites[t.spriteSet],
+      sprite: g.sprites[t.spriteSet][0]
+    };
+    g.enemies.push(e);
+    return e;
+  }
+  
+  function updateEnemy(g, e, dt) {
+    const p = g.player;
+    const d = e.def;
+    e.born = Math.max(0, e.born - dt);
+    e.flash = Math.max(0, e.flash - dt);
+    e.atkCd = Math.max(0, e.atkCd - dt);
+    if (e.slow > 0) e.slow = Math.max(0, e.slow - dt);
+  
+    const dx = p.x - e.x;
+    const dy = p.y - e.y;
+    const distToPlayer = Math.hypot(dx, dy) || 1;
+    const nx = dx / distToPlayer;
+    const ny = dy / distToPlayer;
+  
+    e.face = angleLerp(e.face, Math.atan2(dy, dx), damp(7, dt));
+  
+    let tx = 0, ty = 0;
+    const wob = Math.sin(g.time * 2.4 + e.phase);
+  
+    if (d.behavior === 'chase') {
+      tx = nx;
+      ty = ny;
+      // 略微摆动的追击路径，避免全挤成一条直线
+      tx += -ny * wob * 0.22;
+      ty += nx * wob * 0.22;
+    } else if (d.behavior === 'erratic') {
+      const strafe = Math.sin(g.time * 6 + e.phase) * 1.1;
+      tx = nx * 0.75 - ny * strafe;
+      ty = ny * 0.75 + nx * strafe;
+    } else if (d.behavior === 'ranged') {
+      const keep = d.keepDist;
+      if (distToPlayer > keep * 1.15) { tx = nx; ty = ny; }
+      else if (distToPlayer < keep * 0.7) { tx = -nx; ty = -ny; }
+      else {
+        const s = Math.sin(g.time * 1.6 + e.phase);
+        tx = -ny * s; ty = nx * s;
+      }
+      // 远程射击
+      e.shootCd -= dt;
+      if (e.shootCd <= 0 && distToPlayer < 620 && e.born <= 0) {
+        e.shootCd = d.shootCd * rand(0.85, 1.15);
+        const a = Math.atan2(dy, dx) + rand(-0.06, 0.06);
+        g.addEnemyBullet({
+          x: e.x + Math.cos(a) * (e.r + 4),
+          y: e.y + Math.sin(a) * (e.r + 4),
+          vx: Math.cos(a) * d.projSpeed,
+          vy: Math.sin(a) * d.projSpeed,
+          r: 5,
+          dmg: d.projDmg * (e.dmg / d.dmg),
+          life: 2.4,
+          color: '#b6ff5c'
+        });
+        g.audio.shoot('plasma');
+      }
+    }
+  
+    // 出生时减速
+    const spawnMul = e.born > 0 ? 0.25 : 1;
+    // 距离远时加速接近，减少"空场等怪"的时间
+    const chargeMul = distToPlayer > 460 ? 1.35 : 1;
+    const slowMul = 1 - Math.min(0.6, p.stats.enemySlow || 0);
+    // 侵蚀 ≥70：地渊开始"认得"你了，所有敌人（含已在场的）移速 +10%
+    const erosionMul = (p.erosion || 0) >= 70 ? 1.1 : 1;
+    // 冰冻（裂层射线）：优先于其它加速，减速期间再快也快不起来
+    const frostMul = e.slow > 0 ? e.slowMul : 1;
+    const k = damp(8, dt);
+    e.vx += (tx * e.speed * spawnMul * slowMul * chargeMul * erosionMul * frostMul - e.vx) * k;
+    e.vy += (ty * e.speed * spawnMul * slowMul * chargeMul * erosionMul * frostMul - e.vy) * k;
+  
+    // 击退衰减
+    const kd = Math.exp(-6 * dt);
+    e.kx *= kd;
+    e.ky *= kd;
+  
+    e.x += (e.vx + e.kx) * dt;
+    e.y += (e.vy + e.ky) * dt;
+  
+    // 世界边界
+    e.x = clamp(e.x, e.r, g.W - e.r);
+    e.y = clamp(e.y, e.r, g.H - e.r);
+  
+    // 灼烧/中毒
+    if (e.burn > 0) {
+      e.burn -= dt;
+      damageEnemy(g, e, e.burnDps * dt, { silent: true, noKnockback: true });
+      if (random() < dt * 22) {
+        g.particles.add({
+          type: 'smoke', x: e.x + rand(-6, 6), y: e.y + rand(-6, 6),
+          vx: rand(-20, 20), vy: rand(-60, -20), life: 0.4, size: rand(3, 7),
+          color: 'rgba(255,140,50,0.55)', drag: 1.4
+        });
+      }
+    }
+    if (e.hp <= 0) return;
+    if (e.poison > 0) {
+      e.poison -= dt;
+      damageEnemy(g, e, e.poisonDps * dt, { silent: true, noKnockback: true, color: '#9dff2b' });
+    }
+    if (e.hp <= 0) return;
+  
+    // 接触伤害
+    const hitDist = e.r + p.r;
+    if (distToPlayer < hitDist && e.atkCd <= 0 && p.hp > 0) {
+      e.atkCd = d.attackCd;
+      g.hurtPlayer(e.dmg);
+    }
+  }
+  
+  function damageEnemy(g, e, dmg, opts = {}) {
+    if (e.dead) return;
+    e.hp -= dmg;
+    e.flash = 0.1;
+  
+    if (!opts.silent) {
+      const col = opts.color || '#ffffff';
+      const ang = Math.atan2(e.y - g.player.y, e.x - g.player.x);
+      if (e.def.shell) {
+        // 甲壳：白黄碎屑，几乎没有血雾（打上去应该"脆"）
+        g.particles.sparks(e.x, e.y, ang, 3, 'rgba(240,232,206,0.9)');
+      } else {
+        g.particles.blood(e.x, e.y, ang, 2, e.def.blood, 0.5);
+      }
+      if (opts.crit) g.particles.text(e.x, e.y - e.r - 6, Math.round(dmg) + '!', '#ffd166', 17);
+      else if (random() < 0.22) g.particles.text(e.x, e.y - e.r - 4, Math.round(dmg), col, 12);
+      if (random() < 0.4) g.audio.hit();
+    }
+  
+    if (!opts.noKnockback && opts.knockback) {
+      const mass = e.def.mass || 1;
+      e.kx += (opts.knockback.x / mass) * 26;
+      e.ky += (opts.knockback.y / mass) * 26;
+    }
+  
+    if (e.hp <= 0) g.killEnemy(e, opts.source || 'unknown');
+  }
+  
+  return { ENEMY_TYPES, spawnEnemy, updateEnemy, damageEnemy };
+})();
+
+__mods["game/perks.js"] = (function () {
+  'use strict';
+  const { random } = __mods["core/math.js"];
+  
+  /**
+   * Perk 定义（数据驱动）。apply(p) 直接修改玩家状态。
+   * max = 最大可叠层数
+   */
+  const PERKS = [
+    {
+      id: 'bloody_mess', name: '血肉横飞', icon: '血', color: '#ff4d5e', max: 6, line: 'steel',
+      desc: '所有武器伤害 +22%',
+      apply(p) { p.stats.dmgMul += 0.22; }
+    },
+    {
+      id: 'fastloader', name: '快速装填', icon: '装', color: '#7ce7ff', max: 4, line: 'steel',
+      desc: '装填速度 +35%',
+      apply(p) { p.stats.reloadBonus += 0.35; }
+    },
+    {
+      id: 'ammomaniac', name: '弹药狂徒', icon: '弹', color: '#ffd166', max: 4, line: 'steel',
+      desc: '弹匣容量 +40%',
+      apply(p) { p.stats.magBonus += 0.4; p.ammo = Math.round(p.ammo * 1.4) + 4; }
+    },
+    {
+      id: 'thick_skin', name: '厚皮', icon: '甲', color: '#9fb4c9', max: 5, line: 'instinct',
+      desc: '最大生命 +30，并治疗 30',
+      apply(p) { p.maxHp += 30; p.hp = Math.min(p.maxHp, p.hp + 30); }
+    },
+    {
+      id: 'regeneration', name: '再生', icon: '愈', color: '#5dff9b', max: 4, line: 'instinct',
+      desc: '每秒回复 1.5 点生命',
+      apply(p) { p.stats.regen += 1.5; }
+    },
+    {
+      id: 'doctor', name: '医学博士', icon: '医', color: '#5dff9b', max: 1, line: 'instinct',
+      desc: '立即回满生命，治疗量 +60%',
+      apply(p) { p.stats.healBonus += 0.6; p.hp = p.maxHp; }
+    },
+    {
+      id: 'ninja', name: '疾风步', icon: '速', color: '#b8ffef', max: 5, line: 'instinct',
+      desc: '移动速度 +14%',
+      apply(p) { p.stats.speedMul += 0.14; }
+    },
+    {
+      id: 'long_ranged', name: '远程专精', icon: '远', color: '#ffd166', max: 3, line: 'steel',
+      desc: '子弹速度 +35%，射程 +25%',
+      apply(p) { p.stats.bulletSpeedBonus += 0.35; p.stats.rangeBonus += 0.25; }
+    },
+    {
+      id: 'bonus_magnet', name: '磁力吸引', icon: '磁', color: '#7ce7ff', max: 3, line: 'instinct',
+      desc: '拾取范围 ×2.4',
+      apply(p) { p.stats.magnet *= 2.4; }
+    },
+    {
+      id: 'angry_bullets', name: '愤怒子弹', icon: '追', color: '#ff9f43', max: 2, line: 'steel',
+      desc: '子弹会追踪附近敌人',
+      apply(p) { p.stats.homing += 3.2; }
+    },
+    {
+      id: 'pyromaniac', name: '纵火狂', icon: '焰', color: '#ff7a3c', max: 3, line: 'erosion',
+      desc: '命中时有 35% 概率点燃敌人',
+      apply(p) { p.stats.fireChance += 0.35; p.stats.burnBonus += 0.3; }
+    },
+    {
+      id: 'toxic', name: '剧毒之触', icon: '毒', color: '#9dff2b', max: 3, line: 'erosion',
+      desc: '命中时使敌人中毒（持续伤害）',
+      apply(p) { p.stats.poisonChance += 0.4; }
+    },
+    {
+      id: 'dodging', name: '闪避', icon: '闪', color: '#c9d6e5', max: 4, line: 'instinct',
+      desc: '18% 概率完全闪避伤害',
+      apply(p) { p.stats.dodge = Math.min(0.72, p.stats.dodge + 0.18); }
+    },
+    {
+      id: 'critical', name: '致命一击', icon: '暴', color: '#ffd166', max: 4, line: 'instinct',
+      desc: '暴击率 +15%（2.2 倍伤害）',
+      apply(p) { p.stats.critChance += 0.15; }
+    },
+    {
+      id: 'scatter', name: '散射改造', icon: '散', color: '#ff9f43', max: 3, line: 'steel',
+      desc: '所有武器 +1 弹丸，伤害 -8%',
+      apply(p) { p.stats.pelletsBonus += 1; p.stats.dmgMul *= 0.92; }
+    },
+    {
+      id: 'piercing', name: '穿甲弹', icon: '穿', color: '#7ce7ff', max: 4, line: 'steel',
+      desc: '子弹额外穿透 1 个敌人',
+      apply(p) { p.stats.pierceBonus += 1; }
+    },
+    {
+      id: 'death_clock', name: '死亡时钟', icon: '死', color: '#ff4d5e', max: 3, line: 'erosion',
+      desc: '击杀敌人时有 22% 概率引发爆炸',
+      apply(p) { p.stats.explodeOnKill += 0.22; }
+    },
+    {
+      id: 'time_warp', name: '时间扭曲', icon: '缓', color: '#9fb4c9', max: 3, line: 'erosion',
+      desc: '所有敌人移动速度 -9%',
+      apply(p) { p.stats.enemySlow += 0.09; }
+    },
+    {
+      id: 'uber', name: '超级战士', icon: '全', color: '#ff4d5e', max: 2, line: 'erosion',
+      desc: '伤害 +12%、移速 +8%、装填 +15%',
+      apply(p) {
+        p.stats.dmgMul += 0.12;
+        p.stats.speedMul += 0.08;
+        p.stats.reloadBonus += 0.15;
+      }
+    },
+    {
+      id: 'alternate', name: '备用武器', icon: '副', color: '#ffd166', max: 1, line: 'steel',
+      desc: '解锁副武器槽，按 Q / 右键切换',
+      apply(p) { p.secondaryUnlocked = true; }
+    },
+  
+    // ---------- v0.3 机制型刻印（S6-D）：不是加数值，是改玩法 ----------
+    {
+      id: 'ricochet', name: '跳弹', icon: '跳', color: '#7ce7ff', max: 2, line: 'steel', rarity: 'rare',
+      desc: '子弹命中后弹向最近的另一个敌人（伤害 -25%）',
+      apply(p) { p.stats.bounce += 1; }
+    },
+    {
+      id: 'chain', name: '连锁', icon: '链', color: '#a8f0ff', max: 3, line: 'erosion', rarity: 'rare',
+      desc: '命中时对最近的下一个敌人跳一次伤害（40%/层）',
+      apply(p) { p.stats.chain += 1; }
+    },
+    {
+      id: 'minefield', name: '布雷', icon: '雷', color: '#ffd166', max: 3, line: 'steel', rarity: 'rare',
+      desc: '每 3 秒在脚下留一颗地雷，敌人踩到就炸',
+      apply(p) { p.stats.mineRate += 1 / 3; }
+    },
+    {
+      id: 'frosttrail', name: '冰痕', icon: '痕', color: '#a8f0ff', max: 2, line: 'instinct', rarity: 'rare',
+      desc: '移动路径留下减速粘液，敌人经过会被冻住',
+      apply(p) { p.stats.frostTrail += 1; }
+    },
+    {
+      id: 'dualwield', name: '双持', icon: '双', color: '#ff9f43', max: 1, line: 'steel', rarity: 'rare',
+      desc: '副武器与主武器同时开火（各自消耗弹药）',
+      apply(p) {
+        p.stats.dualWield = 1;
+        p.secondaryUnlocked = true;
+      }
+    }
+  ];
+  
+  // 没写 rarity 的一律普通；两个最"要命"的侵蚀刻印归为禁忌
+  for (const perk of PERKS) {
+    if (!perk.rarity) perk.rarity = 'common';
+  }
+  PERKS.find((p) => p.id === 'death_clock').rarity = 'forbidden';
+  PERKS.find((p) => p.id === 'uber').rarity = 'forbidden';
+  
+  const PERK_MAP = Object.fromEntries(PERKS.map((p) => [p.id, p]));
+  
+  /** 稀有度显示名（卡片用） */
+  const RARITY_LABEL = { common: '普通', rare: '稀有', forbidden: '禁忌' };
+  
+  /** 抽取权重：稀有/禁忌出现率更低，但抽到就是质变 */
+  const RARITY_WEIGHT = { common: 1, rare: 0.55, forbidden: 0.6 };
+  
+  /**
+   * 协同表：拿到这些组合时卡面会标「＋协同」，让"这局在走什么流派"看得见。
+   * 双向都写一遍，避免只从一个方向触发的困惑。
+   */
+  const SYNERGY = {
+    ricochet: ['critical', 'piercing'],
+    chain: ['toxic', 'pyromaniac'],
+    minefield: ['death_clock', 'bloody_mess'],
+    frosttrail: ['time_warp', 'long_ranged'],
+    dualwield: ['alternate', 'ammomaniac'],
+    pyromaniac: ['scatter', 'chain'],
+    toxic: ['chain', 'scatter'],
+    death_clock: ['minefield', 'bloody_mess'],
+    critical: ['ricochet', 'piercing'],
+    scatter: ['pyromaniac', 'toxic'],
+    piercing: ['ricochet', 'critical'],
+    alternate: ['dualwield']
+  };
+  
+  /** 这张刻印与"已经拿到手的"有没有组合 */
+  function synergyWith(p, perk) {
+    const partners = SYNERGY[perk.id] || [];
+    return partners
+      .filter((id) => perkStacks(p, id) > 0)
+      .map((id) => PERK_MAP[id])
+      .filter(Boolean);
+  }
+  
+  /** 每拿一层"侵蚀"线刻印累积的侵蚀值（STORY §8：越强越不像人） */
+  const EROSION_PER_STACK = 8;
+  const EROSION_MAX = 100;
+  
+  function perkStacks(p, id) {
+    return p.perkCounts[id] || 0;
+  }
+  
+  function rollPerks(p, n = 3) {
+    const pool = PERKS.filter((perk) => {
+      const have = perkStacks(p, perk.id);
+      if (perk.id === 'alternate' && p.secondaryUnlocked) return false;
+      // 满血时别推"立即回满"——那是浪费一个格子
+      if (perk.id === 'doctor' && p.hp >= p.maxHp - 0.5) return false;
+      return have < (perk.max || 1);
+    });
+  
+    // 加权不放回抽取（走种子流，同 seed 结果一致）
+    const bag = pool.slice();
+    const picked = [];
+    while (picked.length < n && bag.length > 0) {
+      let total = 0;
+      for (const perk of bag) total += RARITY_WEIGHT[perk.rarity] || 1;
+      let r = random() * total;
+      let idx = bag.length - 1;
+      for (let i = 0; i < bag.length; i++) {
+        r -= RARITY_WEIGHT[bag[i].rarity] || 1;
+        if (r <= 0) {
+          idx = i;
+          break;
+        }
+      }
+      picked.push(bag.splice(idx, 1)[0]);
+    }
+    return picked;
+  }
+  
+  function applyPerk(p, perk) {
+    perk.apply(p);
+    p.perkCounts[perk.id] = perkStacks(p, perk.id) + 1;
+    // 代价：走"侵蚀"这条线就要付侵蚀值（钢铁 / 本能不能白拿，它们也不涨侵蚀）
+    if (perk.line === 'erosion') {
+      const gain = perk.rarity === 'forbidden' ? EROSION_PER_STACK * 2 : EROSION_PER_STACK;
+      p.erosion = Math.min(EROSION_MAX, (p.erosion || 0) + gain);
+    }
+    return p.erosion || 0;
+  }
+  
+  return { PERKS, PERK_MAP, RARITY_LABEL, SYNERGY, synergyWith, EROSION_PER_STACK, EROSION_MAX, perkStacks, rollPerks, applyPerk };
+})();
+
+__mods["game/hud.js"] = (function () {
+  'use strict';
+  const { clamp } = __mods["core/math.js"];
+  const { WEAPONS, magSize } = __mods["game/weapons.js"];
+  
+  const FONT = '"Segoe UI", system-ui, -apple-system, sans-serif';
+  
+  function bar(ctx, x, y, w, h, ratio, c1, c2, bg = 'rgba(0,0,0,0.55)') {
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, h / 2);
+    ctx.fill();
+    const ww = Math.max(0, (w - 2) * clamp(ratio, 0, 1));
+    if (ww > 1) {
+      const g = ctx.createLinearGradient(x, y, x + w, y);
+      g.addColorStop(0, c1);
+      g.addColorStop(1, c2);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.roundRect(x + 1, y + 1, ww, h - 2, (h - 2) / 2);
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x + 0.5, y + 0.5, w - 1, h - 1, h / 2);
+    ctx.stroke();
+  }
+  
+  function drawHud(ctx, g, w, h) {
+    const p = g.player;
+    if (!p) return;
+  
+    ctx.save();
+    ctx.textBaseline = 'middle';
+  
+    // ---------- 左下：生命 + 经验 ----------
+    const bx = 26, by = h - 74, bw = 268;
+  
+    // 生命
+    const hpRatio = p.hp / p.maxHp;
+    const low = hpRatio < 0.3;
+    bar(ctx, bx, by, bw, 18, hpRatio, low ? '#ff3b4d' : '#e01b3c', low ? '#ff8a72' : '#ff5f6d');
+    ctx.font = `700 12px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${Math.ceil(p.hp)} / ${Math.round(p.maxHp)}`, bx + 10, by + 9);
+  
+    // 等级徽标
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = `700 11px ${FONT}`;
+    ctx.fillText('等级', bx + bw - 8, by - 14);
+    ctx.fillStyle = '#ffd166';
+    ctx.font = `800 16px ${FONT}`;
+    ctx.fillText(String(p.level), bx + bw - 8, by - 30);
+  
+    // 经验
+    const xpRatio = p.xp / p.xpNext;
+    bar(ctx, bx, by + 24, bw, 7, xpRatio, '#2fb4ff', '#7ce7ff', 'rgba(255,255,255,0.08)');
+  
+    // 侵蚀条（P4-3）：没有侵蚀刻印时整条不出现，避免开局多一条空条
+    const er = clamp(p.erosion || 0, 0, 100);
+    if (er > 0) {
+      const hot = er >= 70;
+      bar(ctx, bx, by + 34, bw, 5, er / 100, '#6b2b93', hot ? '#ff2d3f' : '#c8202b', 'rgba(255,255,255,0.07)');
+      ctx.textAlign = 'right';
+      ctx.font = `700 10px ${FONT}`;
+      ctx.fillStyle = hot ? '#ff8a72' : 'rgba(196,160,220,0.8)';
+      ctx.fillText(`侵蚀 ${Math.round(er)}`, bx + bw, by + 48);
+    }
+  
+    // 层数提示（Perk 数量）
+    const perks = Object.values(p.perkCounts).reduce((a, b) => a + b, 0);
+    ctx.textAlign = 'left';
+    ctx.font = `600 11px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillText(`PERKS ${perks}`, bx, by + 48);
+  
+    // ---------- 右下：武器 ----------
+    const wDef = WEAPONS[p.weapon];
+    const cap = magSize(p.weapon, p.stats);
+    const rx = w - 26;
+    ctx.textAlign = 'right';
+  
+    ctx.font = `800 15px ${FONT}`;
+    ctx.fillStyle = wDef.color || '#fff';
+    ctx.fillText(wDef.name.toUpperCase(), rx, h - 84);
+  
+    ctx.font = `800 40px ${FONT}`;
+    ctx.fillStyle = p.reloading > 0 ? 'rgba(255,255,255,0.35)' : '#fff';
+    ctx.fillText(String(p.ammo), rx - 44, h - 50);
+    ctx.font = `700 16px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('/ ' + cap, rx, h - 44);
+  
+    if (p.reloading > 0) {
+      const r = 1 - p.reloading / p.reloadTotal;
+      bar(ctx, rx - 130, h - 28, 130, 6, r, '#ffd166', '#ff9f43', 'rgba(255,255,255,0.1)');
+      ctx.font = `600 10px ${FONT}`;
+      ctx.fillStyle = 'rgba(255,209,102,0.9)';
+      ctx.textAlign = 'right';
+      ctx.fillText('装填中', rx, h - 38);
+    } else if (p.secondary) {
+      ctx.font = `600 11px ${FONT}`;
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.fillText(`Q 切换 → ${WEAPONS[p.secondary].name}`, rx, h - 26);
+    }
+  
+    // ---------- 左上：波次 / 击杀 ----------
+    ctx.textAlign = 'left';
+    ctx.font = `800 13px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillText(g.mode === 'quest' ? '层' : '潮汐', 26, 28);
+  
+    ctx.font = `800 26px ${FONT}`;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(g.mode === 'quest' ? (g.questName || '') : String(g.wave), 26, 52);
+  
+    ctx.font = `600 12px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    const t = g.time;
+    const mm = String(Math.floor(t / 60)).padStart(2, '0');
+    const ss = String(Math.floor(t % 60)).padStart(2, '0');
+    ctx.fillText(`${mm}:${ss}   击杀 ${g.kills}`, 26, 74);
+  
+    // ---------- 右上：分数 ----------
+    ctx.textAlign = 'right';
+    ctx.font = `700 12px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('SCORE', w - 26, 26);
+    ctx.font = `800 24px ${FONT}`;
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText(String(g.score), w - 26, 50);
+  
+    // ---------- 敌人计数 ----------
+    ctx.font = `600 11px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillText(`${g.enemies.length} 敌人在场`, w - 26, 74);
+  
+    // ---------- 中央横幅（潮汐 / 层间卡 / 层主条共用这一条通道） ----------
+    if (g.banner.t > 0) {
+      const b = g.banner;
+      const total = b.total || 2.6;
+      const elapsed = total - b.t;
+      // 淡入 0.28s + 淡出 0.5s；不再"啪"地弹出来
+      const a = Math.min(clamp(elapsed / 0.28, 0, 1), clamp(b.t / 0.5, 0, 1));
+      const cy = h * 0.24;
+      ctx.globalAlpha = a;
+      ctx.textAlign = 'center';
+  
+      if (b.kicker) {
+        ctx.font = `800 13px ${FONT}`;
+        ctx.fillStyle = 'rgba(255,146,158,0.95)';
+        ctx.fillText(b.kicker, w / 2, cy - 40);
+        // 眉批两侧的细线，做出"章节卡"的仪式感
+        const kw = ctx.measureText(b.kicker).width;
+        ctx.strokeStyle = 'rgba(255,146,158,0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(w / 2 - kw / 2 - 34, cy - 40);
+        ctx.lineTo(w / 2 - kw / 2 - 10, cy - 40);
+        ctx.moveTo(w / 2 + kw / 2 + 10, cy - 40);
+        ctx.lineTo(w / 2 + kw / 2 + 34, cy - 40);
+        ctx.stroke();
+      }
+  
+      ctx.font = `900 46px ${FONT}`;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillText(b.text, w / 2 + 2, cy + 2);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(b.text, w / 2, cy);
+      if (b.sub) {
+        ctx.font = `600 14px ${FONT}`;
+        ctx.fillStyle = 'rgba(255,120,130,0.95)';
+        ctx.fillText(b.sub, w / 2, cy + 34);
+      }
+      ctx.globalAlpha = 1;
+    }
+  
+    // ---------- 低血预警 ----------
+    if (hpRatio < 0.35) {
+      const pulse = 0.18 + Math.sin(g.time * 6) * 0.06;
+      const gd = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.28, w / 2, h / 2, Math.max(w, h) * 0.62);
+      gd.addColorStop(0, 'rgba(180,0,20,0)');
+      gd.addColorStop(1, `rgba(180,0,20,${pulse * (1 - hpRatio / 0.35)})`);
+      ctx.fillStyle = gd;
+      ctx.fillRect(0, 0, w, h);
+    }
+  
+    ctx.restore();
+  }
+  
+  return { drawHud };
+})();
+
+__mods["game/voice.js"] = (function () {
+  'use strict';
+  // 独白系统（STORY §9 独白原则：短、平、不解释，全部是陆沉自己嘟囔）
+  //
+  // 铁律（IMPLEMENT_PLAN §5）：独白不暂停 update、不阻塞输入、不改固定步长。
+  // 这里只维护一条队列和几个计时器，不碰任何游戏状态；渲染也只是画字。
+  
+  const TYPE_SPEED = 26;   // 打字机速度：字/秒
+  const HOLD = 2.5;        // 打完停留（秒）
+  const FADE_IN = 0.18;
+  const FADE_OUT = 0.45;
+  const MAX_CHARS = 24;    // 单行上限：超过就换行写，别做长句（smoke 会校验）
+  
+  const MONO = {
+    // 开局 0–30s：只交代"我在哪"，不解释怎么来的
+    start: [
+      '醒过来就在这儿了。',
+      '枪还热着。谁刚死的？'
+    ],
+    // 30–90s：第一次拿到刻印，暗示残响在接管身体
+    firstLevelUp: [
+      '手比脑子快。这一枪不是我打的。'
+    ],
+    // 每次层主："它在等我"
+    firstBoss: [
+      '它身上那些伤……是枪伤。',
+      '……七道。'
+    ],
+    // 首次低血
+    firstLowHp: [
+      '别在这儿躺下。'
+    ],
+    // 侵蚀 ≥70：残响读得太深，台词开始"不像人"（STORY §8 预留机制）
+    erosionHigh: [
+      '这双手……不是我的。',
+      '别再往里读了。'
+    ],
+    // 死亡：不走画布（死亡面板是 DOM，会盖住画布），由 ui.js 填进面板
+    death: [
+      '……还没完。'
+    ]
+  };
+  
+  /** 死亡面板引用的那句独白 */
+  const DEATH_LINE = MONO.death[0];
+  
+  class Voice {
+    constructor() {
+      this.queue = [];
+      this.cur = null;
+      this.age = 0;
+      this.seen = new Set();
+    }
+  
+    /**
+     * 播一组独白。同名只播一次（每局重置见 reset）。
+     * @returns {boolean} 是否真的入队（用于断言与调试）
+     */
+    say(key) {
+      if (this.seen.has(key)) return false;
+      const lines = MONO[key];
+      if (!lines || lines.length === 0) return false;
+      this.seen.add(key);
+      for (const text of lines) this.queue.push(text);
+      if (!this.cur) this._next();
+      return true;
+    }
+  
+    /** 只压测试用：直接塞一句任意文本 */
+    push(text) {
+      this.queue.push(String(text));
+      if (!this.cur) this._next();
+      return this.queue.length;
+    }
+  
+    _next() {
+      this.cur = this.queue.length > 0 ? { text: this.queue.shift() } : null;
+      this.age = 0;
+    }
+  
+    /** 时长只跟字数有关，跟帧率无关，回放可复现 */
+    get typeDuration() {
+      return this.cur ? this.cur.text.length / TYPE_SPEED : 0;
+    }
+  
+    get life() {
+      return this.typeDuration + HOLD;
+    }
+  
+    get visibleChars() {
+      if (!this.cur) return 0;
+      return Math.min(this.cur.text.length, Math.floor(this.age * TYPE_SPEED));
+    }
+  
+    get alpha() {
+      if (!this.cur) return 0;
+      const fadeIn = Math.min(1, this.age / FADE_IN);
+      const left = this.life - this.age;
+      const fadeOut = Math.min(1, left / FADE_OUT);
+      return Math.max(0, Math.min(fadeIn, fadeOut));
+    }
+  
+    get active() {
+      return !!this.cur;
+    }
+  
+    update(dt) {
+      if (!this.cur) return;
+      this.age += dt;
+      if (this.age >= this.life) this._next();
+    }
+  
+    reset() {
+      this.queue.length = 0;
+      this.cur = null;
+      this.age = 0;
+      this.seen.clear();
+    }
+  }
+  
+  const FONT = '500 17px "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", sans-serif';
+  const CARET_FONT = '700 15px "Segoe UI", system-ui, sans-serif';
+  
+  function drawVoice(ctx, g, w, h) {
+    const v = g.voice;
+    if (!v || !v.cur) return;
+    // 只在真正进行中的战斗里露脸：暂停/升级/结算/死亡都有 DOM 面板盖着
+    if (g.state !== 'playing') return;
+  
+    const a = v.alpha;
+    if (a <= 0.01) return;
+  
+    const full = v.cur.text;
+    const shown = full.slice(0, v.visibleChars);
+    const y = h - 104;
+  
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = FONT;
+  
+    // 暗底衬条：混战里字必须压得住血迹和敌人
+    const tw = ctx.measureText(full).width;
+    const bw = Math.min(w - 120, tw + 52);
+    ctx.fillStyle = 'rgba(6,7,9,0.45)';
+    ctx.beginPath();
+    ctx.roundRect(w / 2 - bw / 2, y - 17, bw, 34, 17);
+    ctx.fill();
+  
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillText(shown, w / 2 + 1, y + 1);
+    ctx.fillStyle = 'rgba(228,234,242,0.95)';
+    ctx.fillText(shown, w / 2, y);
+  
+    // 打字光标：字没打完时在末尾闪
+    if (v.visibleChars < full.length) {
+      const caretX = w / 2 + tw / 2 + 6;
+      ctx.fillStyle = `rgba(255,120,130,${0.35 + Math.sin(g.time * 12) * 0.25})`;
+      ctx.font = CARET_FONT;
+      ctx.fillText('▌', caretX, y);
+    }
+  
+    ctx.restore();
+  }
+  
+  const VOICE_LIMITS = { MAX_CHARS, TYPE_SPEED, HOLD };
+  
+  return { MONO, DEATH_LINE, Voice, drawVoice, VOICE_LIMITS };
+})();
+
+__mods["game/threats.js"] = (function () {
+  'use strict';
+  const { clamp } = __mods["core/math.js"];
+  // 屏幕边缘威胁指示器：把视野外的敌人映射到屏幕内缩矩形的边上
+  // 纯计算与绘制分离，offscreenThreats() 可在无渲染环境下断言（见 tools/smoke.mjs）
+  
+  const PAD = 26;      // 指示器距屏幕边缘的内缩
+  const MAX = 8;       // 同屏最多显示数量
+  const FADE_FAR = 2200; // 超过这个距离完全淡出（仍保留最小可见度）
+  
+  /**
+   * 计算当前应显示的边缘指示器。
+   * @param {object} g Game 实例
+   * @param {number} w 视口宽（CSS 像素）
+   * @param {number} h 视口高（CSS 像素）
+   * @param {number} max 最多返回数量
+   * @returns {Array<{x:number,y:number,angle:number,dist:number,boss:boolean,color:string,alpha:number}>}
+   */
+  function offscreenThreats(g, w, h, max = MAX) {
+    const cam = g.cam;
+    const p = g.player;
+    // 只在真正战斗时提示；暂停/升级/死亡/通关都不画
+    if (!p || g.state !== 'playing') return [];
+  
+    const halfW = Math.max(40, w / 2 - PAD);
+    const halfH = Math.max(40, h / 2 - PAD);
+    const cx = w / 2;
+    const cy = h / 2;
+    const px = (p.x - cam.x) * cam.zoom + cam.ox;
+    const py = (p.y - cam.y) * cam.zoom + cam.oy;
+    const out = [];
+  
+    for (const e of g.enemies) {
+      if (e.dead) continue;
+  
+      // 世界 -> 屏幕
+      const sx = (e.x - cam.x) * cam.zoom + cam.ox;
+      const sy = (e.y - cam.y) * cam.zoom + cam.oy;
+      // 已在视野内（含少量边距）就不用提示
+      if (sx > -8 && sx < w + 8 && sy > -8 && sy < h + 8) continue;
+  
+      let dx = sx - px;
+      let dy = sy - py;
+      const len = Math.hypot(dx, dy);
+      if (len < 1e-6) continue;
+      dx /= len;
+      dy /= len;
+  
+      // 沿方向投射到内缩矩形边界
+      const tx = Math.abs(dx) > 1e-6 ? halfW / Math.abs(dx) : Infinity;
+      const ty = Math.abs(dy) > 1e-6 ? halfH / Math.abs(dy) : Infinity;
+      const t = Math.min(tx, ty);
+  
+      const dist = Math.hypot(e.x - p.x, e.y - p.y);
+      out.push({
+        x: cx + dx * t,
+        y: cy + dy * t,
+        angle: Math.atan2(dy, dx),
+        dist,
+        boss: !!(e.def && e.def.isBoss),
+        alpha: clamp(1.15 - dist / FADE_FAR, 0.3, 0.95)
+      });
+    }
+  
+    // 近的优先：先按距离排序再截断
+    out.sort((a, b) => a.dist - b.dist);
+    return out.slice(0, Math.max(0, max));
+  }
+  
+  /**
+   * 绘制边缘指示器（屏幕空间调用，必须在 ctx.restore() 之后）
+   * 颜色固定为威胁色而非敌人血液色——毒蛛/蜥蜴的绿血在暗背景上几乎不可见
+   */
+  function drawThreatIndicators(ctx, g, w, h) {
+    const list = offscreenThreats(g, w, h);
+    if (!list.length) return;
+  
+    const pulse = 0.82 + Math.sin(g.time * 5) * 0.18;
+  
+    for (const it of list) {
+      ctx.save();
+      ctx.translate(it.x, it.y);
+      ctx.rotate(it.angle);
+      ctx.globalAlpha = it.alpha * (it.boss ? pulse : 1);
+  
+      const s = it.boss ? 18 : 11;
+      ctx.beginPath();
+      ctx.moveTo(s, 0);
+      ctx.lineTo(-s * 0.62, s * 0.8);
+      ctx.lineTo(-s * 0.24, 0);
+      ctx.lineTo(-s * 0.62, -s * 0.8);
+      ctx.closePath();
+  
+      // 先描深色轮廓再填充，保证在血迹/地面上都能看清
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(12,6,8,0.85)';
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+      ctx.fillStyle = it.boss ? '#ff2d3f' : '#ff8a3d';
+      ctx.fill();
+  
+      if (it.boss) {
+        ctx.globalAlpha = it.alpha * 0.55;
+        ctx.strokeStyle = '#ffb0b8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, s * 1.4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+  
+  return { offscreenThreats, drawThreatIndicators };
+})();
+
+__mods["game/quests.js"] = (function () {
+  'use strict';
+  const { shuffle } = __mods["core/math.js"];
+  
+  /**
+   * 关卡数据（数据驱动）。groups = [类型, 数量]
+   * mods 为敌人属性倍率。新增关卡往数组里加一项即可。
+   */
+  const QUESTS = [
+    {
+      name: '第一章 · 消化场', brief: '地渊的胃前室，堆着没消化完的人',
+      interval: 0.55, mods: { hpMul: 1, dmgMul: 1, speedMul: 1 },
+      groups: [['zombie', 12]]
+    },
+    {
+      name: '第二章 · 疾走回廊', brief: '被食道推着往下，停不下来',
+      interval: 0.45, mods: { hpMul: 1.05, dmgMul: 1, speedMul: 1 },
+      groups: [['zombie', 16], ['runner', 8]]
+    },
+    {
+      name: '第三章 · 织网窟', brief: '整层都在感知你',
+      interval: 0.4, mods: { hpMul: 1.1, dmgMul: 1.05, speedMul: 1.02 },
+      groups: [['zombie', 18], ['spider', 12], ['runner', 8]]
+    },
+    {
+      name: '第四章 · 酸池哨塔', brief: '免疫系统开始驱除异物',
+      interval: 0.38, mods: { hpMul: 1.15, dmgMul: 1.1, speedMul: 1.02 },
+      groups: [['zombie', 18], ['lizard', 8], ['spider', 10]]
+    },
+    {
+      name: '第五章 · 融生腔', brief: '残响糊成一团，认不出形状',
+      interval: 0.36, mods: { hpMul: 1.3, dmgMul: 1.15, speedMul: 1.03 },
+      groups: [['zombie', 20], ['alien', 6], ['lizard', 6], ['runner', 8]]
+    },
+    {
+      name: '第六章 · 守层者之厅', brief: '它曾经和你一样',
+      interval: 0.34, mods: { hpMul: 1.45, dmgMul: 1.2, speedMul: 1.04 },
+      groups: [['zombie', 22], ['runner', 12], ['alien', 8], ['brute', 1]]
+    }
+  ];
+  
+  /** 把关卡编成一条生成队列（Boss 总在最后） */
+  function buildQuestQueue(def) {
+    const queue = [];
+    let boss = null;
+    for (const [type, count] of def.groups) {
+      if (type === 'brute') { boss = type; continue; }
+      for (let i = 0; i < count; i++) queue.push(type);
+    }
+    shuffle(queue);
+    if (boss) queue.push(boss);
+    return queue;
+  }
+  
+  return { QUESTS, buildQuestQueue };
+})();
+
+__mods["core/fx.js"] = (function () {
+  'use strict';
+  // 表现层随机（不参与玩法数值）
+  //
+  // 为什么单独一个：玩法随机必须走 math.js 的种子流（?seed= 才能复现），
+  // 而"每帧画几颗灰尘""火焰半径抖多少"这类随机，如果在 render 里抽种子流，
+  // 同 seed 的结果就会随"这一帧渲染没渲染"而变化 —— 复现直接失效。
+  // 所以渲染/美术生成一律用这里的 fxRandom()，它不影响任何玩法数值。
+  
+  let _s = 0x9e3779b9;
+  
+  /** xorshift32：够快够散，不碰种子流 */
+  function fxRandom() {
+    _s ^= _s << 13;
+    _s ^= _s >>> 17;
+    _s ^= _s << 5;
+    return ((_s >>> 0) / 4294967296);
+  }
+  
+  const fxRand = (a = 1, b) => {
+    if (b === undefined) { b = a; a = 0; }
+    return a + fxRandom() * (b - a);
+  };
+  
+  return { fxRandom, fxRand };
+})();
+
+__mods["render/palettes.js"] = (function () {
+  'use strict';
+  // 六层视觉配色（STORY §10 配色分区的代码化）
+  //
+  // 一层一套：地面基色/斑驳、血迹底色、雾与暗角、环境浮尘、材质风格。
+  // 目的不是"换颜色"，而是让玩家一眼知道自己下潜到哪儿了 —— 越深越红、越不像人待的地方。
+  //
+  // style 决定地面纹理的画法（见 render/sprites.js 的 makeGroundTile）：
+  //   flesh   肉膜与血管（一层、二层）
+  //   web     蛛网与黏膜反光（三层）
+  //   acid    酸池与蚀痕（四层）
+  //   crystal 结晶与冷光（五层）
+  //   plate   砖缝与铆钉（六层 / 竞技场）
+  
+  const LAYER_PALETTES = [
+    {
+      id: 'digest',
+      name: '消化场',
+      style: 'flesh',
+      ground: {
+        base: '#271811',
+        blotch: 'rgba(122,54,34,0.34)',
+        dark: 'rgba(10,5,4,0.50)',
+        grain: ['rgba(196,140,96,0.16)', 'rgba(70,44,32,0.50)', 'rgba(6,4,4,0.70)'],
+        crack: 'rgba(150,96,64,0.14)',
+        accent: 'rgba(63,107,42,0.20)'   // 腐绿点缀（STORY：锈红 + 腐绿）
+      },
+      blood: '#8f2a1c',
+      glow: 'rgba(236,126,92,0.55)',
+      fog: 'rgba(70,22,14,0.28)',
+      ambient: { color: 'rgba(226,206,170,0.45)', count: 26, size: 1.6, drift: 9 }
+    },
+    {
+      id: 'corridor',
+      name: '疾走回廊',
+      style: 'flesh',
+      ground: {
+        base: '#241310',
+        blotch: 'rgba(150,22,34,0.30)',
+        dark: 'rgba(8,3,4,0.55)',
+        grain: ['rgba(210,120,110,0.15)', 'rgba(96,26,30,0.50)', 'rgba(4,2,3,0.72)'],
+        crack: 'rgba(190,60,60,0.16)',
+        accent: 'rgba(201,214,229,0.10)'  // 骨白点缀
+      },
+      blood: '#a51622',
+      glow: 'rgba(255,96,86,0.50)',
+      fog: 'rgba(96,16,24,0.27)',
+      ambient: { color: 'rgba(255,150,120,0.35)', count: 30, size: 1.5, drift: 14 }
+    },
+    {
+      id: 'web',
+      name: '织网窟',
+      style: 'web',
+      ground: {
+        base: '#1a1d16',
+        blotch: 'rgba(63,107,42,0.32)',
+        dark: 'rgba(5,8,4,0.55)',
+        grain: ['rgba(180,200,160,0.13)', 'rgba(52,70,40,0.45)', 'rgba(4,6,3,0.70)'],
+        crack: 'rgba(200,215,190,0.12)',
+        accent: 'rgba(124,231,255,0.08)'
+      },
+      blood: '#4c7a26',
+      glow: 'rgba(220,240,200,0.42)',
+      fog: 'rgba(30,60,30,0.26)',
+      ambient: { color: 'rgba(190,230,150,0.40)', count: 34, size: 1.4, drift: 6 }
+    },
+    {
+      id: 'acid',
+      name: '酸池哨塔',
+      style: 'acid',
+      ground: {
+        base: '#1e2218',
+        blotch: 'rgba(120,140,40,0.28)',
+        dark: 'rgba(6,8,4,0.50)',
+        grain: ['rgba(220,230,140,0.13)', 'rgba(70,80,40,0.48)', 'rgba(4,6,3,0.70)'],
+        crack: 'rgba(210,255,120,0.16)',
+        accent: 'rgba(210,255,120,0.22)'
+      },
+      blood: '#4c7a26',
+      glow: 'rgba(224,255,132,0.60)',
+      fog: 'rgba(56,66,18,0.24)',
+      ambient: { color: 'rgba(210,255,130,0.40)', count: 24, size: 1.8, drift: 5 }
+    },
+    {
+      id: 'marrow',
+      name: '融生腔',
+      style: 'crystal',
+      ground: {
+        base: '#1d1524',
+        blotch: 'rgba(107,43,147,0.32)',
+        dark: 'rgba(6,3,10,0.55)',
+        grain: ['rgba(190,140,240,0.15)', 'rgba(60,24,84,0.48)', 'rgba(4,2,7,0.72)'],
+        crack: 'rgba(124,231,255,0.16)',
+        accent: 'rgba(124,231,255,0.20)'
+      },
+      blood: '#6b2b93',
+      glow: 'rgba(150,235,255,0.55)',
+      fog: 'rgba(48,16,76,0.28)',
+      ambient: { color: 'rgba(140,230,255,0.45)', count: 28, size: 1.6, drift: 4 }
+    },
+    {
+      id: 'warden',
+      name: '守层者之厅',
+      style: 'plate',
+      ground: {
+        base: '#221417',
+        blotch: 'rgba(200,32,43,0.22)',
+        dark: 'rgba(6,2,3,0.55)',
+        grain: ['rgba(255,120,110,0.11)', 'rgba(90,18,24,0.48)', 'rgba(4,1,2,0.72)'],
+        crack: 'rgba(255,45,63,0.16)',
+        accent: 'rgba(255,45,63,0.22)'
+      },
+      blood: '#c8202b',
+      glow: 'rgba(255,70,80,0.58)',
+      fog: 'rgba(80,10,18,0.30)',
+      ambient: { color: 'rgba(255,90,90,0.40)', count: 22, size: 1.6, drift: 7 }
+    }
+  ];
+  
+  /** 竞技场：地渊的胃底，比第六层更红、更闷 */
+  const ARENA_PALETTE = {
+    id: 'arena',
+    name: '竞技场',
+    style: 'plate',
+    ground: {
+      base: '#241015',
+      blotch: 'rgba(200,32,43,0.26)',
+      dark: 'rgba(7,2,3,0.58)',
+      grain: ['rgba(255,110,100,0.12)', 'rgba(100,16,22,0.50)', 'rgba(4,1,2,0.74)'],
+      crack: 'rgba(255,45,63,0.18)',
+      accent: 'rgba(255,45,63,0.26)'
+    },
+    blood: '#c8202b',
+    glow: 'rgba(255,64,74,0.55)',
+    fog: 'rgba(92,8,18,0.31)',
+    ambient: { color: 'rgba(255,80,80,0.42)', count: 24, size: 1.7, drift: 8 }
+  };
+  
+  const PALETTE_COUNT = LAYER_PALETTES.length;
+  
+  /** 按层索引取配色（越界自动夹到最近一层） */
+  function paletteForLayer(i) {
+    if (!Number.isFinite(i)) return ARENA_PALETTE;
+    const k = Math.max(0, Math.min(LAYER_PALETTES.length - 1, Math.round(i)));
+    return LAYER_PALETTES[k];
+  }
+  
+  /** 把两个 #rrggbb 混色（a 占比 t），用于"敌人血色"叠一层该层底色 */
+  function mixHex(a, b, t) {
+    const pa = parseInt(a.replace('#', ''), 16);
+    const pb = parseInt(b.replace('#', ''), 16);
+    const ar = (pa >> 16) & 255, ag = (pa >> 8) & 255, ab = pa & 255;
+    const br = (pb >> 16) & 255, bg = (pb >> 8) & 255, bb = pb & 255;
+    const r = Math.round(ar + (br - ar) * t);
+    const g = Math.round(ag + (bg - ag) * t);
+    const bl = Math.round(ab + (bb - ab) * t);
+    return `rgba(${r},${g},${bl},0.5)`;
+  }
+  
+  return { LAYER_PALETTES, ARENA_PALETTE, PALETTE_COUNT, paletteForLayer, mixHex };
+})();
+
+__mods["render/sprites.js"] = (function () {
+  'use strict';
+  const { TAU } = __mods["core/math.js"];
+  const { fxRandom } = __mods["core/fx.js"];
+  const { LAYER_PALETTES, ARENA_PALETTE } = __mods["render/palettes.js"];
+  // 程序化生成的精灵缓存（无图片资源）。约定：绘制方向为 +X（朝右）
+  //
+  // 随机用 fxRandom（core/fx.js）而不是 math.js 的种子流：
+  // 精灵是"美术生成"，一次生成完就缓存；如果它抽种子流，同 seed 的玩法结果
+  // 会随"第一次构建精灵的时机"漂移。玩法随机与表现随机必须分开。
+  
+  const CACHE = new Map();
+  const GROUND_CACHE = new Map();
+  
+  function cv(size) {
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    return c;
+  }
+  
+  function radial(ctx, x, y, r0, r1, c0, c1) {
+    const g = ctx.createRadialGradient(x, y, r0, x, y, r1);
+    g.addColorStop(0, c0);
+    g.addColorStop(1, c1);
+    return g;
+  }
+  
+  /** 不规则有机体轮廓 */
+  function blobPath(ctx, cx, cy, r, n, seed, wob) {
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * TAU;
+      const rr = r * (1 + Math.sin(a * 3 + seed) * wob + Math.sin(a * 5 + seed * 2.3) * wob * 0.55);
+      const x = cx + Math.cos(a) * rr;
+      const y = cy + Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+  }
+  
+  function eyes(ctx, cx, cy, spread, r, color) {
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = r * 3;
+    ctx.fillStyle = color;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(cx, cy + s * spread, r, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  
+  function build(key, size, draw) {
+    if (CACHE.has(key)) return CACHE.get(key);
+    const c = cv(size);
+    const ctx = c.getContext('2d');
+    draw(ctx, size);
+    const s = { canvas: c, size };
+    CACHE.set(key, s);
+    return s;
+  }
+  
+  // ================= 绘制工具 =================
+  //
+  // 统一做法（就是"不再糙"的关键）：
+  //   1) 先定路径 → 2) 填基色 → 3) 裁剪后叠"左上高光 / 右下暗部" → 4) 最后描黑边
+  // 这样每只怪都有体积感和**统一的光源方向**（左上），比原来"径向渐变球 + 眼睛"像实物。
+  //
+  // 形状语言（STORY §10）：地渊造物一律不对称（歪重心 / 肢体不等 / 轮廓有破口），
+  // 人类遗留物一律对称（直角 / 分模线 / 铆钉）。玩家能靠剪影分辨"这东西是谁做的"。
+  
+  function pathPoly(ctx, pts) {
+    ctx.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+    }
+    ctx.closePath();
+  }
+  
+  function pathEllipse(ctx, cx, cy, rx, ry, rot = 0) {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, rot, 0, TAU);
+  }
+  
+  /** 三色调 + 左上定向光 + 黑边 */
+  function shadeBody(ctx, pathFn, cx, cy, r, base, hi, lo, outline = 'rgba(0,0,0,0.62)', lw = 1.8) {
+    pathFn();
+    ctx.fillStyle = base;
+    ctx.fill();
+  
+    ctx.save();
+    pathFn();
+    ctx.clip();
+  
+    let g = ctx.createRadialGradient(cx - r * 0.42, cy - r * 0.5, r * 0.06, cx - r * 0.42, cy - r * 0.5, r * 1.5);
+    g.addColorStop(0, hi);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - r * 2.2, cy - r * 2.2, r * 4.4, r * 4.4);
+  
+    g = ctx.createRadialGradient(cx + r * 0.55, cy + r * 0.6, r * 0.1, cx + r * 0.55, cy + r * 0.6, r * 1.55);
+    g.addColorStop(0, lo);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - r * 2.2, cy - r * 2.2, r * 4.4, r * 4.4);
+  
+    // 左上轮廓光：在裁剪区内沿路径描一道亮边并整体左上偏移，做出'被光打亮'的边缘
+    ctx.globalAlpha = 0.75;
+    ctx.translate(-1.1, -1.1);
+    pathFn();
+    ctx.strokeStyle = hi;
+    ctx.lineWidth = 2.6;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.translate(1.1, 1.1);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  
+    if (outline) {
+      pathFn();
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = lw;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
+  }
+  
+  /** 锥形肢体：起点宽 w1，终点宽 w2 */
+  function limb(ctx, x1, y1, x2, y2, w1, w2, fill, outline = 'rgba(0,0,0,0.5)') {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    pathPoly(ctx, [
+      [x1 + (nx * w1) / 2, y1 + (ny * w1) / 2],
+      [x2 + (nx * w2) / 2, y2 + (ny * w2) / 2],
+      [x2 - (nx * w2) / 2, y2 - (ny * w2) / 2],
+      [x1 - (nx * w1) / 2, y1 - (ny * w1) / 2]
+    ]);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (outline) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    }
+  }
+  
+  /** 折线肢（带关节），用于蜘蛛/疾行者的细腿 */
+  function jointLimb(ctx, pts, w, fill, outline = 'rgba(0,0,0,0.5)') {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = w + 1.4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.strokeStyle = fill;
+    ctx.lineWidth = w;
+    ctx.stroke();
+  }
+  
+  /** 一对（或三只）发光的眼睛 */
+  function glowEyes(ctx, pts, r, color, blur = 7) {
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blur;
+    ctx.fillStyle = color;
+    for (const p of pts) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], p[2] || r, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  
+  // ================= 玩家（72px，人类遗留物：对称、硬边） =================
+  function drawPlayer(ctx, S, t = 0) {
+    const c = S / 2;
+    const swing = Math.sin(t * TAU) * 2.2;   // 走路时腿前后摆
+  
+    // 整体放大：玩家是 72px 画布，但身体只占中间一小块，直接画会和 56px 的敌人显得一样大。
+    // 用 ctx.scale 统一放大，坐标不用重算；game.js 的布条坐标按 1.32 倍对齐。
+    const K = 1.6;
+    ctx.save();
+    ctx.translate(c, c);
+    ctx.scale(K, K);
+    ctx.translate(-c, -c);
+  
+    // 背包：缩到躯干后缘里，只露一条，别让剪影变成"背箱子的机器人"
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 14, c - 6], [c - 8, c - 8], [c - 7, c + 8], [c - 13, c + 7]
+    ]), c - 10, c, 9, '#1a232e', '#3c4a5a', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.55)', 1.3);
+  
+    // 腿（先画，被躯干压住上半）
+    for (const s of [-1, 1]) {
+      limb(ctx, c - 6, c + s * 6, c - 15 - swing * s, c + s * 10, 7, 5.5, '#1b2430');
+      limb(ctx, c - 15 - swing * s, c + s * 10, c - 11 - swing * s, c + s * 11.5, 5.5, 4.4, '#0d1218'); // 靴
+    }
+  
+    // 躯干：肩宽、腰收、微微前倾
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 7, c - 8.5], [c - 2, c - 11.5], [c + 5, c - 10.5], [c + 9.5, c - 5.5],
+      [c + 10, c + 2], [c + 6, c + 7], [c - 2, c + 8], [c - 7, c + 4]
+    ]), c, c - 1, 12, '#33445a', '#7d97b5', 'rgba(4,6,10,0.66)', 'rgba(0,0,0,0.72)', 2);
+  
+    // 护胸板：躯干同色系但更亮一档，把深色块拆开（远处也能看出这是个'人'）
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 3, c - 6], [c + 4.5, c - 6.5], [c + 5.5, c + 3], [c - 2, c + 5]
+    ]), c + 1, c - 2, 6, '#4a5f78', '#93aec9', 'rgba(8,12,18,0.5)', 'rgba(0,0,0,0.45)', 1.2);
+  
+    // 背心带 / 分模线（工业感：对称、直角）
+    ctx.strokeStyle = 'rgba(12,16,22,0.85)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(c - 4, c - 10);
+    ctx.lineTo(c - 1, c + 10);
+    ctx.moveTo(c + 4, c - 11);
+    ctx.lineTo(c + 6, c + 8);
+    ctx.stroke();
+  
+    // 右臂（持枪，向前伸）
+    limb(ctx, c + 2, c + 8, c + 9, c + 4, 6, 5, '#232f3e');
+    ctx.fillStyle = '#c9d6e5';
+    ctx.beginPath();
+    ctx.arc(c + 10, c + 3.6, 3, 0, TAU);
+    ctx.fill();
+  
+    // 左臂（缠布条，朝上侧）：布条本体由 game.js 按层数画彩色条
+    limb(ctx, c + 1, c - 10, c + 8.5, c - 14, 7.2, 5.2, '#6b6054');
+    ctx.strokeStyle = 'rgba(28,22,18,0.6)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(c + 1 + i * 2.6, c - 10.6 - i * 1.1);
+      ctx.lineTo(c + 4.4 + i * 2.6, c - 13 - i * 1.1);
+      ctx.stroke();
+    }
+  
+    // 领口：把头和躯干连起来，否则头看着像浮着的球
+    ctx.fillStyle = '#1e2836';
+    ctx.beginPath();
+    ctx.ellipse(c + 7.5, c - 1.6, 4.6, 5.4, 0, 0, TAU);
+    ctx.fill();
+  
+    // 头：不戴头盔（要看清自己杀的是什么）
+    shadeBody(ctx, () => pathEllipse(ctx, c + 8.6, c - 1.6, 5.6, 6), c + 8.6, c - 2.6, 6,
+      '#7d5f47', '#b98f6f', 'rgba(36,20,12,0.66)', 'rgba(0,0,0,0.68)', 1.4);
+    // 头发/后脑
+    ctx.fillStyle = '#241a14';
+    ctx.beginPath();
+    ctx.ellipse(c + 6, c - 1.8, 4.2, 5.6, 0, Math.PI * 0.42, Math.PI * 1.58);
+    ctx.fill();
+    // 面朝方向的微光（眼睛位置，几乎不可见但能定位朝向）
+    ctx.fillStyle = 'rgba(20,14,10,0.9)';
+    ctx.beginPath();
+    ctx.arc(c + 12, c - 3, 1.1, 0, TAU);
+    ctx.arc(c + 12, c - 0.4, 1.1, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+  
+  // ================= 腐化者（56px，重铸失败的人：拖腿、烂胸、背后长菌） =================
+  //
+  // 俯视读人形的三条硬规矩（后面每只人形怪都照这个来）：
+  //   头在前（+X）、肩在两翼（±Y 鼓包）、腿拖在后（-X）。缺一条就"不像人"。
+  function drawZombie(ctx, S, t = 0) {
+    const c = S / 2;
+    const drag = Math.sin(t * TAU) * 1.5;
+  
+    // 拖在后面的断腿（比另一条短一半，末端是创口）
+    limb(ctx, c - 7, c - 6, c - 17, c - 9 + drag, 6.5, 4, '#3f4c28');
+    ctx.fillStyle = 'rgba(120,30,30,0.85)';
+    ctx.beginPath();
+    ctx.ellipse(c - 17, c - 9 + drag, 3, 2.4, 0.4, 0, TAU);
+    ctx.fill();
+    // 完好的腿（后蹬）
+    limb(ctx, c - 6, c + 7, c - 15, c + 12, 7, 5, '#566c3b');
+  
+    // 背后的菌丝：从破口里长出来，越往外越细
+    ctx.strokeStyle = 'rgba(190,210,160,0.45)';
+    for (let i = 0; i < 5; i++) {
+      ctx.lineWidth = 1.4 - i * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(c - 9, c - 3 + i * 1.6);
+      ctx.quadraticCurveTo(c - 16 - i * 3, c - 9 + i * 3.4, c - 24 - i * 4, c - 6 + i * 4.5);
+      ctx.stroke();
+    }
+  
+    // 躯干：肩宽腰窄的梯形，前倾（前端更宽）
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 9, c + 5], [c - 9, c - 5], [c - 2, c - 9.5], [c + 6, c - 8.5],
+      [c + 9, c - 3], [c + 9, c + 3], [c + 6, c + 8.5], [c - 2, c + 9.5]
+    ]), c, c, 11, '#6b7f47', '#a8bd72', 'rgba(14,22,8,0.68)', 'rgba(0,0,0,0.68)', 1.8);
+  
+    // 胸口烂穿：暗洞 + 三根不等长肋骨
+    ctx.fillStyle = 'rgba(16,8,8,0.92)';
+    pathPoly(ctx, [[c + 1, c - 5.5], [c + 7, c - 4], [c + 8, c + 2.5], [c + 3, c + 5], [c - 0.5, c + 1]]);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(230,218,192,0.85)';
+    ctx.lineWidth = 1.4;
+    const ribLen = [5.4, 4.2, 3.2];
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(c + 0.5, c - 3 + i * 2.4);
+      ctx.quadraticCurveTo(c + 3, c - 3.4 + i * 2.4, c + ribLen[i], c - 2.2 + i * 2.4);
+      ctx.stroke();
+    }
+    // 脊椎：背后一排骨节（俯视时的"人形"信号）
+    ctx.fillStyle = 'rgba(226,214,190,0.75)';
+    for (let i = 0; i < 4; i++) {
+      const x = c - 8 + i * 3.2;
+      ctx.beginPath();
+      ctx.ellipse(x, c, 1.5, 2.1, 0, 0, TAU);
+      ctx.fill();
+    }
+  
+    // 手臂：一条长且前伸，一条被折断只剩半截（不对称）
+    limb(ctx, c + 5, c - 8, c + 17, c - 10 + drag, 5.6, 4.2, '#63783f');
+    limb(ctx, c + 5, c + 8, c + 12, c + 13 - drag, 5.6, 4.4, '#4f6236');
+    ctx.fillStyle = 'rgba(120,30,30,0.8)';
+    ctx.beginPath();
+    ctx.arc(c + 12, c + 13 - drag, 2.2, 0, TAU);
+    ctx.fill();
+  
+    // 头：在前端，歪着，下巴脱臼
+    shadeBody(ctx, () => pathEllipse(ctx, c + 11, c - 1.5, 6, 6.4, 0.2), c + 11, c - 2.5, 6.5,
+      '#7d9152', '#b8cc82', 'rgba(16,24,10,0.62)', 'rgba(0,0,0,0.62)', 1.5);
+    ctx.fillStyle = 'rgba(20,12,10,0.85)';
+    pathPoly(ctx, [[c + 12, c + 2], [c + 16.5, c + 1], [c + 15, c + 5.5]]);
+    ctx.fill();
+    glowEyes(ctx, [[c + 12.5, c - 3.4, 1.9], [c + 15.6, c - 0.6, 1.4]], 1.6, '#ffe066', 6);
+  }
+  
+  // ================= 疾行者（52px，只会跑的人形骨架：前倾、长臂、后蹬腿） =================
+  function drawRunner(ctx, S, t = 0) {
+    const c = S / 2;
+    const gait = Math.sin(t * TAU) * 2.6;
+  
+    // 后蹬的双腿（拉得很开，是"跑"的关键剪影）
+    limb(ctx, c - 5, c - 5, c - 17, c - 8 + gait, 5.4, 3.4, '#8a4636');
+    limb(ctx, c - 5, c + 5, c - 16, c + 9 - gait, 5.4, 3.4, '#6f3529');
+    // 脚
+    ctx.fillStyle = '#e8d8c0';
+    ctx.beginPath();
+    ctx.ellipse(c - 18, c - 8 + gait, 2.6, 1.6, -0.3, 0, TAU);
+    ctx.ellipse(c - 17, c + 9 - gait, 2.6, 1.6, 0.3, 0, TAU);
+    ctx.fill();
+  
+    // 躯干：细长、前倾（肩在前，胯在后）
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 8, c + 3.5], [c - 7, c - 3.5], [c + 2, c - 7], [c + 8, c - 5.5],
+      [c + 9, c + 1], [c + 8, c + 5.5], [c + 2, c + 7]
+    ]), c, c, 10, '#b5674f', '#e0a084', 'rgba(52,20,14,0.66)', 'rgba(0,0,0,0.68)', 1.6);
+  
+    // 脊椎：一排不等长的骨刺（最有效的"被重铸过"信号）
+    ctx.fillStyle = 'rgba(240,228,206,0.92)';
+    for (let i = 0; i < 5; i++) {
+      const x = c - 6 + i * 3.2;
+      const h = 2.4 + (i % 3) * 1.2;
+      pathPoly(ctx, [[x, c - 3], [x + 2.2, c - 5 - h], [x + 4, c - 3]]);
+      ctx.fill();
+    }
+    // 侧面肋骨（露出来的三根）
+    ctx.strokeStyle = 'rgba(236,220,196,0.55)';
+    ctx.lineWidth = 1.1;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(c - 2 + i * 2.6, c + 4);
+      ctx.lineTo(c + 1 + i * 2.6, c + 6.4);
+      ctx.stroke();
+    }
+  
+    // 双臂前伸（几乎要够到地面，跑姿）
+    limb(ctx, c + 6, c - 5, c + 16, c - 8 - gait * 0.6, 5, 3.6, '#c07358');
+    limb(ctx, c + 6, c + 5, c + 17, c + 7 + gait * 0.6, 5, 3.6, '#a55f47');
+    ctx.fillStyle = '#f0e2cc';
+    ctx.beginPath();
+    ctx.arc(c + 17, c - 8 - gait * 0.6, 2, 0, TAU);
+    ctx.arc(c + 18, c + 7 + gait * 0.6, 2, 0, TAU);
+    ctx.fill();
+  
+    // 头：低伏、前伸，嘴裂开
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c + 9, c - 4.5], [c + 18, c - 3], [c + 20, c + 1], [c + 10, c + 4.5]
+    ]), c + 14, c, 7, '#c07358', '#e8ac8c', 'rgba(60,22,16,0.6)', 'rgba(0,0,0,0.62)', 1.4);
+    ctx.fillStyle = 'rgba(24,8,6,0.9)';
+    pathPoly(ctx, [[c + 12, c + 2.4], [c + 19.5, c + 1], [c + 18, c + 4.4], [c + 12.5, c + 4]]);
+    ctx.fill();
+    glowEyes(ctx, [[c + 14.5, c - 2.4, 1.7], [c + 17, c - 1, 1.3]], 1.5, '#ff5b3d', 6);
+  }
+  
+  // ================= 织网者（50px，两节身体 + 长腿，卵囊藏在腹下） =================
+  function drawSpider(ctx, S, t = 0) {
+    const c = S / 2;
+    const step = Math.sin(t * TAU) * 1.9;
+  
+    // 腿：上侧 5 条、下侧 3 条（不对称），两段关节、末端更细
+    const legs = [
+      [-3, -6, 13, 3], [-1, -8, 9, 6], [1, -8, 3, 8], [3, -7, -3, 7], [5, -5, -8, 5],
+      [-1, 8, 10, 4], [2, 8, 2, 7], [5, 6, -6, 5]
+    ];
+    for (const [ox, oy, ex, mid] of legs) {
+      const side = Math.sign(oy);
+      jointLimb(ctx, [
+        [c - 1 + ox * 0.5, c + oy * 0.5],
+        [c + mid * 0.4 + ox * 0.3, c + oy * 1.5],
+        [c + ex * 1.05 + step * side * 0.7, c + oy * 1.75 + Math.abs(ex) * 0.18]
+      ], 2.3, '#282838');
+    }
+  
+    // 腹部（后）+ 胸（前），两节结构才像蜘蛛
+    shadeBody(ctx, () => pathEllipse(ctx, c - 7, c + 1, 9.5, 8, -0.12), c - 9, c - 1, 8,
+      '#33334a', '#6a6a86', 'rgba(4,4,8,0.72)', 'rgba(0,0,0,0.7)', 1.6);
+    shadeBody(ctx, () => pathEllipse(ctx, c + 6, c - 1, 6, 5.2, 0.1), c + 5, c - 2, 5.5,
+      '#3d3d58', '#7a7a9c', 'rgba(6,6,12,0.7)', 'rgba(0,0,0,0.68)', 1.4);
+  
+    // 腹下卵囊：暗色带一圈微光，不要糊一块浅色
+    ctx.fillStyle = 'rgba(40,48,30,0.9)';
+    ctx.beginPath();
+    ctx.ellipse(c - 10, c + 5, 4.6, 3.6, 0.35, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(190,220,150,0.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  
+    // 背部斑纹
+    ctx.strokeStyle = 'rgba(200,220,190,0.28)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(c - 12 + i * 3, c - 4.5 + i * 0.6);
+      ctx.lineTo(c - 9 + i * 3, c + 1 + i * 0.6);
+      ctx.stroke();
+    }
+  
+    glowEyes(ctx, [[c + 8.5, c - 2.6, 1.4], [c + 9.8, c + 0.6, 1.1], [c + 7.4, c + 1.6, 1]], 1.3, '#ff3b4d', 7);
+  }
+  
+  // ================= 哨眼（64px，蹲伏的活体哨塔：独眼 + 背部骨管） =================
+  function drawLizard(ctx, S, t = 0) {
+    const c = S / 2;
+    const breathe = Math.sin(t * TAU) * 1.2;
+    const charge = t > 0.5;
+  
+    // 短尾（截断的，不是长尾巴——它是哨塔不是蜥蜴）
+    limb(ctx, c - 12, c + 1, c - 23, c + 5, 6, 2.4, '#4a6633');
+  
+    // 四肢：蹲伏，肘往外撑
+    jointLimb(ctx, [[c - 5, c + 5], [c - 10, c + 11], [c - 15, c + 13]], 3.8, '#46612f');
+    jointLimb(ctx, [[c + 6, c + 5], [c + 9, c + 12], [c + 14, c + 14]], 3.8, '#46612f');
+    jointLimb(ctx, [[c - 4, c - 5], [c - 9, c - 10], [c - 14, c - 11]], 3.4, '#3d5628');
+    jointLimb(ctx, [[c + 6, c - 6], [c + 10, c - 10], [c + 15, c - 11]], 3.4, '#3d5628');
+  
+    // 躯干：矮胖（蹲着），前端隆起
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 12, c + 2], [c - 10, c - 6], [c - 1, c - 10], [c + 8, c - 8],
+      [c + 12, c - 1], [c + 10, c + 7], [c - 2, c + 9], [c - 11, c + 6]
+    ]), c - 1, c - 1, 12, '#77944a', '#b4cd76', 'rgba(22,36,12,0.64)', 'rgba(0,0,0,0.66)', 1.7);
+  
+    // 背甲：三块，间距不等
+    ctx.fillStyle = '#d7e88a';
+    for (let i = 0; i < 3; i++) {
+      const x = c - 8 + i * 5.6;
+      pathPoly(ctx, [[x, c - 7], [x + 2.6, c - 12 - i * 0.6], [x + 5.4, c - 7]]);
+      ctx.fill();
+    }
+  
+    // 背部骨管：斜插在背上，蓄能时管口发绿光
+    ctx.save();
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 1, c - 8], [c + 7, c - 13], [c + 9.5, c - 10], [c + 1.5, c - 5.5]
+    ]), c + 4, c - 9, 5, '#33452a', '#5f7a4a', 'rgba(8,14,6,0.6)', 'rgba(0,0,0,0.6)', 1.2);
+    if (charge) {
+      ctx.shadowColor = '#b6ff5c';
+      ctx.shadowBlur = 9;
+      ctx.fillStyle = 'rgba(182,255,92,0.9)';
+      ctx.beginPath();
+      ctx.arc(c + 8.4, c - 11.4, 2.2, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  
+    // 头：宽扁，一只大眼占掉一半，后半段是骨质护片
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c + 10, c - 7], [c + 20, c - 5], [c + 22, c + 1], [c + 12, c + 5]
+    ]), c + 16, c - 1, 7.5, '#8aa955', '#c6dd8a', 'rgba(26,40,16,0.6)', 'rgba(0,0,0,0.64)', 1.5);
+    ctx.fillStyle = 'rgba(60,80,40,0.9)';
+    pathPoly(ctx, [[c + 10, c - 7], [c + 14, c - 6.4], [c + 13, c - 2.6], [c + 9.6, c - 3.4]]);
+    ctx.fill();
+  
+    ctx.save();
+    ctx.shadowColor = '#ffd166';
+    ctx.shadowBlur = charge ? 13 : 6;
+    ctx.fillStyle = '#ffe27a';
+    ctx.beginPath();
+    ctx.ellipse(c + 16.5, c - 1, 3.8, 3.2, 0.15, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#160f04';
+    ctx.beginPath();
+    ctx.ellipse(c + 17.2, c - 1, 1.1, 2.2, 0.15, 0, TAU);
+    ctx.fill();
+    // 眼睑（一条横过的暗线，让眼睛有"看着你"的方向感）
+    ctx.strokeStyle = 'rgba(40,50,20,0.8)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(c + 12.6, c - 2.2);
+    ctx.lineTo(c + 20, c - 3);
+    ctx.stroke();
+  }
+  
+  // ================= 融生体（68px，三团粘连 + 融进去的人手） =================
+  function drawAlien(ctx, S, t = 0) {
+    const c = S / 2;
+    const wob = Math.sin(t * TAU) * 1.6;
+  
+    // 三个体块：大小、位置都不同，边缘有"破口"
+    shadeBody(ctx, () => pathEllipse(ctx, c - 9 + wob * 0.3, c + 7, 11, 9, 0.4), c - 11, c + 5, 10,
+      '#4a2666', '#8b57b0', 'rgba(14,4,24,0.66)', 'rgba(0,0,0,0.62)', 1.5);
+    shadeBody(ctx, () => pathEllipse(ctx, c + 4, c - 10 - wob * 0.25, 9, 7.5, -0.35), c + 3, c - 12, 8.5,
+      '#542c74', '#9a63c2', 'rgba(16,4,28,0.66)', 'rgba(0,0,0,0.62)', 1.5);
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 12, c - 4], [c - 3, c - 11], [c + 11, c - 5], [c + 12, c + 5],
+      [c + 2, c + 12], [c - 12, c + 7]
+    ]), c - 1, c, 13, '#5c3080', '#a86fd0', 'rgba(18,6,30,0.62)', 'rgba(0,0,0,0.66)', 1.7);
+  
+    // 一只人手从体块里伸出来：先手掌，再三根手指
+    ctx.fillStyle = 'rgba(206,178,150,0.92)';
+    ctx.beginPath();
+    ctx.ellipse(c + 3, c - 12, 3.6, 3, -0.4, 0, TAU);
+    ctx.fill();
+    for (let i = 0; i < 3; i++) {
+      const a = -1.5 + i * 0.42;
+      limb(ctx, c + 3, c - 12, c + 3 + Math.cos(a) * 8, c - 12 + Math.sin(a) * 8, 2.2, 1,
+        'rgba(214,188,160,0.92)', 'rgba(0,0,0,0.45)');
+    }
+  
+    // 兽爪：两根弯钩，朝前下
+    ctx.strokeStyle = 'rgba(238,226,204,0.85)';
+    ctx.lineWidth = 1.8;
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath();
+      ctx.moveTo(c + 8 + i * 3.4, c + 6);
+      ctx.quadraticCurveTo(c + 14 + i * 3, c + 9, c + 12 + i * 3, c + 14);
+      ctx.stroke();
+    }
+  
+    // 体块之间的冷青"管路"
+    ctx.strokeStyle = 'rgba(124,231,255,0.4)';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(c - 13, c - 1);
+    ctx.quadraticCurveTo(c - 4, c + 3 + wob, c + 3, c - 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(c - 2, c + 10);
+    ctx.quadraticCurveTo(c + 4, c + 7, c + 9, c + 2);
+    ctx.stroke();
+  
+    // 四只眼睛，大小不一（认不出原本是什么东西）
+    glowEyes(ctx, [[c + 8, c - 13, 1.9], [c + 11.4, c - 10, 1.3], [c + 5, c - 9, 1.5], [c - 2, c - 11, 1.1]], 1.4, '#7ce7ff', 8);
+  }
+  
+  // ================= 守层者（96px，人形但比例错乱；一只手是炮管；胸口七道旧枪伤） =================
+  function drawBrute(ctx, S, t = 0) {
+    const c = S / 2;
+    const breathe = Math.sin(t * TAU) * 2;
+  
+    // 腿：粗，一长一短（重铸时没对齐）
+    limb(ctx, c - 9, c + 9, c - 15, c + 31, 13, 10, '#3a1a1e');
+    limb(ctx, c + 5, c + 9, c + 11, c + 27, 13, 10, '#421d22');
+    ctx.fillStyle = '#1c0d10';
+    ctx.beginPath();
+    ctx.ellipse(c - 15, c + 33, 7, 4, 0, 0, TAU);
+    ctx.ellipse(c + 11, c + 29, 7, 4, 0, 0, TAU);
+    ctx.fill();
+  
+    // 躯干：肩极宽、腰细，一侧肩更高（不对称）
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c - 22, c - 13], [c - 6, c - 23], [c + 14, c - 20],
+      [c + 20, c - 4], [c + 12, c + 12], [c - 8, c + 14],
+      [c - 20, c + 3]
+    ]), c - 2, c - 4, 23, '#7d1520', '#c0303c', 'rgba(30,4,8,0.64)', 'rgba(0,0,0,0.72)', 2.2);
+  
+    // 胸前束带（残留的装备，人类的东西长在怪物身上）
+    ctx.strokeStyle = 'rgba(46,50,58,0.85)';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(c - 16, c - 12);
+    ctx.lineTo(c + 10, c + 6);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(120,128,140,0.35)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(c - 16, c - 14);
+    ctx.lineTo(c + 10, c + 4);
+    ctx.stroke();
+  
+    // 七道旧枪伤（自伤，STORY §2.2）：结痂先画，伤口后画，否则糊成一块红板
+    ctx.strokeStyle = 'rgba(58,8,14,0.6)';
+    ctx.lineWidth = 2.2;
+    for (let i = 0; i < 7; i++) {
+      ctx.beginPath();
+      ctx.moveTo(c - 10, c - 10.4 + i * 4.2);
+      ctx.lineTo(c + 8, c - 12.2 + i * 4.2);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,96,104,0.9)';
+    for (let i = 0; i < 7; i++) {
+      ctx.lineWidth = i % 2 ? 1.2 : 1.8;
+      const inset = (i % 3) * 1.8;
+      ctx.beginPath();
+      ctx.moveTo(c - 9 + inset, c - 10.8 + i * 4.2);
+      ctx.lineTo(c + 7 - inset * 0.5, c - 12.4 + i * 4.2);
+      ctx.stroke();
+    }
+  
+    // 左臂：粗臂 + 拳
+    limb(ctx, c - 12, c - 11, c - 23, c + 3 + breathe, 12, 10, '#6d121c');
+    ctx.fillStyle = '#8e1c26';
+    ctx.beginPath();
+    ctx.arc(c - 25, c + 6 + breathe, 6.5, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  
+    // 右臂：前臂直接是炮管（圆管 + 炮口环 + 旧胶带）
+    limb(ctx, c + 9, c - 10, c + 19, c + 2, 12, 10, '#6d121c');
+    ctx.save();
+    ctx.translate(c + 19, c + 1);
+    ctx.fillStyle = '#20232a';
+    ctx.beginPath();
+    ctx.roundRect(0, -6, 16, 12, 3);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    // 炮口环
+    ctx.fillStyle = '#33383f';
+    ctx.beginPath();
+    ctx.roundRect(13, -7.5, 5, 15, 2);
+    ctx.fill();
+    ctx.fillStyle = '#07080a';
+    ctx.beginPath();
+    ctx.ellipse(18.5, 0, 2.4, 5, 0, 0, TAU);
+    ctx.fill();
+    // 旧胶带
+    ctx.strokeStyle = 'rgba(206,196,176,0.45)';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(6, -6.4);
+    ctx.lineTo(7, 6.4);
+    ctx.stroke();
+    ctx.restore();
+  
+    // 头：用一根粗脖子连到躯干上（别浮着）
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c + 2, c - 21], [c + 9, c - 20], [c + 10, c - 13], [c + 2, c - 12]
+    ]), c + 6, c - 17, 6, '#3a2026', '#7a4a52', 'rgba(10,2,4,0.6)', 'rgba(0,0,0,0.6)', 1.4);
+    shadeBody(ctx, () => pathPoly(ctx, [
+      [c + 6, c - 24], [c + 18, c - 23], [c + 19, c - 13], [c + 7, c - 12]
+    ]), c + 12, c - 18, 9, '#2a2f36', '#5b646f', 'rgba(4,6,8,0.6)', 'rgba(0,0,0,0.68)', 1.6);
+    // 面甲两道缝，缝里透红光
+    ctx.strokeStyle = 'rgba(10,12,16,0.9)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(c + 8, c - 18.4);
+    ctx.lineTo(c + 18, c - 17.6);
+    ctx.stroke();
+    glowEyes(ctx, [[c + 14, c - 19.4, 1.7], [c + 16.4, c - 15.6, 1.4]], 1.5, '#ff3b4d', 9);
+  
+    // 腰间破布（最后一点人味）
+    ctx.strokeStyle = 'rgba(170,158,146,0.32)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(c - 14, c + 12);
+    ctx.quadraticCurveTo(c - 4, c + 20, c + 8, c + 13);
+    ctx.stroke();
+  }
+  
+  // ================= 拾取物（人类遗留物：严格对称 + 工业配色） =================
+  function drawOrb(ctx, S) {
+    const c = S / 2;
+    const r = S * 0.3;
+    // 光晕
+    const g = ctx.createRadialGradient(c, c, 0, c, c, S * 0.5);
+    g.addColorStop(0, 'rgba(124,231,255,0.55)');
+    g.addColorStop(1, 'rgba(124,231,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, S, S);
+  
+    // 晶体：六边形，带一条内部高光
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU - Math.PI / 2;
+      const x = c + Math.cos(a) * r;
+      const y = c + Math.sin(a) * r * 1.08;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    const gg = ctx.createLinearGradient(c - r, c - r, c + r, c + r);
+    gg.addColorStop(0, '#e8fdff');
+    gg.addColorStop(0.5, '#7ce7ff');
+    gg.addColorStop(1, '#1d7f96');
+    ctx.fillStyle = gg;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(6,24,30,0.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(c - r * 0.4, c - r * 0.1);
+    ctx.lineTo(c + r * 0.15, c - r * 0.55);
+    ctx.stroke();
+  }
+  
+  function drawHealth(ctx, S) {
+    const c = S / 2;
+    const w = S * 0.34;
+    const h = S * 0.28;
+    // 金属盒
+    ctx.fillStyle = '#3d4652';
+    ctx.beginPath();
+    ctx.roundRect(c - w, c - h, w * 2, h * 2, 3);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    // 顶盖高光（左上）
+    ctx.fillStyle = 'rgba(190,205,220,0.35)';
+    ctx.fillRect(c - w + 1.5, c - h + 1.5, w * 2 - 3, 3);
+    // 药剂窗（绿色）+ 液面
+    ctx.fillStyle = '#0d1a12';
+    ctx.fillRect(c - w * 0.45, c - h * 0.5, w * 0.9, h * 1.1);
+    ctx.fillStyle = '#5dff9b';
+    ctx.fillRect(c - w * 0.45, c - h * 0.1, w * 0.9, h * 0.7);
+    // 十字
+    ctx.fillStyle = '#e9f4ff';
+    ctx.fillRect(c - 1.6, c - h - 5, 3.2, 8);
+    ctx.fillRect(c - 4, c - h - 1.8, 8, 3.2);
+  }
+  
+  function drawCrate(ctx, S) {
+    const c = S / 2;
+    const w = S * 0.36;
+    const h = S * 0.3;
+    // 军械箱
+    ctx.fillStyle = '#4a4038';
+    ctx.beginPath();
+    ctx.roundRect(c - w, c - h, w * 2, h * 2, 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // 束带（对称，两条）
+    ctx.fillStyle = '#26201b';
+    ctx.fillRect(c - w * 0.55, c - h, 4, h * 2);
+    ctx.fillRect(c + w * 0.55 - 4, c - h, 4, h * 2);
+    // 顶盖高光
+    ctx.fillStyle = 'rgba(220,200,160,0.28)';
+    ctx.fillRect(c - w + 1.5, c - h + 1.5, w * 2 - 3, 2.5);
+    // 露出的枪管
+    ctx.fillStyle = '#15181d';
+    ctx.fillRect(c + w * 0.2, c + h * 0.15, w * 0.9, 4);
+    // 军械标记（一小块褪色漆）
+    ctx.fillStyle = 'rgba(255,209,102,0.75)';
+    ctx.fillRect(c - w * 0.35, c - h * 0.55, 7, 4);
+  }
+  
+  const ANIM_STEPS = [0, 0.25, 0.5, 0.75];
+  
+  /** 生成一组动画帧（4 帧：呼吸 / 步态 / 蓄能） */
+  function frames(key, size, draw) {
+    return ANIM_STEPS.map((t, i) => build(`${key}${i}`, size, (c, s) => draw(c, s, t)));
+  }
+  
+  function getSprites() {
+    return {
+      player: frames('player', 72, drawPlayer),
+      zombie: frames('zombie', 56, drawZombie),
+      runner: frames('runner', 52, drawRunner),
+      spider: frames('spider', 50, drawSpider),
+      lizard: frames('lizard', 64, drawLizard),
+      alien: frames('alien', 68, drawAlien),
+      brute: frames('brute', 96, drawBrute),
+      orb: build('orb', 26, drawOrb),
+      health: build('health', 34, drawHealth),
+      crate: build('crate', 38, drawCrate)
+    };
+  }
+  
+  // ================= 地面（按层配色 + 按层材质） =================
+  //
+  // 分两层绘制，用来藏住"平铺感"：
+  //   1) 主瓦片 512px，repeat：材质主体（肉膜 / 蛛网 / 酸池 / 结晶 / 砖缝）
+  //   2) 宏观叠层 512px，按 2.7 倍放大再叠一次，半透明：大块污渍，周期变成 ~1380px
+  // 只做一层 256px 瓦片的时代，酸池会明显"每 256px 重复一次"，一眼假。
+  //
+  // 无缝：跨边界元素用 wrapPaint 画 9 次（±S 偏移）；砖缝按 S 的约数排版，天然无缝。
+  // 随机一律 fxRandom（表现层），不碰 math.js 的种子流。
+  
+  const GROUND_S = 512;
+  const MACRO_K = 2.7;   // 宏观叠层放大倍数（与 game.js 的绘制保持一致）
+  
+  /** 在瓦片 3x3 邻域重复绘制，保证跨边界元素无缝 */
+  function wrapPaint(ctx, S, x, y, r, paint) {
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const cx = x + dx * S;
+        const cy = y + dy * S;
+        if (cx + r < 0 || cy + r < 0 || cx - r > S || cy - r > S) continue;
+        paint(cx, cy);
+      }
+    }
+  }
+  
+  /** 圆形软斑（大量复用） */
+  function softBlob(ctx, S, x, y, r, color, paintRadius) {
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    wrapPaint(ctx, S, x, y, r, (cx, cy) => {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.fillStyle = grad;
+      ctx.fillRect(-r, -r, r * 2, r * 2);
+      ctx.restore();
+    });
+    if (paintRadius) paintRadius();
+  }
+  
+  /** 肉膜：大片斑驳 + 血管（一层 / 二层） */
+  function groundFlesh(ctx, S, g) {
+    for (let i = 0; i < 20; i++) {
+      softBlob(ctx, S, fxRandom() * S, fxRandom() * S, S * (0.06 + fxRandom() * 0.16),
+        fxRandom() > 0.45 ? g.blotch : g.dark);
+    }
+  
+    // 血管：深色管壁 + 内侧亮点，暗示"这层是活的"
+    for (let i = 0; i < 5; i++) {
+      const x0 = fxRandom() * S;
+      const y0 = fxRandom() * S;
+      let ang = fxRandom() * TAU;
+      const step = S * (0.05 + fxRandom() * 0.04);
+      const pts = [[0, 0]];
+      let x = 0;
+      let y = 0;
+      for (let k = 0; k < 7; k++) {
+        ang += (fxRandom() - 0.5) * 1.0;
+        x += Math.cos(ang) * step;
+        y += Math.sin(ang) * step;
+        pts.push([x, y]);
+      }
+      wrapPaint(ctx, S, x0, y0, S * 0.8, (cx, cy) => {
+        ctx.beginPath();
+        for (let k = 0; k < pts.length; k++) {
+          const px = cx + pts[k][0];
+          const py = cy + pts[k][1];
+          if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = 'rgba(8,2,2,0.50)';
+        ctx.lineWidth = S * 0.012;
+        ctx.stroke();
+        ctx.strokeStyle = g.glow;
+        ctx.lineWidth = S * 0.0035;
+        ctx.stroke();
+      });
+    }
+  }
+  
+  /** 蛛网：几个结点放射出丝，加黏膜反光（三层） */
+  function groundWeb(ctx, S, g) {
+    for (let i = 0; i < 14; i++) {
+      softBlob(ctx, S, fxRandom() * S, fxRandom() * S, S * (0.05 + fxRandom() * 0.13), g.dark);
+    }
+  
+    // 网的密度要高、单张要小：几张大网会立刻暴露平铺网格
+    for (let i = 0; i < 9; i++) {
+      const hx = fxRandom() * S;
+      const hy = fxRandom() * S;
+      const spokes = 6 + Math.floor(fxRandom() * 6);
+      const reach = S * (0.06 + fxRandom() * 0.11);
+      wrapPaint(ctx, S, hx, hy, reach * 1.2, (cx, cy) => {
+        ctx.strokeStyle = g.crack;
+        ctx.lineWidth = S * 0.0022;
+        ctx.beginPath();
+        for (let k = 0; k < spokes; k++) {
+          const a = (k / spokes) * TAU + fxRandom() * 0.12;
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(a) * reach, cy + Math.sin(a) * reach);
+        }
+        ctx.stroke();
+        for (let ring = 1; ring <= 3; ring++) {
+          const rr = (reach / 3.4) * ring;
+          ctx.beginPath();
+          for (let k = 0; k <= spokes; k++) {
+            const a = (k / spokes) * TAU;
+            const px = cx + Math.cos(a) * rr;
+            const py = cy + Math.sin(a) * rr;
+            if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        }
+      });
+    }
+  
+    // 黏膜反光点
+    for (let i = 0; i < 40; i++) {
+      const x = fxRandom() * S;
+      const y = fxRandom() * S;
+      const r = S * (0.004 + fxRandom() * 0.008);
+      ctx.fillStyle = g.grain[0];
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.6, fxRandom() * 3, 0, TAU);
+      ctx.fill();
+    }
+  }
+  
+  /** 酸池：一摊摊亮边液体 + 蚀痕（四层） */
+  function groundAcid(ctx, S, g) {
+    for (let i = 0; i < 12; i++) {
+      softBlob(ctx, S, fxRandom() * S, fxRandom() * S, S * (0.05 + fxRandom() * 0.12), g.dark);
+    }
+  
+    // 酸池：暗芯 + 亮边，像"正在冒泡的坑"
+    for (let i = 0; i < 5; i++) {
+      const x = fxRandom() * S;
+      const y = fxRandom() * S;
+      const r = S * (0.04 + fxRandom() * 0.075);
+      const wob = fxRandom() * TAU;   // 每摊形状各不相同，否则一眼就是复制粘贴
+      wrapPaint(ctx, S, x, y, r + 6, (cx, cy) => {
+        ctx.beginPath();
+        const n = 11;
+        for (let k = 0; k <= n; k++) {
+          const a = (k / n) * TAU;
+          const rr = r * (1 + Math.sin(a * 3 + wob) * 0.18 + Math.sin(a * 5 + wob * 2.1) * 0.1);
+          const px = cx + Math.cos(a) * rr;
+          const py = cy + Math.sin(a) * rr * 0.82;
+          if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(6,8,3,0.55)';
+        ctx.fill();
+        ctx.strokeStyle = g.glow;
+        ctx.lineWidth = S * 0.006;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(210,255,120,0.10)';
+        ctx.fill();
+        // 池面气泡与浮渣，让酸池不是一块纯色
+        for (let b = 0; b < 5; b++) {
+          const ba = fxRandom() * TAU;
+          const bd = Math.sqrt(fxRandom()) * r * 0.6;
+          ctx.fillStyle = b % 2 ? 'rgba(210,255,130,0.22)' : 'rgba(8,14,4,0.5)';
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(ba) * bd, cy + Math.sin(ba) * bd * 0.8, r * (0.05 + fxRandom() * 0.12), 0, TAU);
+          ctx.fill();
+        }
+      });
+    }
+  
+    // 蚀痕：短促的斜划
+    for (let i = 0; i < 30; i++) {
+      const x = fxRandom() * S;
+      const y = fxRandom() * S;
+      const a = fxRandom() * TAU;
+      const len = S * (0.02 + fxRandom() * 0.05);
+      ctx.strokeStyle = g.crack;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+      ctx.stroke();
+    }
+  }
+  
+  /** 结晶：棱角碎片 + 冷光（五层） */
+  function groundCrystal(ctx, S, g) {
+    for (let i = 0; i < 10; i++) {
+      softBlob(ctx, S, fxRandom() * S, fxRandom() * S, S * (0.08 + fxRandom() * 0.16), g.blotch);
+    }
+  
+    // 棱柱：不规则三角/四边，带一条高光棱
+    for (let i = 0; i < 14; i++) {
+      const x = fxRandom() * S;
+      const y = fxRandom() * S;
+      const r = S * (0.014 + fxRandom() * 0.032);
+      const n = 3 + Math.floor(fxRandom() * 2);
+      const a0 = fxRandom() * TAU;
+      wrapPaint(ctx, S, x, y, r + 4, (cx, cy) => {
+        ctx.beginPath();
+        for (let k = 0; k < n; k++) {
+          const a = a0 + (k / n) * TAU + (fxRandom() - 0.5) * 0.5;
+          const rr = r * (0.7 + fxRandom() * 0.6);
+          const px = cx + Math.cos(a) * rr;
+          const py = cy + Math.sin(a) * rr;
+          if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(26,12,36,0.75)';
+        ctx.fill();
+        ctx.strokeStyle = g.crack;
+        ctx.lineWidth = S * 0.003;
+        ctx.stroke();
+        ctx.strokeStyle = g.glow;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(cx - r * 0.3, cy);
+        ctx.lineTo(cx + r * 0.4, cy - r * 0.5);
+        ctx.stroke();
+      });
+    }
+  }
+  
+  /** 砖缝：128px 分块 + 铆钉 + 血渍（六层 / 竞技场） */
+  function groundPlate(ctx, S, g) {
+    const T = S / 4;
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 3;
+    for (let i = 0; i <= S; i += T) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, S);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(S, i);
+      ctx.stroke();
+    }
+    // 每块砖亮度随机：不要棋盘格，棋盘格一眼就是图案
+    for (let gx = 0; gx < S; gx += T) {
+      for (let gy = 0; gy < S; gy += T) {
+        ctx.fillStyle = fxRandom() > 0.5 ? g.blotch : g.dark;
+        ctx.globalAlpha = 0.08 + fxRandom() * 0.30;
+        ctx.fillRect(gx + 3, gy + 3, T - 6, T - 6);
+        ctx.globalAlpha = 1;
+      }
+    }
+    for (let gx = 0; gx <= S; gx += T) {
+      for (let gy = 0; gy <= S; gy += T) {
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.beginPath();
+        ctx.arc(gx, gy, 5, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = g.grain[0];
+        ctx.beginPath();
+        ctx.arc(gx - 1.2, gy - 1.2, 2.4, 0, TAU);
+        ctx.fill();
+      }
+    }
+    for (let i = 0; i < 9; i++) {
+      softBlob(ctx, S, fxRandom() * S, fxRandom() * S, S * (0.05 + fxRandom() * 0.13), g.accent);
+    }
+  }
+  
+  /** 所有材质共用的颗粒与裂纹 */
+  function groundGrain(ctx, S, g) {
+    const n = Math.round(S * S * 0.0075);
+    for (let i = 0; i < n; i++) {
+      const x = fxRandom() * S;
+      const y = fxRandom() * S;
+      const v = fxRandom();
+      ctx.fillStyle = v > 0.7 ? g.grain[0] : v > 0.38 ? g.grain[1] : g.grain[2];
+      const w = 1 + fxRandom() * 3.4;
+      ctx.fillRect(x, y, w, w);
+    }
+  
+    for (let i = 0; i < 70; i++) {
+      const x = 8 + fxRandom() * (S - 16);
+      const y = 8 + fxRandom() * (S - 16);
+      const r = S * (0.003 + fxRandom() * 0.006);
+      ctx.fillStyle = g.grain[1];
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.75, fxRandom() * 3, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.beginPath();
+      ctx.ellipse(x, y + r * 0.7, r * 1.05, r * 0.45, 0, 0, TAU);
+      ctx.fill();
+    }
+  
+    ctx.strokeStyle = g.crack;
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 6; i++) {
+      let x = fxRandom() * S;
+      let y = fxRandom() * S;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      for (let k = 0; k < 6; k++) {
+        x += (fxRandom() - 0.5) * S * 0.24;
+        y += (fxRandom() - 0.5) * S * 0.24;
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+  
+  /**
+   * 某层的主地面瓦片（512px，repeat）。同 palette 只生成一次。
+   */
+  function makeGroundTile(pal = LAYER_PALETTES[0] || ARENA_PALETTE) {
+    const key = `tile:${pal.id || 'default'}`;
+    if (GROUND_CACHE.has(key)) return GROUND_CACHE.get(key);
+  
+    const S = GROUND_S;
+    const c = cv(S);
+    const ctx = c.getContext('2d');
+    const g = pal.ground;
+    ctx.fillStyle = g.base;
+    ctx.fillRect(0, 0, S, S);
+  
+    if (pal.style === 'flesh') groundFlesh(ctx, S, g);
+    else if (pal.style === 'web') groundWeb(ctx, S, g);
+    else if (pal.style === 'acid') groundAcid(ctx, S, g);
+    else if (pal.style === 'crystal') groundCrystal(ctx, S, g);
+    else groundPlate(ctx, S, g);
+  
+    groundGrain(ctx, S, g);
+  
+    GROUND_CACHE.set(key, c);
+    return c;
+  }
+  
+  /**
+   * 宏观叠层：用同一套材质函数**再随机生成一次**（布局完全不同），绘制时放大 2.7 倍。
+   * 两层图案互不对齐，平铺周期被打散，肉眼很难看出网格。
+   * 透明底：只画材质特征，不铺基色。
+   */
+  function makeGroundMacro(pal = LAYER_PALETTES[0] || ARENA_PALETTE) {
+    const key = `macro:${pal.id || 'default'}`;
+    if (GROUND_CACHE.has(key)) return GROUND_CACHE.get(key);
+  
+    const S = GROUND_S;
+    const c = cv(S);
+    const ctx = c.getContext('2d');
+    const g = pal.ground;
+  
+    ctx.globalAlpha = 0.55;
+    if (pal.style === 'flesh') groundFlesh(ctx, S, g);
+    else if (pal.style === 'web') groundWeb(ctx, S, g);
+    else if (pal.style === 'acid') groundAcid(ctx, S, g);
+    else if (pal.style === 'crystal') groundCrystal(ctx, S, g);
+    else groundPlate(ctx, S, g);
+  
+    // 再加几块巨大的软污渍，补上低频层次
+    ctx.globalAlpha = 0.7;
+    for (let i = 0; i < 5; i++) {
+      const x = fxRandom() * S;
+      const y = fxRandom() * S;
+      const r = S * (0.2 + fxRandom() * 0.32);
+      softBlob(ctx, S, x, y, r, i % 2 === 0 ? g.blotch : g.dark);
+    }
+    ctx.globalAlpha = 1;
+  
+    GROUND_CACHE.set(key, c);
+    return c;
+  }
+  
+  const GROUND_TILE_SIZE = GROUND_S;
+  const GROUND_MACRO_SCALE = MACRO_K;
+  
+  return { getSprites, makeGroundTile, makeGroundMacro, GROUND_TILE_SIZE, GROUND_MACRO_SCALE };
+})();
+
+__mods["game/ambient.js"] = (function () {
+  'use strict';
+  const { fxRandom } = __mods["core/fx.js"];
+  // 环境浮尘（纯表现层）
+  //
+  // 每层飘的东西不一样：一层骨屑、三层孢子、四层酸雾、五层结晶微光、六层灰烬。
+  // 只在 render 里跑，不参与任何数值，也不抽种子流（用 fxRandom 生成一次后按时间漂移）。
+  
+  
+  const COUNT_PER_100K = 1.0; // 每 10 万像素的粒子数，按视口面积缩放
+  
+  function build(w, h, pal) {
+    const area = (w * h) / 100000;
+    const n = Math.max(8, Math.round(pal.ambient.count * area));
+    const list = [];
+    for (let i = 0; i < n; i++) {
+      list.push({
+        x: fxRandom() * w,
+        y: fxRandom() * h,
+        r: pal.ambient.size * (0.6 + fxRandom() * 0.9),
+        spd: pal.ambient.drift * (0.4 + fxRandom() * 1.2),
+        sway: 0.4 + fxRandom() * 1.6,
+        phase: fxRandom() * Math.PI * 2,
+        a: 0.25 + fxRandom() * 0.6
+      });
+    }
+    return { w, h, id: pal.id, list };
+  }
+  
+  /**
+   * 画该层的浮尘。位置由 g.time 推算（暂停时也停住，和世界一致）。
+   * 视口尺寸变了会自动重建。
+   */
+  function drawAmbient(ctx, g, w, h) {
+    const pal = g.palette;
+    if (!pal || !pal.ambient) return;
+    if (g.state === 'menu') return;
+  
+    let amb = g._ambient;
+    if (!amb || amb.id !== pal.id || Math.abs(amb.w - w) > 1 || Math.abs(amb.h - h) > 1) {
+      amb = build(w, h, pal);
+      g._ambient = amb;
+    }
+  
+    const t = g.time;
+    ctx.save();
+    ctx.fillStyle = pal.ambient.color;
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < amb.list.length; i++) {
+      const p = amb.list[i];
+      // 缓慢上飘 + 横向摆动，出屏后从底部回收
+      const y = ((p.y - t * p.spd) % (h + 40) + h + 40) % (h + 40) - 20;
+      const x = p.x + Math.sin(t * p.sway + p.phase) * 14;
+      ctx.globalAlpha = p.a * 0.55;
+      ctx.beginPath();
+      ctx.arc(x, y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  
+  return { drawAmbient };
+})();
+
+__mods["game/game.js"] = (function () {
+  'use strict';
+  const M = __mods["core/math.js"];
+  const { Camera } = __mods["core/camera.js"];
+  const { Decals } = __mods["game/decals.js"];
+  const { Particles } = __mods["game/particles.js"];
+  const { createPlayer, updatePlayer, hurtPlayer, giveWeapon, healPlayer } = __mods["game/player.js"];
+  const { WEAPONS, magSize, randomWeaponDrop } = __mods["game/weapons.js"];
+  const { spawnEnemy, updateEnemy, damageEnemy, ENEMY_TYPES } = __mods["game/enemies.js"];
+  const { rollPerks, applyPerk } = __mods["game/perks.js"];
+  const { drawHud } = __mods["game/hud.js"];
+  const { Voice, drawVoice } = __mods["game/voice.js"];
+  const { drawThreatIndicators } = __mods["game/threats.js"];
+  const { QUESTS, buildQuestQueue } = __mods["game/quests.js"];
+  const { getSprites, makeGroundTile, makeGroundMacro, GROUND_MACRO_SCALE } = __mods["render/sprites.js"];
+  const { paletteForLayer, ARENA_PALETTE, mixHex } = __mods["render/palettes.js"];
+  const { drawAmbient } = __mods["game/ambient.js"];
+  const { fxRandom, fxRand } = __mods["core/fx.js"];
+  
+  const WORLD_W = 2600;
+  const WORLD_H = 2000;
+  
+  // 武器箱子按 tier 上色：远处一眼看出值不值得冲过去捡
+  const TIER_COLORS = {
+    1: { core: 'rgba(168,196,224,0.55)', beam: 'rgba(168,196,224,0.20)' },
+    2: { core: 'rgba(255,209,102,0.68)', beam: 'rgba(255,209,102,0.28)' },
+    3: { core: 'rgba(124,231,255,0.72)', beam: 'rgba(124,231,255,0.32)' },
+    4: { core: 'rgba(255,77,94,0.78)', beam: 'rgba(255,77,94,0.38)' }
+  };
+  
+  // 左臂布条颜色 = 该层主色（STORY §10 配色分区），最多 4 条
+  const STRIPE_COLORS = ['#8f2a1c', '#a51622', '#4c7a26', '#6b2b93'];
+  
+  // localStorage 在 file:// 或隐私模式下可能直接抛异常（单文件发布版就是 file://）。
+  // 存档只是"最高分"，丢了不影响玩，所以一律吞掉异常。
+  function loadSave(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  }
+  
+  function saveBest(key, value) {
+    try {
+      localStorage.setItem(key, String(value));
+    } catch (e) {
+      /* 存档不可用：忽略 */
+    }
+  }
+  
+  class Game {
+    constructor(canvas, ctx, input, audio, ui) {
+      this.canvas = canvas;
+      this.ctx = ctx;
+      this.input = input;
+      this.audio = audio;
+      this.ui = ui;
+  
+      this.W = WORLD_W;
+      this.H = WORLD_H;
+      this.dpr = 1;
+      this.vw = 1280;
+      this.vh = 720;
+  
+      this.sprites = getSprites();
+      // 分层视觉：地面瓦片 / 雾色 / 血迹 / 浮尘全部按层取（render/palettes.js）
+      this.palette = ARENA_PALETTE;
+      this.ground = null;
+      this.groundPattern = null;
+      this.macroPattern = null;
+      this.setPalette(ARENA_PALETTE);
+  
+      this.cam = new Camera(this.W, this.H);
+      this.decals = new Decals(this.W, this.H);
+      this.particles = new Particles();
+  
+      this.state = 'menu';
+      this.mode = 'survival';
+      this.player = null;
+      this.enemies = [];
+      this.bullets = [];
+      this.pickups = [];
+      this.mouseWorld = { x: 0, y: 0 };
+  
+      this.time = 0;
+      this.wave = 1;
+      this.waveTimer = 0;
+      this.spawnTimer = 0;
+      this.kills = 0;
+      this.score = 0;
+      // 存档键于 2026-10-21 改名（CRIMSON ARENA → SEVENTH WOUND）。
+      // 必须保留旧键回退：改名当天已有的玩家最高分写在 crimson_best 里。
+      const savedBest = loadSave('seventhwound_best') ?? loadSave('crimson_best');
+      this.best = Number(savedBest || 0);
+      this.banner = { text: '', sub: '', t: 0 };
+      this.hitstop = 0;
+      this.voice = new Voice();
+      this.intro = null;       // 守层者登场演出（只影响镜头取景，不改任何数值）
+      this.perkChoices = [];
+      this.stats = { shots: 0, damage: 0 };
+      this.questIndex = 0;
+      this.questDef = null;
+      this.questQueue = [];
+      this.questTimer = 0;
+      this.questDone = false;
+      this.questName = '';
+      this.timeScale = 1;
+  
+      // 种子 RNG（P4-0）：null = 用 Math.random，行为与改动前一致
+      this.seed = null;
+      // 武器掉落计时（S6-C）：保底用
+      this.lastWeaponDropAt = 0;
+      this.firstWeaponGiven = false;
+      // 机制型刻印产生的场地物（S6-D）
+      this.mines = [];
+      this.frostPools = [];
+      this.rerollUsed = false;
+      // 侵蚀值（P4-1）：本局峰值，死亡面板用
+      this.maxErosion = 0;
+      this.heartTimer = 0;
+    }
+  
+    /** 传 null/'' 恢复 Math.random；返回实际生效的种子（null 表示未启用） */
+    setSeed(seed) {
+      const s = seed === null || seed === undefined || seed === '' ? null : String(seed);
+      this.seed = s;
+      M.setRng(s === null ? null : M.makeRng(s));
+      return s;
+    }
+  
+    /** 切换该层的视觉配色：地面瓦片、雾、血迹、浮尘（缓存按 palette.id 复用） */
+    setPalette(pal) {
+      if (!pal || pal === this.palette && this.groundPattern) return;
+      this.palette = pal;
+      this.ground = makeGroundTile(pal);
+      this.groundPattern = this.ctx.createPattern(this.ground, 'repeat');
+      this.macroPattern = this.ctx.createPattern(makeGroundMacro(pal), 'repeat');
+      this._ambient = null; // 浮尘按层重建
+    }
+  
+    setViewport(w, h, dpr) {
+      this.vw = w;
+      this.vh = h;
+      this.dpr = dpr;
+      this.cam.setViewport(w, h);
+    }
+  
+    // ================= 生命周期 =================
+  
+    start(mode) {
+      this.mode = mode;
+      // 同一 seed 每局从头播同一条序列：重开即复现，不看上一局跑了多久
+      if (this.seed) this.setSeed(this.seed);
+      this.reset();
+      this.state = 'playing';
+      this.ui.hide();
+      this.banner = { text: mode === 'quest' ? '第一章 · 苏醒' : '第 1 波', sub: mode === 'quest' ? '消灭所有敌人' : '生存下去', t: 2.6, total: 2.6 };
+      // 开局独白：不暂停、不挡输入，只是屏幕底部多两行字
+      this.voice.say('start');
+      if (mode === 'quest') this.loadQuest(0);
+      else {
+        this.setPalette(ARENA_PALETTE);
+        // 开场先给一小波敌人，避免开局空场
+        for (let i = 0; i < 5; i++) this.spawn('zombie', { hpMul: 1, dmgMul: 1, speedMul: 1 });
+      }
+    }
+  
+    reset() {
+      this.player = createPlayer(this.W / 2, this.H / 2);
+      this.enemies.length = 0;
+      this.bullets.length = 0;
+      this.pickups.length = 0;
+      this.particles.clear();
+      this.decals.clear();
+      this.time = 0;
+      this.wave = 1;
+      this.waveTimer = 0;
+      this.spawnTimer = 0.6;
+      this.kills = 0;
+      this.score = 0;
+      this.hitstop = 0;
+      this.perkChoices = [];
+      this.stats = { shots: 0, damage: 0 };
+      this.questIndex = 0;
+      this.questQueue = [];
+      this.questDone = false;
+      this.questName = '';
+      this.intro = null;
+      this.maxErosion = 0;
+      this.heartTimer = 0;
+      this.lastWeaponDropAt = 0;
+      this.firstWeaponGiven = false;
+      this.mines.length = 0;
+      this.frostPools.length = 0;
+      this.rerollUsed = false;
+      this.voice.reset();
+      this.cam.snapTo(this.player.x, this.player.y);
+      this.cam.shakeAmt = 0;
+    }
+  
+    loadQuest(i) {
+      this.questIndex = i;
+      this.questDef = QUESTS[i];
+      this.questName = this.questDef.name;
+      // 每下一层，左臂多一条布条（设定 → 可见的进度标记）
+      if (this.player) this.player.stripes = i + 1;
+      // 每层的视觉身份：地面材质 / 雾色 / 血迹 / 浮尘
+      this.setPalette(paletteForLayer(i));
+      this.questQueue = buildQuestQueue(this.questDef);
+      this.questTimer = 0.4;
+      this.questDone = false;
+      this.questTotal = this.questQueue.length;
+      // 层间文本卡：复用 banner 通道，把「第一章 · 消化场」拆成眉批 + 主标题 + 副题
+      // 生命周期 2.0s = 0.28 淡入 + 1.2 停留 + 0.5 淡出（hud.js 按 total 算透明度）
+      const cut = this.questName.indexOf(' · ');
+      const kicker = cut > 0 ? this.questName.slice(0, cut) : '';
+      const title = cut > 0 ? this.questName.slice(cut + 3) : this.questName;
+      this.banner = { kicker, text: title, sub: this.questDef.brief, t: 2.0, total: 2.0 };
+    }
+  
+    // ================= 更新 =================
+  
+    update(dt) {
+      // 升级选择（数字键）+ 每局一次重掷（R）
+      if (this.state === 'levelup') {
+        for (let i = 0; i < this.perkChoices.length; i++) {
+          if (this.input.tap('Digit' + (i + 1))) {
+            this.ui.hide();
+            this.pickPerk(this.perkChoices[i]);
+            break;
+          }
+        }
+        if (this.input.tap('KeyR')) this.rerollPerks();
+      }
+  
+      // 暂停切换
+      if (this.input.tap('Escape') || this.input.tap('KeyP')) {
+        if (this.state === 'playing') { this.setState('paused'); this.ui.showPause(); }
+        else if (this.state === 'paused') { this.setState('playing'); this.ui.hide(); }
+      }
+      if (this.input.tap('KeyM')) {
+        const muted = this.audio.toggleMute();
+        if (this.player) {
+          this.particles.text(this.player.x, this.player.y - 40, muted ? '静音' : '音效开', '#fff', 14);
+        }
+      }
+  
+      // 世界鼠标坐标
+      if (this.player) {
+        this.mouseWorld.x = this.cam.x + (this.input.mouse.x - this.cam.ox) / this.cam.zoom;
+        this.mouseWorld.y = this.cam.y + (this.input.mouse.y - this.cam.oy) / this.cam.zoom;
+      }
+  
+      if (this.state === 'playing') {
+        let step = dt;
+        if (this.hitstop > 0) {
+          this.hitstop -= dt;
+          step = dt * 0.12;
+        }
+        this.time += step;
+        this.updateWorld(step);
+      } else if (this.state === 'paused' || this.state === 'levelup' || this.state === 'clear') {
+        // 冻结世界
+      } else if (this.state === 'dead') {
+        this.particles.update(dt);
+        this.cam.update(dt);
+      }
+  
+      if (this.banner.t > 0) this.banner.t -= dt;
+      // 独白只在真正打的时候走字：暂停/升级/结算时冻结，恢复后接着打，不会漏句
+      if (this.state === 'playing') this.voice.update(dt);
+      this.particles.update(this.state === 'playing' ? dt : dt * 0.4);
+      this.decals.fade(dt);
+      this.cam.update(dt);
+    }
+  
+    setState(s) {
+      this.state = s;
+    }
+  
+    updateWorld(dt) {
+      const p = this.player;
+      updatePlayer(this, p, dt);
+  
+      // 镜头轻微朝准星方向前探，扩大前方视野
+      let lookX = M.clamp((this.mouseWorld.x - p.x) * 0.16, -110, 110);
+      let lookY = M.clamp((this.mouseWorld.y - p.y) * 0.16, -90, 90);
+  
+      // 守层者登场：镜头短暂偏向它再回位。只改建帧的取景目标，
+      // 不动 cam.zoom，鼠标世界坐标换算因此保持正确（不会打偏）。
+      if (this.intro) {
+        this.intro.t -= dt;
+        const b = this.intro.boss;
+        if (this.intro.t <= 0 || !b || b.dead) {
+          this.intro = null;
+        } else {
+          // sin 曲线：推到 0.32 权重再收回，起落都不生硬
+          const push = Math.sin(Math.PI * (1 - this.intro.t / this.intro.total)) * 0.32;
+          lookX = lookX * (1 - push) + (b.x - p.x) * push;
+          lookY = lookY * (1 - push) + (b.y - p.y) * push;
+        }
+      }
+  
+      this.cam.follow(p.x + lookX, p.y + lookY, dt);
+  
+      // 首次低血独白（每局一次，靠 voice 的去重）
+      if (p.hp > 0 && p.hp / p.maxHp < 0.3) this.voice.say('firstLowHp');
+  
+      // 侵蚀值（P4-2）：>=40 心跳开始加快，>=70 台词开始"不像人"
+      const er = p.erosion || 0;
+      if (er > this.maxErosion) this.maxErosion = er;
+      if (er >= 40) {
+        this.heartTimer -= dt;
+        if (this.heartTimer <= 0) {
+          const k = M.clamp((er - 40) / 60, 0, 1); // 40 → 0，100 → 1
+          this.heartTimer = 1.15 - 0.6 * k;        // 1.15s 加快到 0.55s
+          this.audio.heartbeat(0.7 + k * 0.5);
+        }
+      } else {
+        this.heartTimer = 0;
+      }
+      if (er >= 70) this.voice.say('erosionHigh');
+  
+      // 开局保底（S6-C）：22 秒内在附近必掉一把，不依赖击杀。
+      // 叙事上这就是"捡到的第一把枪"，玩法上保证前 30 秒一定能换枪。
+      if (!this.firstWeaponGiven && this.time >= 22) {
+        this.firstWeaponGiven = true;
+        const a = M.rand(0, M.TAU);
+        this.dropWeapon(p.x + Math.cos(a) * 120, p.y + Math.sin(a) * 120, 2);
+        this.particles.ring(p.x + Math.cos(a) * 120, p.y + Math.sin(a) * 120, 40, 'rgba(255,209,102,0.8)', 0.6);
+      }
+  
+      for (let i = this.enemies.length - 1; i >= 0; i--) {
+        const e = this.enemies[i];
+        if (e.dead) continue;
+        updateEnemy(this, e, dt);
+      }
+      this.separateEnemies();
+      this.enemies = this.enemies.filter((e) => !e.dead);
+  
+      this.updateBullets(dt);
+      this.updatePickups(dt);
+      this.updateTraps(dt);
+  
+      if (this.mode === 'quest') this.updateQuestSpawner(dt);
+      else this.updateWaveSpawner(dt);
+    }
+  
+    separateEnemies() {
+      const es = this.enemies;
+      const n = es.length;
+      for (let i = 0; i < n; i++) {
+        const a = es[i];
+        if (a.dead) continue;
+        for (let j = i + 1; j < n; j++) {
+          const b = es[j];
+          if (b.dead) continue;
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const min = a.r + b.r;
+          const d2 = dx * dx + dy * dy;
+          if (d2 > min * min || d2 < 0.0001) continue;
+          const d = Math.sqrt(d2);
+          const push = ((min - d) / d) * 0.5;
+          const ox = dx * push;
+          const oy = dy * push;
+          if (a.def.isBoss) { b.x += ox * 1.6; b.y += oy * 1.6; }
+          else if (b.def.isBoss) { a.x -= ox * 1.6; a.y -= oy * 1.6; }
+          else {
+            a.x -= ox; a.y -= oy;
+            b.x += ox; b.y += oy;
+          }
+        }
+      }
+    }
+  
+    updateBullets(dt) {
+      const bs = this.bullets;
+      const p = this.player;
+      const es = this.enemies;
+  
+      for (let i = bs.length - 1; i >= 0; i--) {
+        const b = bs[i];
+        let dead = false;
+  
+        // 追踪
+        if (b.homing > 0 && !b.hostile) {
+          let best = null, bestD = 380 * 380;
+          for (let k = 0; k < es.length; k++) {
+            const e = es[k];
+            if (e.dead) continue;
+            const d2 = M.dist2(b.x, b.y, e.x, e.y);
+            if (d2 < bestD) { bestD = d2; best = e; }
+          }
+          if (best) {
+            const sp = Math.hypot(b.vx, b.vy) || 1;
+            const want = Math.atan2(best.y - b.y, best.x - b.x);
+            const cur = Math.atan2(b.vy, b.vx);
+            const na = M.angleLerp(cur, want, Math.min(1, b.homing * dt));
+            b.vx = Math.cos(na) * sp;
+            b.vy = Math.sin(na) * sp;
+          }
+        }
+  
+        b.px = b.x;
+        b.py = b.y;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.life -= dt;
+  
+        // 尾迹
+        if (b.kind === 'acid') {
+          if (fxRandom() < dt * 40) {
+            this.particles.add({
+              type: 'smoke',
+              x: b.x + M.rand(-4, 4), y: b.y + M.rand(-4, 4),
+              vx: b.vx * 0.05 + M.rand(-18, 18),
+              vy: b.vy * 0.05 + M.rand(-18, 18),
+              life: M.rand(0.18, 0.34), size: M.rand(4, 9),
+              color: 'rgba(157,255,43,0.35)', drag: 3
+            });
+          }
+        } else if (b.kind === 'flame') {
+          if (M.random() < dt * 55) {
+            this.particles.add({
+              type: 'smoke',
+              x: b.x + M.rand(-4, 4), y: b.y + M.rand(-4, 4),
+              vx: b.vx * 0.06 + M.rand(-30, 30),
+              vy: b.vy * 0.06 + M.rand(-30, 30),
+              life: M.rand(0.12, 0.28), size: M.rand(5, 11),
+              color: M.random() < 0.5 ? 'rgba(255,170,60,0.55)' : 'rgba(255,90,30,0.45)',
+              drag: 3
+            });
+          }
+        } else if (b.glow && M.random() < dt * 30) {
+          this.particles.add({
+            type: 'dot', x: b.x, y: b.y, vx: 0, vy: 0,
+            life: 0.18, size: b.r * 0.8, color: b.color
+          });
+        }
+  
+        if (b.hostile) {
+          // 命中玩家
+          const rr = p.r + b.r;
+          if (M.dist2(b.x, b.y, p.x, p.y) < rr * rr) {
+            hurtPlayer(this, b.dmg);
+            this.particles.sparks(b.x, b.y, Math.atan2(b.vy, b.vx) + Math.PI, 4, b.color);
+            dead = true;
+          }
+        } else {
+          for (let k = 0; k < es.length; k++) {
+            const e = es[k];
+            if (e.dead) continue;
+            const rr = e.r + b.r;
+            if (M.dist2(b.x, b.y, e.x, e.y) > rr * rr) continue;
+            if (b.hit.has(e.id)) continue;
+  
+            b.hit.add(e.id);
+            const idx = e.id;
+            const ang = Math.atan2(b.vy, b.vx);
+            const kb = b.knockback;
+            damageEnemy(this, e, b.dmg, {
+              knockback: kb ? { x: Math.cos(ang), y: Math.sin(ang) } : null,
+              crit: b.crit,
+              source: 'bullet'
+            });
+            this.stats.damage += b.dmg;
+  
+            // 附加效果
+            const st = p.stats;
+            if (b.burn > 0) {
+              e.burn = Math.max(e.burn, 2.2);
+              e.burnDps = Math.max(e.burnDps, b.dmg * 0.35 * b.burn);
+            }
+            if (b.poison > 0) {
+              e.poison = Math.max(e.poison, 2.5);
+              e.poisonDps = Math.max(e.poisonDps, b.dmg * 0.3);
+            }
+            // 冰冻（裂层射线）：减速 1.2s，最低 45% 速度
+            if (b.slow > 0) {
+              e.slow = Math.max(e.slow, b.slow);
+              e.slowMul = Math.min(e.slowMul || 1, 0.45);
+            }
+  
+            // 跳弹（跳弹刻印）：命中后把子弹弹向最近的另一个敌人，伤害衰减 25%
+            if (b.bounceLeft > 0) {
+              let target = null;
+              let bestD = 280 * 280;
+              for (let m = 0; m < es.length; m++) {
+                const e2 = es[m];
+                if (e2.dead || b.hit.has(e2.id)) continue;
+                const d2 = M.dist2(b.x, b.y, e2.x, e2.y);
+                if (d2 < bestD) { bestD = d2; target = e2; }
+              }
+              if (target) {
+                const ang2 = Math.atan2(target.y - b.y, target.x - b.x);
+                const sp2 = Math.hypot(b.vx, b.vy) || 900;
+                b.vx = Math.cos(ang2) * sp2;
+                b.vy = Math.sin(ang2) * sp2;
+                b.dmg *= 0.75;
+                b.bounceLeft--;
+                b.life = Math.max(b.life, 0.6);
+                this.particles.sparks(b.x, b.y, ang2, 4, b.color);
+                break;   // 本帧不再处理这颗子弹的后续碰撞
+              }
+            }
+  
+            // 连锁（连锁刻印）：对最近的另一个敌人跳一次伤害
+            if (p.stats.chain > 0) {
+              let jumped = null;
+              let jd = 240 * 240;
+              for (let m = 0; m < es.length; m++) {
+                const e2 = es[m];
+                if (e2.dead || e2 === e) continue;
+                const d2 = M.dist2(e.x, e.y, e2.x, e2.y);
+                if (d2 < jd) { jd = d2; jumped = e2; }
+              }
+              if (jumped) {
+                damageEnemy(this, jumped, b.dmg * 0.4 * p.stats.chain, { silent: true, source: 'chain' });
+                this.particles.sparks(jumped.x, jumped.y, Math.atan2(jumped.y - e.y, jumped.x - e.x), 5, '#a8f0ff');
+                this.particles.ring(jumped.x, jumped.y, 14, 'rgba(168,240,255,0.7)', 0.22);
+              }
+            }
+  
+            if (b.splash) {
+              this.explode(b.x, b.y, b.splash.radius, b.splash.dmg, false);
+              dead = true;
+            } else {
+              b.pierce--;
+              if (b.pierce < 0) { dead = true; }
+            }
+            if (dead) break;
+          }
+        }
+  
+        // 出界 / 寿命
+        if (!dead && (b.life <= 0 || b.x < -40 || b.y < -40 || b.x > this.W + 40 || b.y > this.H + 40)) {
+          if (b.splash) this.explode(b.x, b.y, b.splash.radius, b.splash.dmg, false);
+          dead = true;
+        }
+  
+        if (dead) bs.splice(i, 1);
+      }
+    }
+  
+    updatePickups(dt) {
+      const p = this.player;
+      const ps = this.pickups;
+      for (let i = ps.length - 1; i >= 0; i--) {
+        const it = ps[i];
+        it.t += dt;
+  
+        const d = Math.hypot(p.x - it.x, p.y - it.y);
+  
+        if (it.type === 'xp') {
+          const nx = (p.x - it.x) / (d || 1);
+          const ny = (p.y - it.y) / (d || 1);
+          if (d < p.stats.magnet) {
+            const k = 1 - d / p.stats.magnet;
+            it.vx += nx * (700 + k * 1400) * dt;
+            it.vy += ny * (700 + k * 1400) * dt;
+            const damp = Math.exp(-3 * dt);
+            it.vx *= damp;
+            it.vy *= damp;
+          } else {
+            // 缓慢归巢，避免经验晶体永远留在原地
+            const sp = 165;
+            const kk = Math.min(1, 2.5 * dt);
+            it.vx += (nx * sp - it.vx) * kk;
+            it.vy += (ny * sp - it.vy) * kk;
+          }
+        } else {
+          const damp = Math.exp(-4 * dt);
+          it.vx *= damp;
+          it.vy *= damp;
+        }
+  
+        it.x += it.vx * dt;
+        it.y += it.vy * dt;
+  
+        const grab = it.type === 'xp' ? 16 : p.r + 14;
+        if (d < grab) {
+          this.collect(it);
+          ps.splice(i, 1);
+        }
+      }
+    }
+  
+    collect(it) {
+      const p = this.player;
+      if (it.type === 'xp') {
+        this.gainXp(it.value);
+        this.audio.pickup();
+        this.particles.sparks(it.x, it.y, M.rand(0, M.TAU), 3, '#7cf0dd');
+      } else if (it.type === 'health') {
+        healPlayer(this, 30);
+        this.audio.pickup();
+        this.particles.ring(it.x, it.y, 26, 'rgba(93,255,155,0.9)', 0.4);
+      } else if (it.type === 'weapon') {
+        giveWeapon(this, p, it.weapon);
+        this.audio.pickup();
+        this.particles.ring(it.x, it.y, 30, 'rgba(255,180,60,0.9)', 0.45);
+      }
+    }
+  
+    gainXp(v) {
+      const p = this.player;
+      p.xp += v * p.stats.xpMul;
+      while (p.xp >= p.xpNext) {
+        p.xp -= p.xpNext;
+        p.level++;
+        p.pendingLevels++;
+        p.xpNext = Math.round(p.xpNext * 1.2 + 5);
+        this.audio.levelup();
+      }
+      if (p.pendingLevels > 0 && this.state === 'playing') this.openLevelUp();
+    }
+  
+    openLevelUp() {
+      const p = this.player;
+      this.setState('levelup');
+      this.voice.say('firstLevelUp');
+      this.perkChoices = rollPerks(p, 3);
+      this.cam.kick(3);
+      this.particles.ring(p.x, p.y, 90, 'rgba(124,231,255,0.9)', 0.6);
+      this.ui.showPerks(this.perkChoices, p);
+    }
+  
+    pickPerk(perk) {
+      const p = this.player;
+      applyPerk(p, perk);
+      this.audio.click();
+      p.pendingLevels--;
+      if (p.pendingLevels > 0) {
+        this.openLevelUp();
+      } else {
+        this.ui.hide();
+        this.setState('playing');
+      }
+    }
+  
+    // ================= 生成 =================
+  
+    spawnPoint() {
+      const p = this.player;
+      const view = Math.max(this.cam.vmw || this.cam.vw, this.cam.vmh || this.cam.vh);
+      const base = view * 0.62 + 60;
+      for (let i = 0; i < 16; i++) {
+        const a = M.rand(0, M.TAU);
+        const d = base * M.rand(0.9, 1.25);
+        const x = p.x + Math.cos(a) * d;
+        const y = p.y + Math.sin(a) * d;
+        if (x > 60 && x < this.W - 60 && y > 60 && y < this.H - 60) return { x, y };
+      }
+      return { x: M.clamp(p.x + base, 60, this.W - 60), y: M.clamp(p.y + base, 60, this.H - 60) };
+    }
+  
+    spawn(type, mods) {
+      const pos = this.spawnPoint();
+      const e = spawnEnemy(this, type, pos.x, pos.y, mods);
+      if (e) {
+        this.particles.ring(pos.x, pos.y, e.r * 3.2, 'rgba(255,90,90,0.5)', 0.5);
+        this.particles.smoke(pos.x, pos.y, 3, 'rgba(60,40,45,0.4)');
+        // Boss 出生即演出（竞技场与关卡共用一条路径）
+        if (e.def.isBoss) this.bossIntro(e);
+      }
+      return e;
+    }
+  
+    /** 守层者登场：名字条 + 镜头轻推 + 降采样音效（不暂停世界） */
+    bossIntro(e) {
+      this.intro = { t: 1.6, total: 1.6, boss: e };
+      this.banner = {
+        kicker: '层主',
+        text: e.def.name || '守层者',
+        sub: '它曾经和你一样',
+        t: 2.6,
+        total: 2.6
+      };
+      this.voice.say('firstBoss');
+      this.audio.bossIntro();
+      this.cam.kick(6);
+    }
+  
+    pickType() {
+      const w = this.wave;
+      const pool = [['zombie', 100]];
+      if (w >= 2) pool.push(['runner', 55]);
+      if (w >= 3) pool.push(['spider', 45]);
+      if (w >= 4) pool.push(['lizard', 30]);
+      if (w >= 6) pool.push(['alien', 22]);
+      if (w >= 9) pool.push(['brute', 4]);
+  
+      if (w >= 5) pool[0][1] = 70;
+      if (w >= 8) pool[0][1] = 45;
+  
+      let total = 0;
+      for (const it of pool) total += it[1];
+      let r = M.random() * total;
+      for (const it of pool) {
+        r -= it[1];
+        if (r <= 0) return it[0];
+      }
+      return 'zombie';
+    }
+  
+    updateWaveSpawner(dt) {
+      this.waveTimer += dt;
+      this.spawnTimer -= dt;
+  
+      const interval = Math.max(0.15, 0.78 - this.wave * 0.042);
+      const maxAlive = Math.min(110, 11 + this.wave * 5);
+  
+      if (this.spawnTimer <= 0) {
+        const deficit = maxAlive - this.enemies.length;
+        if (deficit > 0) {
+          this.spawnTimer = interval;
+          const burst = this.enemies.length < maxAlive * 0.3 ? Math.min(3, 1 + Math.floor(this.wave / 4)) : 1;
+          const hpMul = 1 + (this.wave - 1) * 0.13;
+          const dmgMul = 1 + (this.wave - 1) * 0.06;
+          const speedMul = Math.min(1.35, 1 + (this.wave - 1) * 0.015);
+          for (let i = 0; i < burst; i++) this.spawn(this.pickType(), { hpMul, dmgMul, speedMul });
+        } else {
+          this.spawnTimer = 0.4;
+        }
+      }
+  
+      if (this.waveTimer >= 24) {
+        this.waveTimer = 0;
+        this.wave++;
+        this.audio.wave();
+        this.banner = { kicker: '潮汐', text: `第 ${this.wave} 次`, sub: '', t: 2.2, total: 2.2 };
+  
+        // 新波次开场：成组涌入
+        const hpMul = 1 + (this.wave - 1) * 0.13;
+        const dmgMul = 1 + (this.wave - 1) * 0.06;
+        const speedMul = Math.min(1.35, 1 + (this.wave - 1) * 0.015);
+        const pack = Math.min(8, 2 + Math.floor(this.wave * 0.7));
+        for (let i = 0; i < pack; i++) this.spawn(this.pickType(), { hpMul, dmgMul, speedMul });
+  
+        if (this.wave % 5 === 0) {
+          // 名字条与音效由 bossIntro 统一处理（spawn 内部已调用）
+          this.spawn('brute', { hpMul, dmgMul: 1 + this.wave * 0.05, speedMul: 1 });
+        }
+      }
+    }
+  
+    updateQuestSpawner(dt) {
+      this.questTimer -= dt;
+      if (this.questQueue.length > 0 && this.questTimer <= 0) {
+        this.questTimer = this.questDef.interval;
+        const type = this.questQueue.shift();
+        this.spawn(type, this.questDef.mods);
+      }
+      if (this.questQueue.length === 0 && this.enemies.length === 0 && !this.questDone && this.state === 'playing') {
+        this.questDone = true;
+        this.setState('clear');
+        const isLast = this.questIndex >= QUESTS.length - 1;
+        this.ui.showClear(this.questDef, this.questIndex, isLast, this.summary());
+      }
+    }
+  
+    // ================= 战斗事件 =================
+  
+    addBullet(b) {
+      b.hit = b.hit || new Set();
+      b.hostile = false;
+      this.bullets.push(b);
+    }
+  
+    addEnemyBullet(b) {
+      b.hit = b.hit || new Set();
+      b.hostile = true;
+      b.pierce = 0;
+      b.kind = b.kind || 'bullet';
+      this.bullets.push(b);
+    }
+  
+    killEnemy(e, source) {
+      if (e.dead) return;
+      e.dead = true;
+      const p = this.player;
+      this.kills++;
+      this.score += Math.round(e.def.score * (1 + this.wave * 0.05));
+  
+      // 尸块与血迹
+      const ang = Math.atan2(e.y - p.y, e.x - p.x);
+      this.particles.gore(e.x, e.y, ang, e.def.isBoss ? 26 : 10, e.def.blood);
+      this.particles.blood(e.x, e.y, ang, e.def.isBoss ? 22 : 8, e.def.blood, 1);
+      this.decals.splat(e.x, e.y, e.r * (e.def.isBoss ? 1.6 : 1.1), mixHex(e.def.blood, this.palette.blood, 0.45));
+      // 残响外溢（STORY：残响被记录）：尸体上升起细丝，Boss 明显更多
+      this.particles.wisp(e.x, e.y, this.palette.glow, e.def.isBoss ? 18 : 5);
+  
+      if (e.def.isBoss) {
+        this.cam.kick(16);
+        this.hitstop = 0.1;
+        this.audio.explosion(1.5);
+        this.decals.scorch(e.x, e.y, 80);
+        this.banner = { text: '巨兽被击杀', sub: '', t: 2 };
+      } else {
+        this.cam.kick(1.2);
+      }
+  
+      // 掉经验
+      const value = e.def.xp;
+      const orbs = Math.min(4, Math.max(1, Math.round(value / 3)));
+      for (let i = 0; i < orbs; i++) {
+        this.pickups.push({
+          type: 'xp',
+          x: e.x + M.rand(-8, 8),
+          y: e.y + M.rand(-8, 8),
+          vx: M.rand(-70, 70),
+          vy: M.rand(-70, 70),
+          t: 0,
+          value: Math.max(1, Math.round(value / orbs)),
+          scale: 0.7 + Math.min(1.2, value / 12)
+        });
+      }
+  
+      // 掉落
+      if (M.chance(0.045)) {
+        this.pickups.push({ type: 'health', x: e.x, y: e.y, vx: M.rand(-40, 40), vy: M.rand(-40, 40), t: 0 });
+      }
+      // 掉落：5% 概率 + 保底（连续 90 秒没掉就必掉），Boss 必掉
+      const sinceDrop = this.time - this.lastWeaponDropAt;
+      const pity = sinceDrop >= 90;
+      const dropChance = e.def.isBoss ? 1 : pity ? 1 : 0.05;
+      if (M.chance(dropChance)) {
+        const maxTier = e.def.isBoss ? 4 : Math.min(4, 1 + Math.floor(this.wave / 3));
+        this.dropWeapon(e.x, e.y, maxTier);
+      }
+  
+      // 死亡时钟
+      if (M.chance(p.stats.explodeOnKill)) {
+        this.explode(e.x, e.y, 92, 45, false);
+      }
+    }
+  
+    /** 重掷升级选项（每局一次）。返回是否成功 */
+    rerollPerks() {
+      if (this.state !== 'levelup' || this.rerollUsed) return false;
+      this.rerollUsed = true;
+      this.perkChoices = rollPerks(this.player, 3);
+      this.audio.click();
+      this.ui.showPerks(this.perkChoices, this.player);
+      return true;
+    }
+  
+    /** 地雷与冰痕：拉刻印带出来的场地物 */
+    updateTraps(dt) {
+      const p = this.player;
+  
+      // 布雷
+      if (p.stats.mineRate > 0) {
+        p.mineTimer = (p.mineTimer || 0) - dt;
+        if (p.mineTimer <= 0) {
+          p.mineTimer = 1 / p.stats.mineRate;
+          if (this.mines.length < 24) {
+            this.mines.push({ x: p.x, y: p.y, t: 0, arm: 0.45 });
+          }
+        }
+      }
+      for (let i = this.mines.length - 1; i >= 0; i--) {
+        const m = this.mines[i];
+        m.t += dt;
+        m.arm -= dt;
+        if (m.t > 18) { this.mines.splice(i, 1); continue; }
+        if (m.arm > 0) continue;
+        let boom = false;
+        for (const e of this.enemies) {
+          if (e.dead) continue;
+          const rr = e.r + 15;
+          if (M.dist2(m.x, m.y, e.x, e.y) > rr * rr) continue;
+          boom = true;
+          break;
+        }
+        if (boom) {
+          this.explode(m.x, m.y, 92, 34, false);
+          this.mines.splice(i, 1);
+        }
+      }
+  
+      // 冰痕
+      if (p.stats.frostTrail > 0) {
+        p.frostTimer = (p.frostTimer || 0) - dt;
+        const moving = Math.hypot(p.vx, p.vy) > 40;
+        if (moving && p.frostTimer <= 0) {
+          p.frostTimer = 0.16;
+          if (this.frostPools.length > 90) this.frostPools.shift();
+          this.frostPools.push({ x: p.x, y: p.y, r: 14 + p.stats.frostTrail * 5, life: 3.2 });
+        }
+      }
+      for (let i = this.frostPools.length - 1; i >= 0; i--) {
+        const fr = this.frostPools[i];
+        fr.life -= dt;
+        if (fr.life <= 0) { this.frostPools.splice(i, 1); continue; }
+        for (const e of this.enemies) {
+          if (e.dead) continue;
+          const rr = fr.r + e.r;
+          if (M.dist2(fr.x, fr.y, e.x, e.y) > rr * rr) continue;
+          e.slow = Math.max(e.slow, 0.35);
+          e.slowMul = Math.min(e.slowMul || 1, 0.6);
+        }
+      }
+    }
+  
+    /**
+     * 掉一把武器。tier 决定箱子颜色；同时刷新保底计时。
+     * @returns {string} 掉落的武器 id
+     */
+    dropWeapon(x, y, maxTier = 2) {
+      const id = randomWeaponDrop(maxTier, this.player ? this.player.weapon : null);
+      this.pickups.push({
+        type: 'weapon',
+        weapon: id,
+        tier: WEAPONS[id].tier,
+        x, y,
+        vx: M.rand(-40, 40),
+        vy: M.rand(-40, 40),
+        t: 0
+      });
+      this.lastWeaponDropAt = this.time;
+      return id;
+    }
+  
+    _bloodRgba(hex) {
+      // '#a51622' -> 'rgba(165,22,34,0.85)'
+      const h = hex.replace('#', '');
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      return `rgba(${r},${g},${b},0.8)`;
+    }
+  
+    explode(x, y, radius, dmg, hurtSelf = false) {
+      this.particles.ring(x, y, radius, 'rgba(255,180,90,0.9)', 0.4);
+      this.particles.flash(x, y, radius * 0.8, 'rgba(255,210,140,0.8)');
+      this.particles.smoke(x, y, 8, 'rgba(70,62,58,0.55)');
+      this.particles.sparks(x, y, 0, 14, '#ffd27a');
+      this.decals.scorch(x, y, radius * 0.55);
+      this.cam.kick(9);
+      this.audio.explosion();
+  
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const d = M.dist(x, y, e.x, e.y);
+        if (d > radius + e.r) continue;
+        const falloff = 1 - M.clamp(d / (radius + e.r), 0, 1) * 0.6;
+        const ang = Math.atan2(e.y - y, e.x - x);
+        damageEnemy(this, e, dmg * falloff, {
+          knockback: { x: Math.cos(ang), y: Math.sin(ang) },
+          source: 'explosion'
+        });
+        e.kx += Math.cos(ang) * 120 / (e.def.mass || 1);
+        e.ky += Math.sin(ang) * 120 / (e.def.mass || 1);
+      }
+  
+      if (hurtSelf) {
+        const dp = M.dist(x, y, this.player.x, this.player.y);
+        if (dp < radius * 0.75) hurtPlayer(this, dmg * 0.3);
+      }
+    }
+  
+    hurtPlayer(dmg) {
+      hurtPlayer(this, dmg);
+    }
+  
+    onPlayerDeath() {
+      this.setState('dead');
+      this.audio.die();
+      this.cam.kick(20);
+      const p = this.player;
+      this.particles.gore(p.x, p.y, M.rand(0, M.TAU), 30, '#c8202b');
+      this.decals.splat(p.x, p.y, 30, 'rgba(160,20,30,0.85)');
+      if (this.score > this.best) {
+        this.best = this.score;
+        saveBest('seventhwound_best', this.best);
+      }
+      this.ui.showDead(this.summary());
+    }
+  
+    summary() {
+      const p = this.player;
+      return {
+        time: this.time,
+        kills: this.kills,
+        score: this.score,
+        level: p ? p.level : 1,
+        best: this.best,
+        wave: this.wave,
+        mode: this.mode,
+        erosion: p ? Math.round(p.erosion || 0) : 0,
+        maxErosion: this.maxErosion
+      };
+    }
+  
+    // ================= 渲染 =================
+  
+    render() {
+      const ctx = this.ctx;
+      const w = this.vw;
+      const h = this.vh;
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#08090b';
+      ctx.fillRect(0, 0, w, h);
+  
+      if (!this.player) return;
+  
+      const cam = this.cam;
+      const z = cam.zoom;
+      ctx.save();
+      ctx.translate(cam.ox, cam.oy);
+      ctx.scale(z, z);
+      ctx.translate(-cam.x, -cam.y);
+  
+      // 地面（仅竞技场范围内）
+      const gx = Math.max(0, cam.x);
+      const gy = Math.max(0, cam.y);
+      const gw = Math.min(this.W, cam.x + cam.vmw) - gx;
+      const gh = Math.min(this.H, cam.y + cam.vmh) - gy;
+      if (gw > 0 && gh > 0) {
+        ctx.fillStyle = this.groundPattern;
+        ctx.fillRect(gx, gy, gw, gh);
+        // 宏观污渍叠层：放大 2.7 倍，把平铺周期从 512 拉到 ~1380
+        ctx.save();
+        ctx.globalAlpha = 0.5 + Math.sin(this.time * 0.35) * 0.05;
+        ctx.translate(gx, gy);
+        ctx.scale(GROUND_MACRO_SCALE, GROUND_MACRO_SCALE);
+        ctx.fillStyle = this.macroPattern;
+        ctx.fillRect(0, 0, gw / GROUND_MACRO_SCALE, gh / GROUND_MACRO_SCALE);
+        ctx.restore();
+      }
+  
+      // 边界：内侧红光渐隐 + 边线
+      this.drawArenaEdge(ctx);
+  
+      // 血迹
+      this.decals.draw(ctx, cam);
+      this.drawTraps(ctx);
+  
+      this.drawPickups(ctx);
+      this.drawEnemies(ctx);
+      this.drawPlayer(ctx);
+      this.drawBullets(ctx);
+      this.particles.draw(ctx);
+  
+      ctx.restore();
+  
+      // 屏幕空间
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      drawAmbient(ctx, this, w, h);
+      this.drawVignette(ctx, w, h);
+      drawThreatIndicators(ctx, this, w, h);
+      drawHud(ctx, this, w, h);
+      drawVoice(ctx, this, w, h);
+      this.drawCrosshair(ctx);
+    }
+  
+    drawArenaEdge(ctx) {
+      if (!this._edge) {
+        const W = this.W, H = this.H, e = 80;
+        const mk = (x0, y0, x1, y1) => {
+          const g = ctx.createLinearGradient(x0, y0, x1, y1);
+          g.addColorStop(0, 'rgba(110,4,20,0.9)');
+          g.addColorStop(0.55, 'rgba(70,4,14,0.35)');
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          return g;
+        };
+        this._edge = {
+          e,
+          top: mk(0, 0, 0, e),
+          bottom: mk(0, H, 0, H - e),
+          left: mk(0, 0, e, 0),
+          right: mk(W, 0, W - e, 0)
+        };
+      }
+      const { e, top, bottom, left, right } = this._edge;
+      ctx.fillStyle = top;
+      ctx.fillRect(0, 0, this.W, e);
+      ctx.fillStyle = bottom;
+      ctx.fillRect(0, this.H - e, this.W, e);
+      ctx.fillStyle = left;
+      ctx.fillRect(0, 0, e, this.H);
+      ctx.fillStyle = right;
+      ctx.fillRect(this.W - e, 0, e, this.H);
+  
+      ctx.strokeStyle = 'rgba(255,70,90,0.5)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(1.5, 1.5, this.W - 3, this.H - 3);
+    }
+  
+    drawVignette(ctx, w, h) {
+      const pal = this.palette || ARENA_PALETTE;
+      const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.34, w / 2, h / 2, Math.max(w, h) * 0.76);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(0.58, 'rgba(0,0,0,0.10)');
+      g.addColorStop(1, pal.fog);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+  
+      const p = this.player;
+  
+      // 侵蚀：≥40 画面开始泛红，越接近 100 越重，并按心跳节奏搏动
+      // （和低血预警用同一套红，STORY §10"红色不是装饰，是状态"）
+      const er = p ? p.erosion || 0 : 0;
+      if (er >= 40) {
+        const k = M.clamp((er - 40) / 60, 0, 1);
+        const beat = 0.5 + Math.sin(this.time * (3 + k * 4)) * 0.5;
+        // 40 时约 0.18，100 时约 0.52，搏动幅度随侵蚀加大
+        const a = (0.18 + k * 0.34) * (0.78 + beat * 0.22);
+        const rg = ctx.createRadialGradient(
+          w / 2, h / 2, Math.min(w, h) * 0.20,
+          w / 2, h / 2, Math.max(w, h) * 0.72
+        );
+        rg.addColorStop(0, 'rgba(190,18,46,0)');
+        rg.addColorStop(0.30, `rgba(190,18,46,${(a * 0.5).toFixed(3)})`);
+        rg.addColorStop(1, `rgba(176,14,40,${a.toFixed(3)})`);
+        ctx.fillStyle = rg;
+        ctx.fillRect(0, 0, w, h);
+      }
+  
+      if (p && p.hurtFlash > 0) {
+        ctx.fillStyle = `rgba(190,10,30,${p.hurtFlash * 0.22})`;
+        ctx.fillRect(0, 0, w, h);
+      }
+    }
+  
+    /** 冰痕池与地雷（纯表现，不吃命中判定以外的东西） */
+    drawTraps(ctx) {
+      for (const fr of this.frostPools) {
+        const a = Math.min(1, fr.life / 1.6);
+        ctx.fillStyle = 'rgba(140,225,255,' + (a * 0.13).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(fr.x, fr.y, fr.r, 0, M.TAU);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(190,245,255,' + (a * 0.35).toFixed(3) + ')';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+      for (const m of this.mines) {
+        const blink = 0.5 + Math.sin(m.t * 9) * 0.5;
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.fillStyle = 'rgba(18,20,24,0.9)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 7, 0, M.TAU);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,96,96,' + (0.3 + blink * 0.6).toFixed(3) + ')';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 7, 0, M.TAU);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,96,96,' + (0.2 + blink * 0.65).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.4, 0, M.TAU);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+  
+    drawPickups(ctx) {
+      for (const it of this.pickups) {
+        const bob = Math.sin(it.t * 4 + it.x * 0.01) * 3;
+        if (it.type === 'xp') {
+          const s = this.sprites.orb;
+          const sc = it.scale || 1;
+          ctx.globalAlpha = 0.9;
+          ctx.drawImage(s.canvas, it.x - s.size / 2 * sc, it.y - s.size / 2 * sc + bob * 0.5, s.size * sc, s.size * sc);
+          ctx.globalAlpha = 1;
+        } else if (it.type === 'health') {
+          const s = this.sprites.health;
+          ctx.drawImage(s.canvas, it.x - s.size / 2, it.y - s.size / 2 + bob, s.size, s.size);
+        } else {
+          const s = this.sprites.crate;
+          // 按 tier 上色：地面光晕 + 一道向上的光柱，混战里也能看见。
+          // 渐变按 tier 缓存（原点建一次，绘制时只平移），否则每个箱子每帧都要建两个渐变。
+          const tier = it.tier || 1;
+          if (!this._tierGrad) this._tierGrad = {};
+          let cache = this._tierGrad[tier];
+          if (!cache) {
+            const col = TIER_COLORS[tier] || TIER_COLORS[1];
+            const gl = ctx.createRadialGradient(0, 0, 2, 0, 0, 38);
+            gl.addColorStop(0, col.core);
+            gl.addColorStop(1, 'rgba(0,0,0,0)');
+            const beam = ctx.createLinearGradient(0, -96, 0, 0);
+            beam.addColorStop(0, 'rgba(0,0,0,0)');
+            beam.addColorStop(1, col.beam);
+            cache = { gl, beam };
+            this._tierGrad[tier] = cache;
+          }
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.translate(it.x, it.y);
+          ctx.fillStyle = cache.gl;
+          ctx.beginPath();
+          ctx.arc(0, 0, 38, 0, M.TAU);
+          ctx.fill();
+          ctx.fillStyle = cache.beam;
+          ctx.fillRect(-9, -120, 18, 120);
+          // 地面上的光圈，让"这里有东西"在余光里也能看见
+          ctx.strokeStyle = cache.beam;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.ellipse(0, 4, 26, 12, 0, 0, M.TAU);
+          ctx.stroke();
+          ctx.restore();
+          ctx.drawImage(s.canvas, it.x - s.size / 2, it.y - s.size / 2 + bob, s.size, s.size);
+        }
+      }
+    }
+  
+    drawEnemies(ctx) {
+      const t = this.time;
+      for (const e of this.enemies) {
+        if (e.dead) continue;
+        const set = e.sprites;
+        const frame = set[Math.floor((t * 6 + e.phase) % set.length)] || set[0];
+        const size = frame.size * (e.def.spriteScale || 1);
+  
+        // 影子
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.beginPath();
+        ctx.ellipse(e.x + 2, e.y + e.r * 0.45, e.r * 0.95, e.r * 0.5, 0, 0, M.TAU);
+        ctx.fill();
+  
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        ctx.rotate(e.face);
+        if (e.born > 0) {
+          const s = 1 - e.born / 0.45 * 0.5;
+          ctx.scale(s, s);
+          ctx.globalAlpha = 1 - e.born / 0.45 * 0.4;
+        }
+        ctx.drawImage(frame.canvas, -size / 2, -size / 2, size, size);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+  
+        // 命中闪白
+        if (e.flash > 0) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = Math.min(0.85, e.flash * 7);
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.r * 1.02, 0, M.TAU);
+          ctx.fill();
+          ctx.restore();
+        }
+  
+        // 燃烧
+        if (e.burn > 0) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 0.25 + Math.sin(t * 18) * 0.08;
+          ctx.fillStyle = '#ff7a2a';
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, e.r * 1.15, 0, M.TAU);
+          ctx.fill();
+          ctx.restore();
+        }
+  
+        // Boss 血条
+        if (e.def.isBoss) {
+          const bw = 90, bh = 6;
+          const x = e.x - bw / 2, y = e.y - e.r - 18;
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(x, y, bw, bh);
+          ctx.fillStyle = '#ff3b4d';
+          ctx.fillRect(x, y, bw * Math.max(0, e.hp / e.maxHp), bh);
+          ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+        }
+      }
+    }
+  
+    drawPlayer(ctx) {
+      const p = this.player;
+      if (!p || p.hp <= 0) return;
+      // 玩家是 4 帧序列：按 walkPhase 走步态（第一帧当作待机）
+      const set = this.sprites.player;
+      const frame = set[Math.floor(((p.walkPhase * 1.1) % set.length + set.length) % set.length)] || set[0];
+      const wDef = WEAPONS[p.weapon];
+  
+      // 柔和光晕：保证混战中玩家始终可读
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const pg = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 42);
+      pg.addColorStop(0, 'rgba(96,196,255,0.20)');
+      pg.addColorStop(1, 'rgba(96,196,255,0)');
+      ctx.fillStyle = pg;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 42, 0, M.TAU);
+      ctx.fill();
+      ctx.restore();
+  
+      // 影子
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(p.x + 2, p.y + 7, 17, 8.5, 0, 0, M.TAU);
+      ctx.fill();
+  
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.body);
+      ctx.drawImage(frame.canvas, -frame.size / 2, -frame.size / 2, frame.size, frame.size);
+      ctx.restore();
+  
+      // 左臂布条：每下一层多一条，颜色取该层主色（STORY §2.3）
+      const stripes = Math.min(p.stripes || 0, 4);
+      if (stripes > 0) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.body);
+        ctx.lineWidth = 1.2;
+        ctx.lineCap = 'round';
+        ctx.globalAlpha = 0.85;
+        // 左臂在 -Y 侧（朝右时是屏幕上方），布条沿手臂等分缠上去。
+        // 坐标 = 精灵内手臂坐标 × 1.6（drawPlayer 里的整体放大系数 K）。
+        const ax = 1.6;
+        const ay = -16;
+        const bx = 13.6;
+        const by = -22.4;
+        for (let i = 0; i < stripes; i++) {
+          ctx.strokeStyle = STRIPE_COLORS[i];
+          const k = 0.3 + i * 0.13;
+          const px = ax + (bx - ax) * k;
+          const py = ay + (by - ay) * k;
+          ctx.beginPath();
+          ctx.moveTo(px - 1.2, py - 2.4);
+          ctx.lineTo(px + 1.2, py + 2.4);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+  
+      // 武器
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.aim);
+      const len = p.weapon === 'rocket' ? 26 : p.weapon === 'gauss' ? 28 : p.weapon === 'minigun' ? 24 : 21;
+      ctx.fillStyle = '#151d26';
+      ctx.beginPath();
+      ctx.roundRect(6, -3.6, len, 7.2, 2);
+      ctx.fill();
+      ctx.fillStyle = wDef.color || '#ffd166';
+      ctx.beginPath();
+      ctx.roundRect(6 + len * 0.55, -1.6, len * 0.42, 3.2, 1.5);
+      ctx.fill();
+  
+      // 蓄力聚能（轨道炮）：枪口一个越来越亮的球，蓄满后一圈白边
+      if (wDef.charge && p.chargeT > 0) {
+        const k = Math.min(1, p.chargeT / wDef.charge);
+        const mx = 6 + len + 4;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const cg = ctx.createRadialGradient(mx, 0, 0, mx, 0, 6 + k * 14);
+        cg.addColorStop(0, 'rgba(255,253,242,' + (0.5 + k * 0.45) + ')');
+        cg.addColorStop(0.5, 'rgba(255,214,120,' + (0.25 + k * 0.35) + ')');
+        cg.addColorStop(1, 'rgba(255,150,40,0)');
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.arc(mx, 0, 6 + k * 14, 0, M.TAU);
+        ctx.fill();
+        if (k >= 1) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.arc(mx, 0, 15, 0, M.TAU);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+  
+      // 枪口火焰
+      if (p.muzzle > 0) {
+        const mx = 6 + len + 3;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(mx, 0, 0, mx, 0, 18);
+        g.addColorStop(0, 'rgba(255,245,210,0.95)');
+        g.addColorStop(0.4, 'rgba(255,170,60,0.6)');
+        g.addColorStop(1, 'rgba(255,120,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(mx, 0, 18, 0, M.TAU);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+  
+    drawBullets(ctx) {
+      for (const b of this.bullets) {
+        const col = b.color || '#fff';
+        if (b.kind === 'gauss') {
+          ctx.save();
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 2.4;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath();
+          ctx.moveTo(b.x, b.y);
+          ctx.lineTo(b.x - b.vx * 0.012, b.y - b.vy * 0.012);
+          ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 3, 0, M.TAU);
+          ctx.fill();
+          continue;
+        }
+  
+        if (b.kind === 'acid') {
+          ctx.globalAlpha = 0.55;
+          ctx.fillStyle = fxRandom() < 0.5 ? '#9dff2b' : '#d2ff7a';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r * fxRand(0.7, 1.1), 0, M.TAU);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          continue;
+        }
+  
+        if (b.kind === 'saw') {
+          const spin = this.time * 42;
+          ctx.save();
+          ctx.translate(b.x, b.y);
+          ctx.rotate(spin);
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * M.TAU;
+            ctx.lineTo(Math.cos(a) * b.r * 1.9, Math.sin(a) * b.r * 1.9);
+            ctx.lineTo(Math.cos(a + 0.52) * b.r * 0.85, Math.sin(a + 0.52) * b.r * 0.85);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+          continue;
+        }
+  
+        if (b.kind === 'cryo') {
+          ctx.save();
+          ctx.strokeStyle = col;
+          ctx.globalAlpha = 0.8;
+          ctx.lineWidth = b.r * 1.5;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(b.x, b.y);
+          ctx.lineTo(b.x - b.vx * 0.022, b.y - b.vy * 0.022);
+          ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = '#eaffff';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r * 0.5, 0, M.TAU);
+          ctx.fill();
+          continue;
+        }
+  
+        if (b.kind === 'rail') {
+          const tx = b.x - b.vx * 0.032;
+          const ty = b.y - b.vy * 0.032;
+          ctx.save();
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = 'rgba(255,243,196,0.28)';
+          ctx.lineWidth = 11;
+          ctx.beginPath();
+          ctx.moveTo(b.x, b.y);
+          ctx.lineTo(tx, ty);
+          ctx.stroke();
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 3.6;
+          ctx.beginPath();
+          ctx.moveTo(b.x, b.y);
+          ctx.lineTo(tx, ty);
+          ctx.stroke();
+          ctx.strokeStyle = '#fffdf2';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(b.x, b.y);
+          ctx.lineTo(tx, ty);
+          ctx.stroke();
+          ctx.restore();
+          continue;
+        }
+  
+        if (b.kind === 'flame') {
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = fxRandom() < 0.5 ? '#ff7a2a' : '#ffbb4d';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r * fxRand(0.8, 1.2), 0, M.TAU);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          continue;
+        }
+  
+        // 光晕
+        if (b.glow) {
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r * 2.6, 0, M.TAU);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+  
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, M.TAU);
+        ctx.fill();
+  
+        if (b.kind === 'plasma' || b.kind === 'rocket') {
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r * 0.42, 0, M.TAU);
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+  
+    drawCrosshair(ctx) {
+      const m = this.input.mouse;
+      ctx.save();
+      ctx.translate(m.x, m.y);
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, M.TAU);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, 1.6, 0, M.TAU);
+      ctx.fillStyle = 'rgba(255,80,100,0.9)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,80,100,0.55)';
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * M.TAU;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 12, Math.sin(a) * 12);
+        ctx.lineTo(Math.cos(a) * 17, Math.sin(a) * 17);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+  
+  return { Game };
+})();
+
+__mods["core/input.js"] = (function () {
+  'use strict';
+  // 键鼠输入
+  class Input {
+    constructor() {
+      this.keys = new Set();
+      this.pressed = new Set();
+      this.mouse = { x: 0, y: 0, down: false, rdown: false, clicked: false, rclicked: false };
+      this._bind();
+    }
+  
+    _bind() {
+      const block = new Set([
+        'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab',
+        'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyR', 'KeyE', 'KeyP'
+      ]);
+      window.addEventListener('keydown', (e) => {
+        if (block.has(e.code)) e.preventDefault();
+        if (!this.keys.has(e.code)) this.pressed.add(e.code);
+        this.keys.add(e.code);
+      });
+      window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+      window.addEventListener('blur', () => { this.keys.clear(); this.mouse.down = false; });
+  
+      window.addEventListener('mousemove', (e) => {
+        this.mouse.x = e.clientX;
+        this.mouse.y = e.clientY;
+      });
+      window.addEventListener('mousedown', (e) => {
+        if (e.button === 0) { this.mouse.down = true; this.mouse.clicked = true; }
+        if (e.button === 2) { this.mouse.rdown = true; this.mouse.rclicked = true; }
+      });
+      window.addEventListener('mouseup', (e) => {
+        if (e.button === 0) this.mouse.down = false;
+        if (e.button === 2) this.mouse.rdown = false;
+      });
+      window.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+  
+    isDown(code) { return this.keys.has(code); }
+    wasPressed(code) { return this.pressed.has(code); }
+  
+    /** 取用一次按键（消费掉，避免一帧内多次触发） */
+    tap(code) {
+      if (!this.pressed.has(code)) return false;
+      this.pressed.delete(code);
+      return true;
+    }
+  
+    moveVector() {
+      let x = 0, y = 0;
+      if (this.isDown('KeyA') || this.isDown('ArrowLeft')) x -= 1;
+      if (this.isDown('KeyD') || this.isDown('ArrowRight')) x += 1;
+      if (this.isDown('KeyW') || this.isDown('ArrowUp')) y -= 1;
+      if (this.isDown('KeyS') || this.isDown('ArrowDown')) y += 1;
+      if (x || y) {
+        const l = Math.hypot(x, y);
+        x /= l; y /= l;
+      }
+      return { x, y };
+    }
+  
+    endFrame() {
+      this.pressed.clear();
+      this.mouse.clicked = false;
+      this.mouse.rclicked = false;
+    }
+  }
+  
+  return { Input };
+})();
+
+__mods["core/audio.js"] = (function () {
+  'use strict';
+  // 纯合成音效（无外部资源），首次用户交互后初始化
+  class Audio {
+    constructor() {
+      this.ctx = null;
+      this.master = null;
+      this.noiseBuf = null;
+      this.muted = false;
+      this.volume = 0.55;
+      this.voices = 0;
+    }
+  
+    init() {
+      if (this.ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.volume;
+      this.master.connect(this.ctx.destination);
+  
+      const len = Math.floor(this.ctx.sampleRate * 0.8);
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      // 这里故意用 Math.random（不走 math.js 的种子流）：音频在"首次用户交互"时才初始化，
+      // 时机不可控，若消耗种子流会让同 seed 的数值复现随交互时刻漂移。
+      // 音效不参与任何数值计算，所以这个例外是安全的（见 math.js 顶部说明）。
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.noiseBuf = buf;
+    }
+  
+    resume() {
+      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    }
+  
+    setMuted(m) {
+      this.muted = m;
+      if (this.master) this.master.gain.value = m ? 0 : this.volume;
+    }
+  
+    toggleMute() { this.setMuted(!this.muted); return this.muted; }
+  
+    _ok() {
+      if (!this.ctx || this.muted) return false;
+      if (this.voices > 28) return false;
+      this.voices++;
+      setTimeout(() => { this.voices--; }, 120);
+      return true;
+    }
+  
+    tone(f0, f1, dur, type = 'square', gain = 0.18, delay = 0) {
+      const t = this.ctx.currentTime + delay;
+      const o = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(Math.max(f0, 1), t);
+      o.frequency.exponentialRampToValueAtTime(Math.max(f1, 1), t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(this.master);
+      o.start(t);
+      o.stop(t + dur + 0.03);
+    }
+  
+    noise(dur = 0.14, gain = 0.25, f0 = 2200, f1 = 300, type = 'lowpass', delay = 0) {
+      const t = this.ctx.currentTime + delay;
+      const s = this.ctx.createBufferSource();
+      s.buffer = this.noiseBuf;
+      s.playbackRate.value = 1;
+      const f = this.ctx.createBiquadFilter();
+      f.type = type;
+      f.frequency.setValueAtTime(f0, t);
+      f.frequency.exponentialRampToValueAtTime(Math.max(f1, 40), t + dur);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(gain, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f).connect(g).connect(this.master);
+      s.start(t);
+      s.stop(t + dur + 0.02);
+    }
+  
+    shoot(kind = 'pistol') {
+      if (!this._ok()) return;
+      switch (kind) {
+        case 'pistol': this.tone(340, 110, 0.09, 'square', 0.14); this.noise(0.06, 0.12, 3000, 800); break;
+        case 'rifle': this.tone(430, 150, 0.07, 'square', 0.13); this.noise(0.05, 0.11, 3200, 900); break;
+        case 'smg': this.tone(520, 220, 0.05, 'square', 0.09); this.noise(0.04, 0.08, 3600, 1200); break;
+        case 'shotgun':
+          this.noise(0.22, 0.36, 1600, 140);
+          this.tone(180, 55, 0.16, 'triangle', 0.16);
+          break;
+        case 'flame': this.noise(0.16, 0.13, 900, 320, 'bandpass'); break;
+        case 'plasma': this.tone(880, 260, 0.13, 'sawtooth', 0.11); this.noise(0.09, 0.08, 2600, 600, 'bandpass'); break;
+        case 'gauss': this.tone(1700, 90, 0.22, 'sawtooth', 0.13); this.noise(0.2, 0.14, 5000, 400, 'highpass'); break;
+        case 'rocket': this.noise(0.32, 0.26, 900, 180); this.tone(150, 45, 0.3, 'triangle', 0.14); break;
+        case 'minigun': this.tone(300, 130, 0.045, 'square', 0.1); this.noise(0.04, 0.1, 2800, 800); break;
+        default: this.tone(400, 120, 0.08, 'square', 0.12);
+      }
+    }
+  
+    explosion(power = 1) {
+      if (!this._ok()) return;
+      this.noise(0.45 * power, 0.36 * power, 1200, 60);
+      this.tone(110, 28, 0.4 * power, 'sine', 0.3 * power);
+    }
+  
+    hit() {
+      if (!this._ok()) return;
+      this.noise(0.045, 0.1, 4200, 1800, 'highpass');
+    }
+  
+    hurt() {
+      if (!this._ok()) return;
+      this.tone(230, 62, 0.28, 'sawtooth', 0.2);
+      this.noise(0.2, 0.14, 700, 120);
+    }
+  
+    pickup() {
+      if (!this._ok()) return;
+      this.tone(680, 700, 0.05, 'sine', 0.14);
+      this.tone(1020, 1040, 0.07, 'sine', 0.1, 0.045);
+    }
+  
+    levelup() {
+      if (!this._ok()) return;
+      this.tone(520, 520, 0.1, 'triangle', 0.16);
+      this.tone(660, 660, 0.1, 'triangle', 0.16, 0.09);
+      this.tone(880, 880, 0.18, 'triangle', 0.16, 0.18);
+    }
+  
+    empty() {
+      if (!this._ok()) return;
+      this.tone(1400, 900, 0.035, 'square', 0.07);
+    }
+  
+    reload() {
+      if (!this._ok()) return;
+      this.noise(0.05, 0.1, 2000, 700);
+      this.tone(600, 400, 0.05, 'square', 0.06, 0.08);
+    }
+  
+    click() {
+      if (!this._ok()) return;
+      this.tone(900, 500, 0.045, 'square', 0.09);
+    }
+  
+    die() {
+      if (!this._ok()) return;
+      this.tone(300, 40, 0.9, 'sawtooth', 0.22);
+      this.noise(0.9, 0.2, 900, 60);
+    }
+  
+    wave() {
+      if (!this._ok()) return;
+      this.tone(220, 300, 0.16, 'triangle', 0.13);
+      this.tone(330, 440, 0.2, 'triangle', 0.11, 0.14);
+    }
+  
+    // 侵蚀值心跳（P4-2）：power 0.7-1.2，侵蚀越高越重、越急（节奏由 game.js 控制）
+    heartbeat(power = 1) {
+      if (!this._ok()) return;
+      this.tone(64, 38, 0.16, 'sine', 0.15 * power);
+      this.tone(52, 30, 0.2, 'sine', 0.09 * power, 0.15);
+    }
+  
+    // 守层者登场：把采样率压到 8kHz 做失真，制造"庞然大物"的压迫感（STORY §10）
+    bossIntro() {
+      if (!this._ok()) return;
+      if (!this._lowBuf) {
+        const rate = 8000;
+        const len = Math.floor(rate * 1.2);
+        const buf = this.ctx.createBuffer(1, len, rate);
+        const d = buf.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < len; i++) {
+          // 一阶低通的白噪声 → 闷响，再靠浏览器重采样出颗粒感
+          last = last * 0.93 + (Math.random() * 2 - 1) * 0.07;
+          d[i] = Math.max(-1, Math.min(1, last * 5));
+        }
+        this._lowBuf = buf;
+      }
+      const t = this.ctx.currentTime;
+      const s = this.ctx.createBufferSource();
+      s.buffer = this._lowBuf;
+      const f = this.ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.setValueAtTime(1400, t);
+      f.frequency.exponentialRampToValueAtTime(220, t + 1.1);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.3, t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.15);
+      s.connect(f).connect(g).connect(this.master);
+      s.start(t);
+      s.stop(t + 1.2);
+      this.tone(58, 26, 1.2, 'sine', 0.26);
+    }
+  }
+  
+  return { Audio };
+})();
+
+__mods["ui.js"] = (function () {
+  'use strict';
+  const { DEATH_LINE } = __mods["game/voice.js"];
+  const { synergyWith, RARITY_LABEL } = __mods["game/perks.js"];
+  
+  const $ = (id) => document.getElementById(id);
+  
+  // 刻印三路线（STORY §8）：钢铁=继承前人手艺 / 本能=身体被重铸 / 侵蚀=借地渊之力
+  const LINE_LABEL = { steel: '钢铁', instinct: '本能', erosion: '侵蚀' };
+  
+  class UI {
+    constructor(game) {
+      this.game = game;
+      this.overlay = $('overlay');
+      this.panels = {
+        menu: $('p-menu'),
+        perks: $('p-perks'),
+        dead: $('p-dead'),
+        pause: $('p-pause'),
+        clear: $('p-clear'),
+        help: $('p-help')
+      };
+      this.perkCards = $('perkCards');
+      this.deadStats = $('deadStats');
+      this.clearText = $('clearText');
+      this.nextIsLast = false;
+      this._bind();
+    }
+  
+    _bind() {
+      const g = this.game;
+      const on = (id, fn) => {
+        const el = $(id);
+        if (el) el.addEventListener('click', (e) => { e.stopPropagation(); g.audio.init(); g.audio.resume(); fn(); });
+      };
+  
+      on('btnSurvival', () => g.start('survival'));
+      on('btnQuest', () => g.start('quest'));
+      on('btnHelp', () => this.show('help'));
+      on('btnBack', () => this.show('menu'));
+      on('btnRetry', () => g.start(g.mode));
+      on('btnMenu', () => this.toMenu());
+      on('btnMenu2', () => this.toMenu());
+      on('btnResume', () => { g.setState('playing'); this.hide(); });
+      on('btnQuit', () => this.toMenu());
+      on('btnNext', () => this.nextLevel());
+      on('btnReroll', () => { if (g.rerollPerks()) this.showPerks(g.perkChoices, g.player); });
+    }
+  
+    toMenu() {
+      this.game.setState('menu');
+      this.game.audio.init();
+      this.show('menu');
+      const best = $('bestScore');
+      if (best) best.textContent = String(this.game.best);
+    }
+  
+    nextLevel() {
+      const g = this.game;
+      if (this.nextIsLast) {
+        g.start('quest');
+        return;
+      }
+      g.enemies.length = 0;
+      g.bullets.length = 0;
+      g.pickups.length = 0;
+      g.player.x = g.W / 2;
+      g.player.y = g.H / 2;
+      g.player.hp = Math.min(g.player.maxHp, g.player.hp + 35);
+      g.cam.snapTo(g.player.x, g.player.y);
+      g.loadQuest(g.questIndex + 1);
+      g.setState('playing');
+      this.hide();
+    }
+  
+    show(name) {
+      this.overlay.classList.add('on');
+      for (const k of Object.keys(this.panels)) {
+        this.panels[k].classList.toggle('hidden', k !== name);
+      }
+      if (name === 'menu') {
+        const best = $('bestScore');
+        if (best) best.textContent = String(this.game.best);
+      }
+    }
+  
+    hide() {
+      this.overlay.classList.remove('on');
+      for (const k of Object.keys(this.panels)) this.panels[k].classList.add('hidden');
+    }
+  
+    showPerks(perks, player) {
+      const g = this.game;
+      this.perkCards.innerHTML = '';
+      perks.forEach((perk, i) => {
+        const stacks = player.perkCounts[perk.id] || 0;
+        const rarity = perk.rarity || 'common';
+        const syn = synergyWith(player, perk);
+        const card = document.createElement('button');
+        card.className = 'card rar-' + rarity;
+        card.style.setProperty('--accent', perk.color);
+        card.innerHTML = `
+          <span class="key">${i + 1}</span>
+          <span class="icon">${perk.icon}</span>
+          <span class="tags">
+            <span class="ln ${perk.line}">${LINE_LABEL[perk.line] || '残响'}</span>
+            <span class="rar ${rarity}">${RARITY_LABEL[rarity] || ''}</span>
+          </span>
+          <span class="name">${perk.name}</span>
+          <span class="desc">${perk.desc}</span>
+          ${syn.length ? `<span class="syn">＋协同 ${syn.map((x) => x.name).join(' · ')}</span>` : ''}
+          ${stacks > 0 ? `<span class="stacks">已持有 ×${stacks}</span>` : ''}
+        `;
+        card.addEventListener('click', (e) => {
+          e.stopPropagation();
+          g.audio.init();
+          g.audio.click();
+          this.hide();
+          g.pickPerk(perk);
+        });
+        this.perkCards.appendChild(card);
+      });
+      // 重掷按钮：本局只能用一次，用掉就置灰
+      const rr = $('btnReroll');
+      if (rr) {
+        const used = this.game.rerollUsed;
+        rr.disabled = used;
+        rr.textContent = used ? '本局已重掷过' : '重掷（R）· 本局一次';
+      }
+      this.show('perks');
+    }
+  
+    showDead(s) {
+      // 死亡独白走 DOM：死亡面板会盖住画布，画上去就看不见了
+      const dv = $('deadVoice');
+      if (dv) dv.textContent = DEATH_LINE;
+      const rows = [
+        ['残留时长', fmtTime(s.time)],
+        ['击杀', String(s.kills)],
+        ['残响等级', String(s.level)],
+        ['最高侵蚀', String(s.maxErosion || 0)],
+        ['潮汐', String(s.wave)],
+        ['残响量', String(s.score)],
+        ['最深残留', String(s.best)]
+      ];
+      this.deadStats.innerHTML = rows
+        .map(([k, v]) => `<div class="srow"><span>${k}</span><b>${v}</b></div>`)
+        .join('');
+      this.show('dead');
+    }
+  
+    showPause() {
+      this.show('pause');
+    }
+  
+    showClear(def, index, isLast, s) {
+      this.nextIsLast = isLast;
+      this.clearText.innerHTML = isLast
+        ? `<b>${def.name}</b> 已清理 —— 六层回廊到头了，下面就是竞技场。<br/><span class="dim">残响量 ${s.score} · 击杀 ${s.kills} · 等级 ${s.level}</span>`
+        : `<b>${def.name}</b> 已清空。<br/><span class="dim">残响量 ${s.score} · 击杀 ${s.kills} · 生命 ${Math.ceil(this.game.player.hp)}</span>`;
+      const btn = $('btnNext');
+      if (btn) btn.textContent = isLast ? '再入地渊' : '继续下潜';
+      this.show('clear');
+    }
+  }
+  
+  function fmtTime(t) {
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  
+  return { UI };
+})();
+
+__mods["main.js"] = (function () {
+  'use strict';
+  const { Game } = __mods["game/game.js"];
+  const { Input } = __mods["core/input.js"];
+  const { Audio } = __mods["core/audio.js"];
+  const { UI } = __mods["ui.js"];
+  
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  
+  const input = new Input();
+  const audio = new Audio();
+  
+  // ?seed=xxx → 固定随机序列（复现/调平衡用）；不传则用 Math.random，与旧版行为一致
+  const params = new URLSearchParams(location.search);
+  
+  const game = new Game(canvas, ctx, input, audio, null);
+  game.ui = new UI(game);
+  game.setSeed(params.get('seed'));
+  window.__game = game; // 调试入口
+  
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(320, window.innerWidth);
+    const h = Math.max(240, window.innerHeight);
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    game.setViewport(w, h, dpr);
+  }
+  
+  window.addEventListener('resize', resize);
+  resize();
+  game.cam.snapTo(game.W / 2, game.H / 2);
+  
+  // 首次交互解锁音频
+  const unlock = () => {
+    audio.init();
+    audio.resume();
+  };
+  window.addEventListener('pointerdown', unlock, { once: true });
+  window.addEventListener('keydown', unlock, { once: true });
+  
+  // 切出窗口自动暂停
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && game.state === 'playing') {
+      game.setState('paused');
+      game.ui.showPause();
+    }
+  });
+  
+  const STEP = 1 / 60;
+  let last = performance.now();
+  let acc = 0;
+  
+  function frame(now) {
+    const raw = Math.min((now - last) / 1000, 0.1);
+    last = now;
+    acc += raw;
+  
+    let guard = 0;
+    while (acc >= STEP && guard++ < 6) {
+      game.update(STEP);
+      acc -= STEP;
+    }
+  
+    game.render();
+    input.endFrame();
+    requestAnimationFrame(frame);
+  }
+  
+  requestAnimationFrame(frame);
+  
+  // 开发用快捷入口： ?auto=survival&warm=600&bot=1
+  // （自动开局并快进若干帧，便于截图/自动化测试；bot=1 时用简易机器人瞄准射击）
+  if (params.get('auto')) {
+    const warm = Number(params.get('warm') || 0);
+    const bot = params.get('bot') === '1';
+    setTimeout(() => {
+      audio.init();
+      game.start(params.get('auto'));
+      input.mouse.down = bot;
+      for (let i = 0; i < warm; i++) {
+        if (bot) {
+          const p = game.player;
+          let nearest = null, nd = Infinity;
+          for (const e of game.enemies) {
+            const d = (e.x - p.x) ** 2 + (e.y - p.y) ** 2;
+            if (d < nd) { nd = d; nearest = e; }
+          }
+          if (nearest) {
+            input.mouse.x = (nearest.x - game.cam.x) * game.cam.zoom + game.cam.ox;
+            input.mouse.y = (nearest.y - game.cam.y) * game.cam.zoom + game.cam.oy;
+            const dx = p.x - nearest.x, dy = p.y - nearest.y;
+            const l = Math.hypot(dx, dy) || 1;
+            input.keys.clear();
+            if (l < 320) {
+              // 太近就后退
+              if (dx / l > 0.3) input.keys.add('KeyD');
+              if (dx / l < -0.3) input.keys.add('KeyA');
+              if (dy / l > 0.3) input.keys.add('KeyS');
+              if (dy / l < -0.3) input.keys.add('KeyW');
+            } else {
+              // 否则回场地中心附近
+              const cx = game.W / 2 - p.x, cy = game.H / 2 - p.y;
+              const cl = Math.hypot(cx, cy) || 1;
+              if (cx / cl > 0.3) input.keys.add('KeyD');
+              if (cx / cl < -0.3) input.keys.add('KeyA');
+              if (cy / cl > 0.3) input.keys.add('KeyS');
+              if (cy / cl < -0.3) input.keys.add('KeyW');
+            }
+          }
+        }
+        game.update(1 / 60);
+        input.endFrame();
+        if (game.state === 'levelup') {
+          game.pickPerk(game.perkChoices[0]);
+        }
+        if (game.state === 'dead') break;
+      }
+    }, 80);
+  }
+  
+  return {  };
+})();
+})();
+</script>
+</body>
+</html>
