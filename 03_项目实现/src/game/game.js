@@ -787,6 +787,8 @@ export class Game {
     this.particles.gore(e.x, e.y, ang, e.def.isBoss ? 26 : 10, e.def.blood);
     this.particles.blood(e.x, e.y, ang, e.def.isBoss ? 22 : 8, e.def.blood, 1);
     this.decals.splat(e.x, e.y, e.r * (e.def.isBoss ? 1.6 : 1.1), mixHex(e.def.blood, this.palette.blood, 0.45));
+    // 残响外溢（STORY：残响被记录）：尸体上升起细丝，Boss 明显更多
+    this.particles.wisp(e.x, e.y, this.palette.glow, e.def.isBoss ? 18 : 5);
 
     if (e.def.isBoss) {
       this.cam.kick(16);
@@ -1021,7 +1023,7 @@ export class Game {
       ctx.fillRect(gx, gy, gw, gh);
       // 宏观污渍叠层：放大 2.7 倍，把平铺周期从 512 拉到 ~1380
       ctx.save();
-      ctx.globalAlpha = 0.5;
+      ctx.globalAlpha = 0.5 + Math.sin(this.time * 0.35) * 0.05;
       ctx.translate(gx, gy);
       ctx.scale(GROUND_MACRO_SCALE, GROUND_MACRO_SCALE);
       ctx.fillStyle = this.macroPattern;
@@ -1091,7 +1093,7 @@ export class Game {
     const pal = this.palette || ARENA_PALETTE;
     const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.34, w / 2, h / 2, Math.max(w, h) * 0.76);
     g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.58, 'rgba(0,0,0,0.14)');
+    g.addColorStop(0.58, 'rgba(0,0,0,0.10)');
     g.addColorStop(1, pal.fog);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);

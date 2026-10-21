@@ -101,6 +101,23 @@ export class Particles {
     this.add({ type: 'ring', x, y, vx: 0, vy: 0, life, size: radius, color });
   }
 
+  /** 残响外溢：击杀时从尸体上升起的细丝（比血块更"魂"） */
+  wisp(x, y, color = 'rgba(190,240,255,0.85)', count = 5) {
+    for (let i = 0; i < count; i++) {
+      this.add({
+        type: 'wisp',
+        x: x + rand(-8, 8),
+        y: y + rand(-6, 6),
+        vx: rand(-16, 16),
+        vy: rand(-70, -30),
+        life: rand(0.5, 1.1),
+        size: rand(1.2, 2.6),
+        color,
+        drag: 0.6
+      });
+    }
+  }
+
   text(x, y, str, color = '#fff', size = 14) {
     this.add({
       type: 'text', x, y,
@@ -181,6 +198,15 @@ export class Particles {
           ctx.lineWidth = 3 * (1 - t) + 0.5;
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size * (0.3 + t * 0.9), 0, TAU);
+          ctx.stroke();
+          break;
+        case 'wisp':
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = Math.max(0.4, p.size * (1 - t * 0.6));
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03);
           ctx.stroke();
           break;
         case 'text':

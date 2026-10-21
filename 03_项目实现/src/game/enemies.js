@@ -18,12 +18,12 @@ export const ENEMY_TYPES = {
   },
   spider: {
     name: '织网者', hp: 13, speed: 158, dmg: 5, r: 9, xp: 1, score: 16,
-    spriteSet: 'spider', spriteScale: 1, blood: '#3f6b2a', mass: 0.6,
+    spriteSet: 'spider', spriteScale: 1, blood: '#3f6b2a', mass: 0.6, shell: true,
     behavior: 'erratic', attackCd: 0.6
   },
   lizard: {
     name: '哨眼', hp: 38, speed: 82, dmg: 7, r: 13, xp: 2, score: 28,
-    spriteSet: 'lizard', spriteScale: 1, blood: '#4c7a26', mass: 1,
+    spriteSet: 'lizard', spriteScale: 1, blood: '#4c7a26', mass: 1, shell: true,
     behavior: 'ranged', attackCd: 0.8, keepDist: 250, shootCd: 1.9, projSpeed: 480, projDmg: 9
   },
   alien: {
@@ -33,7 +33,7 @@ export const ENEMY_TYPES = {
   },
   brute: {
     name: '守层者', hp: 850, speed: 54, dmg: 26, r: 27, xp: 16, score: 400,
-    spriteSet: 'brute', spriteScale: 1, blood: '#8f1220', mass: 6,
+    spriteSet: 'brute', spriteScale: 1, blood: '#8f1220', mass: 6, shell: true,
     behavior: 'chase', attackCd: 1.0, isBoss: true
   }
 };
@@ -188,7 +188,13 @@ export function damageEnemy(g, e, dmg, opts = {}) {
 
   if (!opts.silent) {
     const col = opts.color || '#ffffff';
-    g.particles.blood(e.x, e.y, Math.atan2(e.y - g.player.y, e.x - g.player.x), 2, e.def.blood, 0.5);
+    const ang = Math.atan2(e.y - g.player.y, e.x - g.player.x);
+    if (e.def.shell) {
+      // 甲壳：白黄碎屑，几乎没有血雾（打上去应该"脆"）
+      g.particles.sparks(e.x, e.y, ang, 3, 'rgba(240,232,206,0.9)');
+    } else {
+      g.particles.blood(e.x, e.y, ang, 2, e.def.blood, 0.5);
+    }
     if (opts.crit) g.particles.text(e.x, e.y - e.r - 6, Math.round(dmg) + '!', '#ffd166', 17);
     else if (random() < 0.22) g.particles.text(e.x, e.y - e.r - 4, Math.round(dmg), col, 12);
     if (random() < 0.4) g.audio.hit();
