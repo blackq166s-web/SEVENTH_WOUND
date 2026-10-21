@@ -1,4 +1,4 @@
-# CRIMSON ARENA
+# SEVENTH WOUND · 第七道伤
 
 《血腥大地 / Crimsonland》的复刻原型：俯视角双手射击（twin-stick）割草生存。
 

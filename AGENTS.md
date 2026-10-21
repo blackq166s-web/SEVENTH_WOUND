@@ -1,4 +1,4 @@
-# AGENTS.md — CRIMSON ARENA 执行规则
+# AGENTS.md — SEVENTH WOUND（第七道伤）执行规则
 
 本仓库由「总控」会话长期维护。每次进入项目，先读本文件 → `STAGE.md` → `01_阶段成果/当前总结.md`，再动手。
 

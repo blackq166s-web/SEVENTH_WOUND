@@ -50,7 +50,10 @@ export class Game {
     this.spawnTimer = 0;
     this.kills = 0;
     this.score = 0;
-    this.best = Number(localStorage.getItem('crimson_best') || 0);
+    // 存档键于 2026-10-21 改名（CRIMSON ARENA → SEVENTH WOUND）。
+    // 必须保留旧键回退：改名当天已有的玩家最高分写在 crimson_best 里。
+    const savedBest = localStorage.getItem('seventhwound_best') ?? localStorage.getItem('crimson_best');
+    this.best = Number(savedBest || 0);
     this.banner = { text: '', sub: '', t: 0 };
     this.hitstop = 0;
     this.perkChoices = [];
@@ -668,7 +671,7 @@ export class Game {
     this.decals.splat(p.x, p.y, 30, 'rgba(160,20,30,0.85)');
     if (this.score > this.best) {
       this.best = this.score;
-      localStorage.setItem('crimson_best', String(this.best));
+      localStorage.setItem('seventhwound_best', String(this.best));
     }
     this.ui.showDead(this.summary());
   }

@@ -1,4 +1,4 @@
-# my_game_2 — CRIMSON ARENA
+# my_game_2 — SEVENTH WOUND（第七道伤）
 
 《血腥大地 / Crimsonland》复刻原型项目仓库。由「总控」会话持续维护：维持状态、组织任务、验证成果、沉淀知识。
 

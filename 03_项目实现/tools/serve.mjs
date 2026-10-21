@@ -49,6 +49,6 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`CRIMSON ARENA  →  http://127.0.0.1:${PORT}/`);
+  console.log(`SEVENTH WOUND  →  http://127.0.0.1:${PORT}/`);
   console.log('按 Ctrl+C 结束');
 });
