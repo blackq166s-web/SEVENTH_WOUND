@@ -1036,31 +1036,33 @@ export class Game {
   drawPlayer(ctx) {
     const p = this.player;
     if (!p || p.hp <= 0) return;
-    const s = this.sprites.player;
+    // 玩家是 4 帧序列：按 walkPhase 走步态（第一帧当作待机）
+    const set = this.sprites.player;
+    const frame = set[Math.floor(((p.walkPhase * 1.1) % set.length + set.length) % set.length)] || set[0];
     const wDef = WEAPONS[p.weapon];
 
     // 柔和光晕：保证混战中玩家始终可读
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const pg = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 34);
+    const pg = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, 42);
     pg.addColorStop(0, 'rgba(96,196,255,0.20)');
     pg.addColorStop(1, 'rgba(96,196,255,0)');
     ctx.fillStyle = pg;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 34, 0, M.TAU);
+    ctx.arc(p.x, p.y, 42, 0, M.TAU);
     ctx.fill();
     ctx.restore();
 
     // 影子
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
-    ctx.ellipse(p.x + 2, p.y + 6, 15, 8, 0, 0, M.TAU);
+    ctx.ellipse(p.x + 2, p.y + 7, 17, 8.5, 0, 0, M.TAU);
     ctx.fill();
 
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.body);
-    ctx.drawImage(s.canvas, -s.size / 2, -s.size / 2, s.size, s.size);
+    ctx.drawImage(frame.canvas, -frame.size / 2, -frame.size / 2, frame.size, frame.size);
     ctx.restore();
 
     // 左臂布条：每下一层多一条，颜色取该层主色（STORY §2.3）
@@ -1069,14 +1071,23 @@ export class Game {
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.body);
-      ctx.lineWidth = 1.8;
+      ctx.lineWidth = 1.5;
       ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.8;
+      // 左臂在 -Y 侧（朝右时是屏幕上方），布条沿手臂等分缠上去。
+      // 坐标 = 精灵内手臂坐标 × 1.6（drawPlayer 里的整体放大系数 K）。
+      const ax = 1.6;
+      const ay = -16;
+      const bx = 13.6;
+      const by = -22.4;
       for (let i = 0; i < stripes; i++) {
         ctx.strokeStyle = STRIPE_COLORS[i];
-        const off = i * 2.6;
+        const k = 0.34 + i * 0.15;
+        const px = ax + (bx - ax) * k;
+        const py = ay + (by - ay) * k;
         ctx.beginPath();
-        ctx.moveTo(-6.5, 0.5 + off);
-        ctx.lineTo(-1.5, 4.5 + off);
+        ctx.moveTo(px - 1.4, py - 2.2);
+        ctx.lineTo(px + 1.4, py + 2.2);
         ctx.stroke();
       }
       ctx.restore();

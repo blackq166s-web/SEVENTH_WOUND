@@ -359,6 +359,17 @@ assert(game.groundPattern && game.macroPattern, '地面主瓦片与宏观叠层�
 assert(paletteForLayer(99).id === 'warden', '越界层索引应夹到最后一层');
 assert(paletteForLayer(-3).id === 'digest', '负数层索引应夹到第一层');
 
+// 精灵表（S6-B）：每只怪 4 帧、玩家 4 帧、尺寸下限
+const sp = game.sprites;
+const enemyKeys = ['zombie', 'runner', 'spider', 'lizard', 'alien', 'brute'];
+const badFrames = enemyKeys.filter((k) => !Array.isArray(sp[k]) || sp[k].length !== 4);
+assert(badFrames.length === 0, `每种敌人应有 4 帧：${badFrames.join(',')}`);
+assert(Array.isArray(sp.player) && sp.player.length === 4, '玩家应有 4 帧（走步态）');
+assert(sp.player[0].size === 72, `玩家精灵应为 72px，实际 ${sp.player[0].size}`);
+assert(enemyKeys.every((k) => sp[k][0].size >= 50), '敌人精灵尺寸不应小于 50px（承载剪影）');
+assert(!!(sp.orb && sp.health && sp.crate), '三种拾取物精灵必须存在');
+assert(sp.orb.size < sp.brute[0].size, '掉落物应比 Boss 小得多');
+
 // 边缘威胁指示器
 const { offscreenThreats } = await import('../src/game/threats.js');
 game.start('survival');

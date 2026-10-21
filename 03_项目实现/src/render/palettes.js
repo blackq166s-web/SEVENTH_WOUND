@@ -152,5 +152,5 @@ export function mixHex(a, b, t) {
   const r = Math.round(ar + (br - ar) * t);
   const g = Math.round(ag + (bg - ag) * t);
   const bl = Math.round(ab + (bb - ab) * t);
-  return `rgba(${r},${g},${bl},0.8)`;
+  return `rgba(${r},${g},${bl},0.62)`;
 }
