@@ -93,6 +93,8 @@ node tools/serve.mjs 8123
 | 截图 | `tools/shoot.mjs` | 152 | 本机 Chrome + playwright-core，输出到 `shots/` |
 | 帧率 | `tools/fps.mjs` | 14 | 端到端 rAF 帧率 |
 | 扩展文档 | `docs/EXTENDING.md` | — | 加武器/敌人/Perk/关卡/模式 |
+| 世界观设定 | `docs/STORY.md` | — | 地渊 / 陆沉 / 残响 / 六层 / 敌人 / 武器 / 三条 Perk 路线 |
+| 设定落地映射 | `docs/DESIGN_MAP.md` | — | 设定 ↔ 代码映射、改动分级（A 文案 / B 小逻辑 / C 新系统） |
 
 ## 本地约定
 
