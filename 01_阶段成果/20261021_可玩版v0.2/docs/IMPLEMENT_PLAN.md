@@ -1,0 +1,314 @@
+# 实现计划 · S3 设定落地
+
+> 上游：`STORY.md` v1.0（已拍板）、`DESIGN_MAP.md`（映射与改动分级）
+> 制定：2026-10-21 · 状态：**P1–P4 全部交付**（S3 完成），下一步定打包形态
+
+---
+
+## 0. 已冻结的决策
+
+| 项 | 决定 |
+| --- | --- |
+| 主角名 | **陆沉**（独白、文案中使用；UI 不出现名字，保持"你"的代入） |
+| 叙事语言 | **中英混排**：HUD 保留 `SCORE` / `PERKS` / `BEST` 等英文词，独白与播报用中文 |
+| 六层名 | 换成世界名，**保留数字序**（第一章 · 消化场） |
+| 武器名 | **双名**：`连祷 · 突击步枪`（世界名在前，类型名兜底可读性） |
+| 侵蚀值 | 排到 **P4**，且必须先做种子 RNG 才能验证平衡 |
+
+---
+
+## 1. 执行原则
+
+1. **一个批次一次提交**，提交即回滚点；不留半成品过夜。
+2. **每批先跑基线**（`smoke.mjs`），改完再跑一次；基线不绿不动手。
+3. **只改展示层就不碰逻辑层**：P1 只允许改字符串；需要动结构的放 P2。
+4. **每批产出截图**，`shots/` 里留证，写进 `当前总结.md`。
+5. 一批结束立刻更新 `STAGE.md` 进展，不等整个 S3 结束。
+
+---
+
+## 2. 批次总览
+
+| 批次 | 主题 | 级别 | 依赖 | 预估改动面 | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| **P1** | 文案层：让世界"贴"上去 | A（纯字符串） | 无 | 6 文件 | **✅ 已完成** |
+| **P2** | 数据层：Perk 路线 + 主角布条 | B（小逻辑） | P1 | 5 文件 | **✅ 已完成** |
+| **P3** | 叙事层：独白 / 层间卡 / 守层者登场 | C（新系统，最小可行） | P2 | 6 文件 | **✅ 已完成** |
+| **P4** | 机制层：侵蚀值（前置：种子 RNG） | C（平衡风险） | P3 + RNG | 9 文件 + 2 脚本 | **✅ 已完成** |
+
+**P1 是必做项**，P2–P4 每批执行前再过一次确认。
+
+---
+
+## 3. P1 · 文案层（本轮就做）
+
+### 3.1 任务表
+
+| ID | 动作 | 文件:行 | 现状 → 目标 |
+| --- | --- | --- | --- |
+| P1-1 | 六层关卡名与副标题 | `src/game/quests.js:9,14,19,24,29,34` | 苏醒/疾行/蛛群/吐酸者/异形降临/巨兽 → 消化场/疾走回廊/织网窟/酸池哨塔/融生腔/守层者之厅 |
+| P1-2 | 九把武器双名 | `src/game/weapons.js` 各 `name` | 手枪 → `第一声 · 手枪`；突击步枪 → `连祷 · 突击步枪`；冲锋枪 → `口吃者 · 冲锋枪`；霰弹枪 → `宽恕 · 霰弹枪`；转轮机枪 → `蜂巢 · 转轮机枪`；火焰喷射器 → `焚稿 · 火焰喷射器`；等离子枪 → `结晶之喉 · 等离子枪`；电磁步枪 → `穿层者 · 电磁步枪`；火箭筒 → `墓碑 · 火箭筒` |
+| P1-3 | 六敌人世界名 | `src/game/enemies.js:10,15,20,25,30,35` | 僵尸 → 腐化者；疾行者 保留；毒蛛 → 织网者；蜥蜴射手 → 哨眼；异形 → 融生体；巨兽 → 守层者 |
+| P1-4 | HUD 标签与播报 | `src/game/hud.js:101`、`src/game/game.js:513,524` | `关卡`→`层`、`波次`→`潮汐`；`第 N 波`→`第 N 次潮汐`；`巨兽出现`→`守层者苏醒`（sub 改"它曾经和你一样"） |
+| P1-5 | 菜单与面板文案 | `index.html:332,333,346,351,368` | `血腥大地 · 复刻` → `地渊之下 · 无尽潮汐`；`历史最高分` → `最深残留`；`升级 · 选择一项能力` → `刻印 · 选择一段残响`；`你死了` → `你的残响已被记录`；`关卡完成` → `这一层清空了` |
+| P1-6 | 死亡统计字段 | `src/ui.js:111-118` | 存活时间→残留时长；击杀数→击杀；最终等级→残响等级；到达波次→潮汐；本局得分→残响量；历史最高→最深残留 |
+| P1-7 | 通关 / 按钮文案 | `src/ui.js:131-135`、`index.html:335,336,354,371` | `进入下一关`→`继续下潜`；`再来一局`→`再入地渊`；`生存模式`→`竞技场（无尽潮汐）`；`关卡模式`→`下潜（六层回廊）` |
+
+### 3.2 硬约束
+
+- **不改任何 id**（`pistol` / `zombie` / `bloody_mess` 一律保留），只改 `name` / `desc` / `brief` / 面板文本。
+- **不改数值**：`dmg`、`hp`、`waveTimer`、`maxAlive` 一个都不动。
+- 双名分隔符统一用 ` · `（空格 + 中点 + 空格），全角中点，和关卡名保持一致。
+
+### 3.3 三个已知风险点（改完必须看图）
+
+1. **HUD 关卡名溢出**：`hud.js:105` 用 26px 左对齐画 `questName`，`第六章 · 守层者之厅` 比原来长 3 字，需确认不压到屏幕中央的横幅。
+2. **武器双名右对齐**：`hud.js:75` 15px 右对齐，最长 `结晶之喉 · 等离子枪`（9 字 ≈ 135px），需确认不与弹药数字重叠。
+3. **副武器提示行**：`hud.js:94` 11px 显示 `Q 切换 → <name>`，双名后变长，确认不超出右边界。
+
+### 3.4 验收
+
+| 项 | 标准 |
+| --- | --- |
+| 逻辑 | `node 03_项目实现/tools/smoke.mjs` → `SMOKE_OK` + `功能校验: PASS` |
+| 渲染 | `node 03_项目实现/tools/shoot.mjs` → `NO_PAGE_ERRORS`，截图更新 |
+| 人工 | 逐图核对：HUD 无溢出、Boss 播报不被遮挡、升级卡不串行、死亡面板字段齐全 |
+| 回滚 | `git revert <P1 commit>`，单提交即可完全还原 |
+
+---
+
+## 4. P2 · 数据层
+
+| ID | 动作 | 文件 | 说明 |
+| --- | --- | --- | --- |
+| P2-1 | Perk 增加 `line` 字段 | `src/game/perks.js` | 20 条分别标 `steel` / `instinct` / `erosion`，值取自 `STORY.md §8` 的分类 |
+| P2-2 | 升级卡显示路线 | `src/ui.js:91-97`、`index.html` 样式 | 卡片顶部加一条 2px 色带（钢铁=冷灰、本能=青、侵蚀=红）+ 路线小字 |
+| P2-3 | 主角布条随层数 | `src/game/player.js`、`src/game/game.js:drawPlayer` | `stripes = questIndex + 1`，最多画 4 条；生存模式固定 1 条 |
+| P2-4 | 断言 | `tools/smoke.mjs` | 每个 Perk 必须有合法 `line`；`stripes` 随 `loadQuest` 递增 |
+
+**风险**：`line` 是新增字段，任何遍历 Perk 的地方（`rollPerks`、压测）不受影响；但 UI 卡片高度变化可能挤出面板，需要看图。
+
+---
+
+## 5. P3 · 叙事层（最小可行）
+
+| ID | 动作 | 落地形式 |
+| --- | --- | --- |
+| P3-1 | 独白系统 | 新增 `src/game/voice.js`：非阻塞队列，屏幕下方打字机显示，2.5s 淡出。触发点：开局、首次升级、首次遇 Boss、首次低血、死亡 |
+| P3-2 | 层间文本卡 | 进入新层中央 1.2s 淡入淡出（复用 `banner` 通道，不新建系统） |
+| P3-3 | 守层者登场 | 镜头短暂推近 + 名字条 + 音效降采样失真（`audio.js` 加一个 `bossIntro`） |
+
+**铁律**：独白与过场**不得暂停 `update`**，不阻塞输入，不改变固定步长。任何"等文本播完才能动"的设计一律否决。
+
+---
+
+## 6. P4 · 机制层：侵蚀值
+
+| 步骤 | 内容 |
+| --- | --- |
+| P4-0 | **前置**：种子 RNG。`math.js` 加可注入的 `rng`，`?seed=` 生效；无参数时行为与 `Math.random` 完全一致 |
+| P4-1 | 侵蚀值累积：拿一层 `erosion` 线 Perk +8，上限 100 |
+| P4-2 | 表现：≥40 画面红移 + 心跳加快；≥70 敌人移速 +10%、独白换成"不像人"的台词 |
+| P4-3 | HUD 显示侵蚀条；死亡面板记"最高侵蚀" |
+| P4-4 | 验收：同 seed 三次跑必须得到完全相同数据（这才能判平衡） |
+
+**为什么必须排在 RNG 之后**：侵蚀值直接改敌人强度，没有可复现的测量就只能靠感觉调参，等于没调。
+
+---
+
+## 7. 全局 Definition of Done
+
+一批算完成，必须同时满足：
+
+1. `smoke.mjs` → `SMOKE_OK` / 功能校验 PASS
+2. `shoot.mjs` → `NO_PAGE_ERRORS`，截图已更新且人工看过
+3. 新增行为有对应断言（P2 起强制）
+4. `STAGE.md` 进展已更新，`当前总结.md` 记录了结论与证据
+5. 一次提交，commit message 带批次号
+
+---
+
+## 8. 范围外（这批不做）
+
+- 不加新武器 / 新敌人 / 新关卡（设定允许，但会拖慢验证）
+- 不改 Perk 数值平衡
+- 不改 `game.js` 的核心循环结构（P3 只加钩子调用）
+- 不做手柄 / 触控
+- 不做 Electron 打包
+- 不重做美术（除 P2-3 的布条）
+
+---
+
+## 9. 执行顺序
+
+```
+P1 文案（6 文件）→ 看图核对 → 提交
+  ↓
+P2 Perk 路线 + 布条 → 断言 → 提交
+  ↓
+P3 独白 + 层间卡 + 守层者登场（三个小项可分三次提交）
+  ↓
+P4-0 种子 RNG → P4 侵蚀值 → 平衡数据对比
+```
+
+P1 与 P2 之间可以插入 S1 的 D2 冲刺（手感），互不依赖。
+
+---
+
+## 10. 执行记录
+
+### P1 · 文案层（2026-10-21 完成）
+
+改动 6 文件：`quests.js`（6 层名 + 副标题）、`weapons.js`（9 双名）、`enemies.js`（5 换名，runner 保留）、`hud.js`（层/潮汐）、`game.js`（潮汐播报 + 守层者苏醒）、`index.html` + `ui.js`（面板与按钮）。**未改任何 id 与数值。**
+
+验证：
+
+```
+node tools/smoke.mjs   → 功能校验 PASS / SMOKE_OK
+node tools/shoot.mjs   → NO_PAGE_ERRORS
+实测量宽（1440 宽视口）：
+  第六层 · 守层者之厅（26px）= 231px，起点 x=26 → 不压中央横幅
+  Q 切换 → 结晶之喉 · 等离子枪（11px）= 200px，右对齐 → 不越界
+```
+
+截图：`shots/v-menu.png`（菜单新文案）、`v-play.png`（潮汐 + 双名武器）、`v-perks.png`（刻印卡）、`v-p1-quest6.png`（最长层名）、`v-p1-dead.png`（残响已被记录 + 新字段）、`v-p1-clear.png`（继续下潜）。
+
+### P2 · 数据层（2026-10-21 完成）
+
+改动 5 文件：`perks.js`（20 条加 `line`）、`player.js`（`stripes` 字段，默认 1）、`game.js`（`loadQuest` 写 `stripes = i+1`；`drawPlayer` 画布条；`STRIPE_COLORS` 四色）、`ui.js`（`LINE_LABEL` + 卡片路线标签）、`index.html`（`.card .ln` 三色样式）。
+
+验证：
+
+```
+smoke.mjs → 功能校验 PASS / SMOKE_OK（新增 4 条断言）
+  路线分布 8/7/5、每个 Perk 必须有合法 line
+  quest 首层 stripes=1 → loadQuest(3) 后 =4 → start('survival') 后回到 1
+升级卡实测：[{备用武器, 钢铁}, {闪避, 本能}, {厚皮, 本能}]
+```
+
+截图：`v-p2-perks.png`（刻印卡路线标签）、`v-p2-stripes.png`（第六层玩家特写，4 条布条封顶）、`v-p2-full.png`（整屏）。
+
+**踩坑**：定向截图时玩家总是不在画面中心。原因是镜头有 **look-ahead**（`game.update` 里 `lookX/Y = clamp((mouseWorld - p) * 0.16, ±110/±90)`），鼠标停在哪儿镜头就偏到哪儿。修法：截图前把 `input.mouse` 放到屏幕中心，让 look-ahead 归零。以后所有"对准玩家"的截图都要先做这一步。
+
+### P3 · 叙事层（2026-10-21 完成）
+
+改动 6 文件：新增 `voice.js`（`MONO` 台词表 + `Voice` 队列 + `drawVoice`，160 行）、`audio.js`（`bossIntro()` 降采样失真）、`game.js`（`voice`/`intro` 字段、开局与首次升级与低血钩子、`loadQuest` 拆眉批、`spawn` 触发 `bossIntro`）、`hud.js`（横幅加 `kicker` + 淡入淡出）、`ui.js` + `index.html`（死亡面板 `#deadVoice`）。**未改任何数值与平衡。**
+
+三个小项：
+
+| 项 | 落地 |
+| --- | --- |
+| P3-1 独白 | 非阻塞队列，先进先出；打字机 26 字/秒，打完停 2.5s，淡出 0.45s；同名每局一次 |
+| P3-2 层间卡 | 复用 `banner` 通道，把「第一章 · 消化场」拆成 眉批 + 主标题 + 副题；2.0s = 0.28 淡入 + 1.2 停留 + 0.5 淡出 |
+| P3-3 守层者登场 | 名字条「层主 / 守层者 / 它曾经和你一样」+ 1.6s 镜头偏 32% 权重 + 8kHz 降采样噪声 |
+
+验证：
+
+```
+smoke.mjs        → 功能校验 PASS / SMOKE_OK（新增 16 条断言）
+verify-p3.mjs    → P3_VERIFY_OK 17 项全 PASS / NO_PAGE_ERRORS
+  层间卡 第一章 / 消化场 / 副题正确
+  开局独白"醒过来就在这儿了。"立即入队，0.1s 只出 2 字
+  独白期间 game.time 继续推进（1.70 → 2.22）= 没暂停世界
+  登场 ΔcamX=87、zoom 不变、1.6s 后 intro 自动清空
+  死亡面板显示"……还没完。"
+```
+
+截图：`v-p3-card.png`（层间卡 + 打字机中途）、`v-p3-voice.png`（独白完整句）、`v-p3-boss.png`（层主条 + 镜头推过去的构图）、`v-p3-dead.png`（死亡面板的最后一句）。
+
+**三个坑（都是设计取舍，不是 bug）**
+
+1. **死亡独白不能画在画布上**：死亡是 DOM 面板，画布被整个盖住。所以 `MONO.death` 由 `ui.showDead()` 填进 `#deadVoice`。同一份数据，两个出口。
+2. **登场演出不能用 zoom 做推镜**：`cam.zoom` 同时参与鼠标世界坐标换算（`cam.x + (mouse.x - cam.ox) / zoom`），临时改它会让准星和子弹方向错位 1.6 秒。改成"把取景目标向 Boss 偏 32% 权重"，`cam.x/y` 每帧照常更新，坐标换算不受影响——断言 `cam.zoom` 全程不变就是锁这个。
+3. **`Voice` 的生命周期只跟字数有关**（`len / 26 + 2.5`），不跟帧数。这样回放、断言、同 seed 复现都能对齐；测试里别按"跑 8 秒"拍脑袋，先算 `len/26 + 2.5`。
+
+### P4 · 机制层（2026-10-21 完成）
+
+改动 9 文件 + 2 个新脚本：`core/math.js`（随机源）、`core/audio.js`（`heartbeat`）、`game.js`（`setSeed` / 侵蚀峰值 / 心跳 / 红移 / summary）、`player.js`（`erosion` 字段）、`perks.js`（`EROSION_PER_STACK` / `applyPerk` 计费）、`enemies.js`（≥70 移速 ×1.1）、`hud.js`（侵蚀条）、`ui.js`（最高侵蚀）、`voice.js`（`erosionHigh`）；新增 `tools/dom-stub.mjs`、`tools/determinism.mjs`。**未改任何既有武器/敌人/Perk 数值。**
+
+**P4-0 种子 RNG：只换实现，不改调用**
+
+```js
+// math.js
+let _rng = Math.random;            // 默认就是 Math.random，无参时一个数都不变
+export function random() { return _rng(); }
+export function setRng(fn) { _rng = typeof fn === 'function' ? fn : Math.random; }
+export function makeRng(seed) { /* mulberry32 */ }
+```
+
+全库 `Math.random()` → `random()` 共 32 处（`game` 5 / `player` 2 / `enemies` 3 / `weapons` 3 / `camera` 2 / `sprites` 17）。**唯一例外：`core/audio.js` 的 2 处保留 `Math.random`** ——它在"首次用户交互"时才建噪声缓冲，时机不可控，若消耗种子流会让同 seed 的结果随交互时刻漂移。音效不参与任何数值计算，所以这个例外是安全的。
+
+`start()` 里会按 `this.seed` 重新播种，因此"重开一局"永远从序列头开始，不看上一局跑了多久。
+
+**P4-1/2/3 侵蚀值**
+
+| 项 | 落地 |
+| --- | --- |
+| 累积 | `applyPerk` 里判 `perk.line === 'erosion'` → `p.erosion += 8`，封顶 100 |
+| ≥40 | 画面红移（径向渐变，`a = 0.18 + k*0.34`，随心跳搏动）+ 心跳音（1.15s → 0.55s 加快） |
+| ≥70 | 所有敌人（含已在场）移速 ×1.1；触发一次独白「这双手……不是我的。」「别再往里读了。」 |
+| HUD | HP 条下方 5px 侵蚀条（0 时不显示），右侧 `侵蚀 N`，≥70 转红 |
+| 死亡面板 | 新增「最高侵蚀」行 |
+
+**P4-4 验收：同 seed 三遍完全一致**
+
+```
+node tools/determinism.mjs                  → DETERMINISM_OK（60s，3 遍逐项一致）
+node tools/determinism.mjs balance-2026 18000 → DETERMINISM_OK（300s）
+跨进程两次运行 → 指纹同为 7c38ae31bed3ab08
+反证：换 seed 结果不同 ✓ / setSeed(null) 恢复 Math.random ✓
+```
+
+比对字段：`state / time / kills / score / level / wave / hp / shots / damage / enemies / bullets / pickups / erosion / maxErosion / posHash`。`posHash` 是场上敌人位置与血量的加权和，用来防"总分一样但过程不同"。
+
+**踩坑**：红移第一版太淡（侵蚀 45 时截图几乎看不出来）。原因是渐变中段 alpha 只有 `a*0.35`，且起始半径偏大，红色全挤在画面最外圈。改成中段 `a*0.5`、基值 `0.18` 后，45 能看出泛红、100 明显但不影响读敌人。
+
+**另一条经验**：浏览器里验复现不能靠 `?auto=...&warm=N` 后直接取数——warm 结束后 rAF 还在跑，两次加载会差几帧。正确做法是在 `page.evaluate` 里跑完固定帧数后立刻 `setState('paused')` 冻结世界，再取指纹（`_staging/.../verify-p4.mjs`）。
+
+### 发布 · 浏览器单文件包 v0.2.0（2026-10-21）
+
+**为什么要打包**：ES Module 在 `file://` 下会被 CORS 拦住，所以"把游戏发给别人、双击就能玩"必须先内联。这是发布需求，不是开发需求——开发仍然直接跑 `index.html` + `src/`，零构建。
+
+**做法**（`tools/pack.mjs`，零依赖，186 行）
+
+1. 从 `src/main.js` 出发做后序遍历，拿到 18 个模块的拓扑序（依赖先求值）。
+2. 每个模块包成 IIFE：
+   ```js
+   __mods['game/player.js'] = (function () {
+     'use strict';
+     const { clamp, damp, random } = __mods['core/math.js'];   // import → 从注册表取
+     ...模块正文（去掉 export 前缀）...
+     return { createPlayer, updatePlayer, hurtPlayer, ... };
+   })();
+   ```
+3. 把 `index.html` 里的 `<script type="module" src="./src/main.js">` 换成内联 `<script>`。
+4. 自检：产物里只要还有 `<script src>` / 相对 `href` / 残留 `import './'` 就失败退出。
+
+**不支持的写法会直接报错**，不产出坏包：跨行 `import`、动态 `import()`、`import.meta`、`export {}` / `export default` / `export *`。当前代码库全部是单行 `import` + `export const|function|class`，所以这条路是通的（改动代码时要守住这条，否则打包会失败——这是有意的，宁可炸在打包，也别悄悄产出跑不起来的包）。
+
+**版本号**：唯一真源是 `package.json`（`0.1.0` → `0.2.0`）。`index.html` 的帮助面板有 `#verLine`，`pack.mjs` 校验两者一致，不一致直接报错。
+
+**顺手修的一个真 bug**：`game.js` 里 `localStorage` 直接调用，在 `file://` 或隐私模式下会抛异常，导致整局起不来。改成 `loadSave` / `saveBest` 两个 try/catch 包裹的helper——最高分丢了不影响玩，但这个异常会让游戏直接白屏。
+
+**验证**
+
+```
+node tools/pack.mjs
+版本      : v0.2.0
+模块      : 18 个
+源码体积  : 105.1 KB
+产物      : release/SEVENTH-WOUND-0.2.0.html（125.0 KB）+ release/运行说明.txt
+PACK_OK 单文件无外部依赖，可直接双击打开
+
+浏览器 file:// 实测（_staging/.../verify-pack.mjs）
+  PASS  file:// 下能创建 Game 实例 / 初始 menu / 版本 v0.2.0 / 无外链 script
+  PASS  点开局进入 playing，时间推进 1.6s，生成 7 个敌人
+  PASS  按住左键开火 10 发
+  PASS  file:// 下 ?seed= 仍生效（seed=pack-test，快进 600 帧后 12 杀）
+  PASS  死亡面板正常，含最高侵蚀
+  NO_PAGE_ERRORS / PACK_VERIFY_OK
+```
+
+截图：`v-pack-menu.png`（单文件菜单，样式与开发版一致）、`v-pack-play.png`、`v-pack-dead.png`。
+
+**为什么不做 zip**：单文件 HTML 已经是最小可分发的形态；zip 只会多一层解压。要给别人就发那一个 125 KB 的 html。
