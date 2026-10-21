@@ -83,25 +83,71 @@ export function swapWeapon(g, p) {
   p.secondaryAmmo = ammo;
   p.reloading = 0;
   p.cd = Math.max(p.cd, 0.18);
+  resetBurst(p);
   g.audio.click();
 }
 
+/**
+ * 捡到武器。规则（按优先级）：
+ *   1) 同名 → 补满弹匣
+ *   2) 副武器槽空着 → 进副武器（永远不覆盖主武器）
+ *   3) 比当前强 → 装备；如果副武器槽空着，旧枪退到副武器槽（不丢）
+ *   4) 同级 → 装备（同级替换，属于"你自己走过去换的"）
+ *   5) 更弱 → **不降级**：转成补给（补满当前弹匣 + 残响量）
+ * 返回值：'ammo' | 'secondary' | 'equip' | 'swap' | 'salvage'
+ */
 export function giveWeapon(g, p, id) {
   const cap = magSize(id, p.stats);
+  const newTier = WEAPONS[id].tier || 1;
+  const curTier = WEAPONS[p.weapon].tier || 1;
+
+  // 1) 同一把枪：补弹
+  if (p.weapon === id) {
+    p.ammo = cap;
+    return 'ammo';
+  }
+
+  // 2) 更强：先升级（旧枪能放就退到副武器槽，不丢）
+  if (newTier > curTier) {
+    if (p.secondaryUnlocked && !p.secondary) {
+      p.secondary = p.weapon;
+      p.secondaryAmmo = magSize(p.weapon, p.stats);
+    }
+    p.weapon = id;
+    p.ammo = cap;
+    p.reloading = 0;
+    p.cd = Math.max(p.cd, 0.1);
+    resetBurst(p);
+    return 'equip';
+  }
+
+  // 3) 副武器槽空着：进副武器，不动主武器
   if (p.secondaryUnlocked && !p.secondary) {
     p.secondary = id;
     p.secondaryAmmo = cap;
     return 'secondary';
   }
-  if (p.weapon === id) {
+
+  // 4) 同级：替换（玩家自己踩上来的，算选择）
+  if (newTier === curTier) {
+    p.weapon = id;
     p.ammo = cap;
-    return 'ammo';
+    p.reloading = 0;
+    p.cd = Math.max(p.cd, 0.1);
+    resetBurst(p);
+    return 'swap';
   }
-  p.weapon = id;
-  p.ammo = cap;
-  p.reloading = 0;
-  p.cd = 0.1;
-  return 'equip';
+
+  // 5) 更弱：绝不降级，转成补给（补的是**当前这把枪**的弹匣）
+  p.ammo = magSize(p.weapon, p.stats);
+  if (g) g.score += 25;
+  return 'salvage';
+}
+
+/** 换枪时清掉连发残留：否则三连的第二、三发会从新枪里打出来 */
+export function resetBurst(p) {
+  p.burstLeft = 0;
+  p.burstTimer = 0;
 }
 
 export function updatePlayer(g, p, dt) {
@@ -148,6 +194,8 @@ export function updatePlayer(g, p, dt) {
   p.cd = Math.max(0, p.cd - dt);
 
   // 连发补射（三连点射：自动补完剩下的两发）
+  // 当前枪不支持连发就别补 —— 否则换枪后会把旧枪的残余发数打到新枪上
+  if (p.burstLeft > 0 && !(wDef.burst > 1)) resetBurst(p);
   if (p.burstLeft > 0) {
     p.burstTimer -= dt;
     if (p.burstTimer <= 0 && p.ammo > 0) {

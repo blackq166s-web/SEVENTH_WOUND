@@ -100,17 +100,22 @@ export function drawHud(ctx, g, w, h) {
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.fillText('/ ' + cap, rx, h - 44);
 
+  // 副武器常显：装在副武器槽里的枪必须一直看得见，
+  // 否则"捡了三连发却没反应"会被当成 bug（原来装填时这一行会被藏掉）
+  if (p.secondary) {
+    ctx.font = `600 11px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.42)';
+    ctx.fillText(`Q 切换 → ${WEAPONS[p.secondary].name}`, rx, h - 26);
+  }
+
   if (p.reloading > 0) {
     const r = 1 - p.reloading / p.reloadTotal;
-    bar(ctx, rx - 130, h - 28, 130, 6, r, '#ffd166', '#ff9f43', 'rgba(255,255,255,0.1)');
+    const barY = p.secondary ? h - 15 : h - 28;
+    bar(ctx, rx - 130, barY, 130, 6, r, '#ffd166', '#ff9f43', 'rgba(255,255,255,0.1)');
     ctx.font = `600 10px ${FONT}`;
     ctx.fillStyle = 'rgba(255,209,102,0.9)';
     ctx.textAlign = 'right';
-    ctx.fillText('装填中', rx, h - 38);
-  } else if (p.secondary) {
-    ctx.font = `600 11px ${FONT}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText(`Q 切换 → ${WEAPONS[p.secondary].name}`, rx, h - 26);
+    ctx.fillText('装填中', rx - 136, barY + 3);
   }
 
   // ---------- 左上：波次 / 击杀 ----------
@@ -189,8 +194,10 @@ export function drawHud(ctx, g, w, h) {
     const tst = g.toast;
     const a = Math.min(1, (tst.total - tst.t) / 0.14, tst.t / 0.45);
     const col = TIER_COLORS_HUD[tst.tier] || TIER_COLORS_HUD[1];
-    const modeText = tst.mode === 'secondary' ? '进入副武器槽'
-      : tst.mode === 'ammo' ? '弹药补满' : '已装备';
+    const modeText = tst.mode === 'secondary' ? '副武器槽 · 按 Q 切换'
+      : tst.mode === 'ammo' ? '弹药补满'
+        : tst.mode === 'swap' ? '同级替换'
+          : tst.mode === 'salvage' ? '弱于当前 · 转为补给' : '已装备';
     ctx.save();
     ctx.globalAlpha = Math.max(0, a);
     ctx.textBaseline = 'middle';

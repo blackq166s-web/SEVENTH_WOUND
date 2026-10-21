@@ -168,11 +168,13 @@ const pl = game.player;
 game.setState('levelup');
 game.pickPerk(PERK_MAP.alternate);
 assert(pl.secondaryUnlocked === true, '备用武器应解锁副武器槽');
+// 更强的枪 → 升级为主武器，旧枪退到副武器槽（不丢）
 giveWeapon(game, pl, 'rifle');
-assert(pl.secondary === 'rifle', '拾取武器应进入副武器槽');
+assert(pl.weapon === 'rifle', `捡到更强的枪应升级为主武器，实际 ${pl.weapon}`);
+assert(pl.secondary === 'pistol', `旧枪应退到副武器槽，实际 ${pl.secondary}`);
 const cur = pl.weapon;
 swapWeapon(game, pl);
-assert(pl.weapon === 'rifle' && pl.secondary === cur, 'Q 切换应交换主副武器');
+assert(pl.weapon === 'pistol' && pl.secondary === cur, 'Q 切换应交换主副武器');
 
 // 开火 -> 弹药减少 -> 自动装填
 game.setState('playing');
@@ -479,6 +481,43 @@ assert(game.toast.tier >= 1 && game.toast.tier <= 4, '提示应带合法等级')
 // 提示会自己消失
 for (let i = 0; i < 60 * 3; i++) game.update(STEP);
 assert(game.toast === null, '提示应在 2.6 秒后自动消失');
+
+// 武器成长曲线（v0.3.2）：绝不降级；三连发不串枪
+game.start('survival');
+game.enemies.length = 0;
+game.player.weapon = 'hymn';        // tier 4
+game.player.ammo = 3;
+game.player.secondaryUnlocked = false;
+game.player.secondary = null;
+giveWeapon(game, game.player, 'pistol');   // tier 1
+assert(game.player.weapon === 'hymn', `捡到更弱的枪不应降级，实际 ${game.player.weapon}`);
+assert(game.player.ammo === 3, `salvage 应补当前枪弹匣（3），实际 ${game.player.ammo}`);
+assert(game.player.secondary === null, '更弱的枪不应占用副武器槽');
+
+// 同级：没有副武器槽时算替换，有副武器槽时优先进槽
+game.start('survival');
+game.player.weapon = 'rifle';
+game.player.secondaryUnlocked = true;
+game.player.secondary = null;
+giveWeapon(game, game.player, 'smg');       // 同为 tier 2
+assert(game.player.weapon === 'rifle' && game.player.secondary === 'smg', '同级枪有空槽时应进副武器槽');
+
+// 三连发：中途换枪不能把剩余发数打到新枪上
+game.start('survival');
+game.enemies.length = 0;
+game.bullets.length = 0;
+game.player.weapon = 'catechism';
+game.player.ammo = 27;
+input.mouse.down = true;
+game.update(STEP);
+input.endFrame();
+assert(game.player.burstLeft > 0, `三连发应留下待补发数，实际 ${game.player.burstLeft}`);
+game.player.weapon = 'rocket';
+const beforeSwitchShots = game.stats.shots;
+for (let i = 0; i < 12; i++) { game.update(STEP); input.endFrame(); }
+assert(game.player.burstLeft === 0, '换枪后待补发数应清零');
+assert(game.stats.shots === beforeSwitchShots, `换枪后不应再补射，实际多了 ${game.stats.shots - beforeSwitchShots} 发`);
+input.mouse.down = false;
 
 // 机制型刻印的行为断言（S6-D）
 game.start('survival');
