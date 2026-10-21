@@ -302,6 +302,18 @@
 
   .dim { color: rgba(255, 255, 255, 0.45); font-size: 13px; }
 
+  /* 死亡面板里的最后一句独白（与画布独白同源，见 src/game/voice.js） */
+  .voice-line {
+    margin: -4px 0 0;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    color: rgba(228, 234, 242, 0.9);
+    text-shadow: 0 0 24px rgba(224, 27, 60, 0.45);
+    text-align: center;
+  }
+
+  .voice-line:empty { display: none; }
+
   /* ---------------- 帮助 ---------------- */
   .keys {
     list-style: none;
@@ -363,6 +375,7 @@
 
   <section class="panel hidden" id="p-dead">
     <h2 class="danger">你的残响已被记录</h2>
+    <p class="voice-line" id="deadVoice"></p>
     <div class="statgrid" id="deadStats"></div>
     <div class="btns">
       <button id="btnRetry" class="btn primary">再入地渊</button>

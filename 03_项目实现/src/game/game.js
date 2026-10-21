@@ -7,6 +7,7 @@ import { WEAPONS, magSize, randomWeaponDrop } from './weapons.js';
 import { spawnEnemy, updateEnemy, damageEnemy, ENEMY_TYPES } from './enemies.js';
 import { rollPerks, applyPerk } from './perks.js';
 import { drawHud } from './hud.js';
+import { Voice, drawVoice } from './voice.js';
 import { drawThreatIndicators } from './threats.js';
 import { QUESTS, buildQuestQueue } from './quests.js';
 import { getSprites, makeGroundTile } from '../render/sprites.js';
@@ -59,6 +60,8 @@ export class Game {
     this.best = Number(savedBest || 0);
     this.banner = { text: '', sub: '', t: 0 };
     this.hitstop = 0;
+    this.voice = new Voice();
+    this.intro = null;       // 守层者登场演出（只影响镜头取景，不改任何数值）
     this.perkChoices = [];
     this.stats = { shots: 0, damage: 0 };
     this.questIndex = 0;
@@ -84,7 +87,9 @@ export class Game {
     this.reset();
     this.state = 'playing';
     this.ui.hide();
-    this.banner = { text: mode === 'quest' ? '第一章 · 苏醒' : '第 1 波', sub: mode === 'quest' ? '消灭所有敌人' : '生存下去', t: 2.6 };
+    this.banner = { text: mode === 'quest' ? '第一章 · 苏醒' : '第 1 波', sub: mode === 'quest' ? '消灭所有敌人' : '生存下去', t: 2.6, total: 2.6 };
+    // 开局独白：不暂停、不挡输入，只是屏幕底部多两行字
+    this.voice.say('start');
     if (mode === 'quest') this.loadQuest(0);
     else {
       // 开场先给一小波敌人，避免开局空场
@@ -112,6 +117,8 @@ export class Game {
     this.questQueue = [];
     this.questDone = false;
     this.questName = '';
+    this.intro = null;
+    this.voice.reset();
     this.cam.snapTo(this.player.x, this.player.y);
     this.cam.shakeAmt = 0;
   }
@@ -126,7 +133,12 @@ export class Game {
     this.questTimer = 0.4;
     this.questDone = false;
     this.questTotal = this.questQueue.length;
-    this.banner = { text: this.questDef.name, sub: this.questDef.brief, t: 2.8 };
+    // 层间文本卡：复用 banner 通道，把「第一章 · 消化场」拆成眉批 + 主标题 + 副题
+    // 生命周期 2.0s = 0.28 淡入 + 1.2 停留 + 0.5 淡出（hud.js 按 total 算透明度）
+    const cut = this.questName.indexOf(' · ');
+    const kicker = cut > 0 ? this.questName.slice(0, cut) : '';
+    const title = cut > 0 ? this.questName.slice(cut + 3) : this.questName;
+    this.banner = { kicker, text: title, sub: this.questDef.brief, t: 2.0, total: 2.0 };
   }
 
   // ================= 更新 =================
@@ -177,6 +189,8 @@ export class Game {
     }
 
     if (this.banner.t > 0) this.banner.t -= dt;
+    // 独白只在真正打的时候走字：暂停/升级/结算时冻结，恢复后接着打，不会漏句
+    if (this.state === 'playing') this.voice.update(dt);
     this.particles.update(this.state === 'playing' ? dt : dt * 0.4);
     this.decals.fade(dt);
     this.cam.update(dt);
@@ -191,9 +205,28 @@ export class Game {
     updatePlayer(this, p, dt);
 
     // 镜头轻微朝准星方向前探，扩大前方视野
-    const lookX = M.clamp((this.mouseWorld.x - p.x) * 0.16, -110, 110);
-    const lookY = M.clamp((this.mouseWorld.y - p.y) * 0.16, -90, 90);
+    let lookX = M.clamp((this.mouseWorld.x - p.x) * 0.16, -110, 110);
+    let lookY = M.clamp((this.mouseWorld.y - p.y) * 0.16, -90, 90);
+
+    // 守层者登场：镜头短暂偏向它再回位。只改建帧的取景目标，
+    // 不动 cam.zoom，鼠标世界坐标换算因此保持正确（不会打偏）。
+    if (this.intro) {
+      this.intro.t -= dt;
+      const b = this.intro.boss;
+      if (this.intro.t <= 0 || !b || b.dead) {
+        this.intro = null;
+      } else {
+        // sin 曲线：推到 0.32 权重再收回，起落都不生硬
+        const push = Math.sin(Math.PI * (1 - this.intro.t / this.intro.total)) * 0.32;
+        lookX = lookX * (1 - push) + (b.x - p.x) * push;
+        lookY = lookY * (1 - push) + (b.y - p.y) * push;
+      }
+    }
+
     this.cam.follow(p.x + lookX, p.y + lookY, dt);
+
+    // 首次低血独白（每局一次，靠 voice 的去重）
+    if (p.hp > 0 && p.hp / p.maxHp < 0.3) this.voice.say('firstLowHp');
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
@@ -427,6 +460,7 @@ export class Game {
   openLevelUp() {
     const p = this.player;
     this.setState('levelup');
+    this.voice.say('firstLevelUp');
     this.perkChoices = rollPerks(p, 3);
     this.cam.kick(3);
     this.particles.ring(p.x, p.y, 90, 'rgba(124,231,255,0.9)', 0.6);
@@ -468,8 +502,25 @@ export class Game {
     if (e) {
       this.particles.ring(pos.x, pos.y, e.r * 3.2, 'rgba(255,90,90,0.5)', 0.5);
       this.particles.smoke(pos.x, pos.y, 3, 'rgba(60,40,45,0.4)');
+      // Boss 出生即演出（竞技场与关卡共用一条路径）
+      if (e.def.isBoss) this.bossIntro(e);
     }
     return e;
+  }
+
+  /** 守层者登场：名字条 + 镜头轻推 + 降采样音效（不暂停世界） */
+  bossIntro(e) {
+    this.intro = { t: 1.6, total: 1.6, boss: e };
+    this.banner = {
+      kicker: '层主',
+      text: e.def.name || '守层者',
+      sub: '它曾经和你一样',
+      t: 2.6,
+      total: 2.6
+    };
+    this.voice.say('firstBoss');
+    this.audio.bossIntro();
+    this.cam.kick(6);
   }
 
   pickType() {
@@ -519,7 +570,7 @@ export class Game {
       this.waveTimer = 0;
       this.wave++;
       this.audio.wave();
-      this.banner = { text: `第 ${this.wave} 次潮汐`, sub: '', t: 2.2 };
+      this.banner = { kicker: '潮汐', text: `第 ${this.wave} 次`, sub: '', t: 2.2, total: 2.2 };
 
       // 新波次开场：成组涌入
       const hpMul = 1 + (this.wave - 1) * 0.13;
@@ -529,8 +580,8 @@ export class Game {
       for (let i = 0; i < pack; i++) this.spawn(this.pickType(), { hpMul, dmgMul, speedMul });
 
       if (this.wave % 5 === 0) {
-        const e = this.spawn('brute', { hpMul, dmgMul: 1 + this.wave * 0.05, speedMul: 1 });
-        if (e) this.banner = { text: '守层者苏醒', sub: '它曾经和你一样', t: 2.6 };
+        // 名字条与音效由 bossIntro 统一处理（spawn 内部已调用）
+        this.spawn('brute', { hpMul, dmgMul: 1 + this.wave * 0.05, speedMul: 1 });
       }
     }
   }
@@ -743,6 +794,7 @@ export class Game {
     this.drawVignette(ctx, w, h);
     drawThreatIndicators(ctx, this, w, h);
     drawHud(ctx, this, w, h);
+    drawVoice(ctx, this, w, h);
     this.drawCrosshair(ctx);
   }
 

@@ -125,20 +125,42 @@ export function drawHud(ctx, g, w, h) {
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.fillText(`${g.enemies.length} 敌人在场`, w - 26, 74);
 
-  // ---------- 中央横幅 ----------
+  // ---------- 中央横幅（潮汐 / 层间卡 / 层主条共用这一条通道） ----------
   if (g.banner.t > 0) {
-    const a = clamp(g.banner.t / 0.6, 0, 1);
+    const b = g.banner;
+    const total = b.total || 2.6;
+    const elapsed = total - b.t;
+    // 淡入 0.28s + 淡出 0.5s；不再"啪"地弹出来
+    const a = Math.min(clamp(elapsed / 0.28, 0, 1), clamp(b.t / 0.5, 0, 1));
+    const cy = h * 0.24;
     ctx.globalAlpha = a;
     ctx.textAlign = 'center';
+
+    if (b.kicker) {
+      ctx.font = `800 13px ${FONT}`;
+      ctx.fillStyle = 'rgba(255,146,158,0.95)';
+      ctx.fillText(b.kicker, w / 2, cy - 40);
+      // 眉批两侧的细线，做出"章节卡"的仪式感
+      const kw = ctx.measureText(b.kicker).width;
+      ctx.strokeStyle = 'rgba(255,146,158,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(w / 2 - kw / 2 - 34, cy - 40);
+      ctx.lineTo(w / 2 - kw / 2 - 10, cy - 40);
+      ctx.moveTo(w / 2 + kw / 2 + 10, cy - 40);
+      ctx.lineTo(w / 2 + kw / 2 + 34, cy - 40);
+      ctx.stroke();
+    }
+
     ctx.font = `900 46px ${FONT}`;
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillText(g.banner.text, w / 2 + 2, h * 0.24 + 2);
+    ctx.fillText(b.text, w / 2 + 2, cy + 2);
     ctx.fillStyle = '#fff';
-    ctx.fillText(g.banner.text, w / 2, h * 0.24);
-    if (g.banner.sub) {
+    ctx.fillText(b.text, w / 2, cy);
+    if (b.sub) {
       ctx.font = `600 14px ${FONT}`;
       ctx.fillStyle = 'rgba(255,120,130,0.95)';
-      ctx.fillText(g.banner.sub, w / 2, h * 0.24 + 34);
+      ctx.fillText(b.sub, w / 2, cy + 34);
     }
     ctx.globalAlpha = 1;
   }

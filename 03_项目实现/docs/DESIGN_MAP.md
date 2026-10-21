@@ -99,6 +99,21 @@
 
 ---
 
+## 6.5 叙事事件 ↔ 代码（P3 落地）
+
+| 叙事事件 | 触发点 | 代码 | 规则 |
+| --- | --- | --- | --- |
+| 开局独白 | `start()` | `voice.js` 的 `MONO.start`（2 句） | 先进先出，一句打完停 2.5s 再淡出 |
+| 首次升级 | `openLevelUp()` | `MONO.firstLevelUp` | 同名每局只播一次（`Voice.seen`） |
+| 层主登场 | `spawn()` 判 `def.isBoss` | `bossIntro()` + `MONO.firstBoss` | 1.6s 内镜头向它偏 32% 权重，**不改 zoom** |
+| 首次低血 | `updateWorld()` 判 `hp / maxHp < 0.3` | `MONO.firstLowHp` | 同上 |
+| 死亡 | `onPlayerDeath()` → `ui.showDead()` | `MONO.death` → `#deadVoice` | 走 DOM：死亡面板会盖住画布 |
+| 层间文本卡 | `loadQuest()` | `banner { kicker, text, sub, t, total }` | 2.0s = 0.28 淡入 + 1.2 停留 + 0.5 淡出 |
+
+**加一句独白**：往 `MONO` 里加 key（每行 ≤ 24 字，`smoke.mjs` 会校验），在触发点调 `this.voice.say('key')` 即可。不要自己写计时器或状态——`Voice` 负责排队与生命周期，`drawVoice` 只负责画字。
+
+---
+
 ## 7. 改动分级与验证
 
 | 级 | 内容 | 风险 | 验证 |
@@ -106,6 +121,8 @@
 | **A** | 关卡名、武器名、敌人名、HUD 标签、播报、死亡文案 | 低（纯字符串） | `smoke.mjs` PASS + `shoot.mjs` 出图核对 HUD 不溢出 |
 | **B** | Perk 加 `line` 字段并在升级卡显示路线；主角布条随层数变化；死亡界面改字段含义 | 中（动数据结构/绘制） | A 级 + 新断言（`line` 必填、布条数 = 层数） |
 | **C** | 侵蚀值机制、守层者登场演出与二阶段、独白/叙事事件、层间过场 | 高（新系统） | 先写设计文档，再单独开阶段，不混进 S1 |
+
+> C 级进度：**独白 / 层间卡 / 守层者登场**已在 P3 落地（见 §6.5）；守层者二阶段与侵蚀值未做。
 
 ---
 

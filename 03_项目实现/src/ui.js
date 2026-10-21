@@ -1,3 +1,5 @@
+import { DEATH_LINE } from './game/voice.js';
+
 const $ = (id) => document.getElementById(id);
 
 // 刻印三路线（STORY §8）：钢铁=继承前人手艺 / 本能=身体被重铸 / 侵蚀=借地渊之力
@@ -112,6 +114,9 @@ export class UI {
   }
 
   showDead(s) {
+    // 死亡独白走 DOM：死亡面板会盖住画布，画上去就看不见了
+    const dv = $('deadVoice');
+    if (dv) dv.textContent = DEATH_LINE;
     const rows = [
       ['残留时长', fmtTime(s.time)],
       ['击杀', String(s.kills)],

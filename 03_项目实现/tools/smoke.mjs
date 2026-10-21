@@ -290,6 +290,59 @@ assert(game.player.stripes === 4, `第四层布条应为 4，实际 ${game.playe
 game.start('survival');
 assert(game.player.stripes === 1, `竞技场布条应回到 1，实际 ${game.player.stripes}`);
 
+// 叙事层：独白 / 层间卡 / 守层者登场（P3）
+const { MONO, VOICE_LIMITS, Voice } = await import('../src/game/voice.js');
+
+// 独白必须"短"（STORY §9 独白原则）
+const longLines = Object.values(MONO).flat().filter((l) => l.length > VOICE_LIMITS.MAX_CHARS);
+assert(longLines.length === 0, `独白单行不得超过 ${VOICE_LIMITS.MAX_CHARS} 字：${longLines.join(' / ')}`);
+
+// 开局独白立刻可见，且不许改动游戏状态（铁律：不暂停 update）
+game.start('survival');
+assert(game.voice.active && game.voice.cur.text === MONO.start[0], '开局应立刻有独白');
+assert(game.state === 'playing', '独白不得改变游戏状态');
+const chars0 = game.voice.visibleChars;
+for (let i = 0; i < 6; i++) { game.update(STEP); input.endFrame(); }
+assert(game.voice.visibleChars > chars0, '打字机应逐字推进');
+assert(game.voice.visibleChars < MONO.start[0].length, '0.1s 内不应打完整句');
+assert(game.state === 'playing', '独白播放期间仍可正常战斗');
+
+// 同名独白每局只播一次
+assert(game.voice.say('firstLowHp') === true, '首次低血独白应入队');
+assert(game.voice.say('firstLowHp') === false, '同名独白不应重复入队');
+
+// 队列行为（纯逻辑，不依赖画布）
+const v0 = new Voice();
+v0.push('甲');
+v0.push('乙');
+assert(v0.active && v0.cur.text === '甲', '独白应按先进先出');
+for (let i = 0; i < 60 * 4; i++) v0.update(STEP);
+assert(v0.cur && v0.cur.text === '乙', '前一句播完应自动接下一句');
+for (let i = 0; i < 60 * 3; i++) v0.update(STEP);
+assert(v0.active === false, '队列播完应自动收尾');
+v0.push('丙');
+v0.reset();
+assert(v0.active === false && v0.queue.length === 0, 'reset 应清空独白队列');
+
+// 层间文本卡：拆眉批 + 主标题，带 total 供淡入淡出
+game.start('quest');
+assert(game.banner.kicker === '第一章' && game.banner.text === '消化场', `层间卡拆分异常：${game.banner.kicker} / ${game.banner.text}`);
+assert(game.banner.total === 2.0, `层间卡应有 total，实际 ${game.banner.total}`);
+game.loadQuest(5);
+assert(game.banner.kicker === '第六章' && game.banner.text === '守层者之厅', `末层卡异常：${game.banner.kicker} / ${game.banner.text}`);
+
+// 守层者登场：名字条 + 镜头轻推（不改缩放）+ 独白只一次
+game.start('survival');
+const zBefore = game.cam.zoom;
+const bossE = game.spawn('brute', {});
+assert(game.intro && game.intro.boss === bossE, 'Boss 出生应触发登场演出');
+assert(game.banner.kicker === '层主' && game.banner.text === '守层者', `层主条异常：${game.banner.text}`);
+assert(game.voice.say('firstBoss') === false, '层主独白已由登场触发的入队，不应重复');
+for (let i = 0; i < 30; i++) { game.update(STEP); input.endFrame(); }
+assert(game.cam.zoom === zBefore, '登场演出不得改动缩放（否则世界坐标换算会错位）');
+for (let i = 0; i < 120; i++) { game.update(STEP); input.endFrame(); }
+assert(game.intro === null, '登场演出应在 1.6s 后自动结束');
+
 // 边缘威胁指示器
 const { offscreenThreats } = await import('../src/game/threats.js');
 game.start('survival');

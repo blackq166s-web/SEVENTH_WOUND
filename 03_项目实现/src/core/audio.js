@@ -152,4 +152,37 @@ export class Audio {
     this.tone(220, 300, 0.16, 'triangle', 0.13);
     this.tone(330, 440, 0.2, 'triangle', 0.11, 0.14);
   }
+
+  // 守层者登场：把采样率压到 8kHz 做失真，制造"庞然大物"的压迫感（STORY §10）
+  bossIntro() {
+    if (!this._ok()) return;
+    if (!this._lowBuf) {
+      const rate = 8000;
+      const len = Math.floor(rate * 1.2);
+      const buf = this.ctx.createBuffer(1, len, rate);
+      const d = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        // 一阶低通的白噪声 → 闷响，再靠浏览器重采样出颗粒感
+        last = last * 0.93 + (Math.random() * 2 - 1) * 0.07;
+        d[i] = Math.max(-1, Math.min(1, last * 5));
+      }
+      this._lowBuf = buf;
+    }
+    const t = this.ctx.currentTime;
+    const s = this.ctx.createBufferSource();
+    s.buffer = this._lowBuf;
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.setValueAtTime(1400, t);
+    f.frequency.exponentialRampToValueAtTime(220, t + 1.1);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.3, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.15);
+    s.connect(f).connect(g).connect(this.master);
+    s.start(t);
+    s.stop(t + 1.2);
+    this.tone(58, 26, 1.2, 'sine', 0.26);
+  }
 }

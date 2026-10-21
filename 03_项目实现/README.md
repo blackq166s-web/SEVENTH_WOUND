@@ -63,6 +63,8 @@ node tools/serve.mjs 8123
 - WebAudio 实时合成音效，无外部资源
 - 缩放镜头、准星方向前探、暗角、低血预警
 - 屏幕边缘威胁指示器：视野外敌人按方向贴边提示，最多 8 个、近的优先，Boss 单独样式
+- 独白系统：屏幕底部打字机，非阻塞（不暂停 `update`、不挡输入），开局 / 首次升级 / 层主登场 / 首次低血 / 死亡各一句
+- 层间文本卡与层主登场：眉批 + 主标题 + 副题的中央横幅，1.6s 镜头轻推（不改缩放，准星不偏）
 
 ---
 
@@ -70,26 +72,27 @@ node tools/serve.mjs 8123
 
 | 模块 | 路径 | 行数 | 职责 |
 | --- | --- | --- | --- |
-| 入口页面 | `index.html` | 395 | 画布、菜单/HUD 覆盖层、全部样式 |
+| 入口页面 | `index.html` | 422 | 画布、菜单/HUD 覆盖层、全部样式 |
 | 引导 | `src/main.js` | 118 | 画布尺寸、固定步长主循环、`?auto=` 调试快进 |
-| UI 交互 | `src/ui.js` | 144 | 菜单 / 升级三选一 / 死亡 / 暂停 / 通关 |
+| UI 交互 | `src/ui.js` | 153 | 菜单 / 升级三选一 / 死亡 / 暂停 / 通关 |
 | 数学 | `src/core/math.js` | 46 | clamp / damp / angleLerp / rand |
 | 输入 | `src/core/input.js` | 66 | 键鼠，含边沿触发 `tap()` |
-| 音频 | `src/core/audio.js` | 155 | WebAudio 实时合成，无音频文件 |
+| 音频 | `src/core/audio.js` | 188 | WebAudio 实时合成，无音频文件 |
 | 镜头 | `src/core/camera.js` | 73 | 跟随、震动、缩放、边界钳制 |
-| 核心 | `src/game/game.js` | 1012 | 状态机、波次/关卡调度、碰撞、渲染管线 |
-| 玩家 | `src/game/player.js` | 191 | 移动、瞄准、开火、装填、受伤 |
+| 核心 | `src/game/game.js` | 1091 | 状态机、波次/关卡调度、碰撞、渲染管线 |
+| 玩家 | `src/game/player.js` | 192 | 移动、瞄准、开火、装填、受伤 |
 | 武器 | `src/game/weapons.js` | 126 | 武器数据表 + 开火逻辑 |
 | 敌人 | `src/game/enemies.js` | 197 | 敌人数据表 + AI + 受伤 |
 | Perk | `src/game/perks.js` | 132 | 20 个可叠加 Perk 数据表 |
 | 关卡 | `src/game/quests.js` | 51 | 6 个手工关卡数据 |
 | 粒子 | `src/game/particles.js` | 199 | 血、火花、尸块、烟雾、飘字 |
 | 血迹 | `src/game/decals.js` | 86 | 离屏 0.5 分辨率，定期淡出 |
-| HUD | `src/game/hud.js` | 157 | 画布内 HUD |
+| HUD | `src/game/hud.js` | 179 | 画布内 HUD、中央横幅（潮汐 / 层间卡 / 层主条） |
 | 威胁指示器 | `src/game/threats.js` | 110 | 视野外敌人的屏幕边缘提示（计算与绘制分离） |
+| 独白 | `src/game/voice.js` | 160 | 非阻塞独白队列 + 打字机渲染（不暂停世界） |
 | 精灵 | `src/render/sprites.js` | 438 | 程序化精灵 + 地面瓦片 |
 | 静态服务 | `tools/serve.mjs` | 54 | 零依赖 http 服务 |
-| 冒烟测试 | `tools/smoke.mjs` | 309 | DOM 桩，node 内跑 1.5 万帧 |
+| 冒烟测试 | `tools/smoke.mjs` | 383 | DOM 桩，node 内跑 1.5 万帧 |
 | 截图 | `tools/shoot.mjs` | 152 | 本机 Chrome + playwright-core，输出到 `shots/` |
 | 帧率 | `tools/fps.mjs` | 14 | 端到端 rAF 帧率 |
 | 扩展文档 | `docs/EXTENDING.md` | — | 加武器/敌人/Perk/关卡/模式 |
