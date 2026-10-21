@@ -31,6 +31,15 @@ node 03_项目实现/tools/determinism.mjs    # 同 seed 三遍复现：DETERMIN
 node 03_项目实现/tools/shoot.mjs          # 真浏览器截图 → 03_项目实现/shots/（需先起 8124 服务）
 ```
 
+## 发布
+
+```bash
+node 03_项目实现/tools/pack.mjs    # → 03_项目实现/release/SEVENTH-WOUND-<version>.html（单文件，双击即玩）
+```
+
+版本号唯一真源是 `03_项目实现/package.json`；`index.html` 的 `#verLine` 必须与之一致，打包脚本会校验。
+当前已发布 **v0.2.0**，快照见 `01_阶段成果/20261021_可玩版v0.2/`。
+
 ## 当前进度
 
 见 `STAGE.md`。S1（手感与信息可读性）：D1 边缘威胁指示器已完成，D2 冲刺、D3 受击反馈挂起。
