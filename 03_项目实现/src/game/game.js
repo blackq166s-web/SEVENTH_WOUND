@@ -10,7 +10,10 @@ import { drawHud } from './hud.js';
 import { Voice, drawVoice } from './voice.js';
 import { drawThreatIndicators } from './threats.js';
 import { QUESTS, buildQuestQueue } from './quests.js';
-import { getSprites, makeGroundTile } from '../render/sprites.js';
+import { getSprites, makeGroundTile, makeGroundMacro, GROUND_MACRO_SCALE } from '../render/sprites.js';
+import { paletteForLayer, ARENA_PALETTE, mixHex } from '../render/palettes.js';
+import { drawAmbient } from './ambient.js';
+import { fxRandom, fxRand } from '../core/fx.js';
 
 const WORLD_W = 2600;
 const WORLD_H = 2000;
@@ -51,8 +54,12 @@ export class Game {
     this.vh = 720;
 
     this.sprites = getSprites();
-    this.ground = makeGroundTile();
-    this.groundPattern = ctx.createPattern(this.ground, 'repeat');
+    // 分层视觉：地面瓦片 / 雾色 / 血迹 / 浮尘全部按层取（render/palettes.js）
+    this.palette = ARENA_PALETTE;
+    this.ground = null;
+    this.groundPattern = null;
+    this.macroPattern = null;
+    this.setPalette(ARENA_PALETTE);
 
     this.cam = new Camera(this.W, this.H);
     this.decals = new Decals(this.W, this.H);
@@ -105,6 +112,16 @@ export class Game {
     return s;
   }
 
+  /** 切换该层的视觉配色：地面瓦片、雾、血迹、浮尘（缓存按 palette.id 复用） */
+  setPalette(pal) {
+    if (!pal || pal === this.palette && this.groundPattern) return;
+    this.palette = pal;
+    this.ground = makeGroundTile(pal);
+    this.groundPattern = this.ctx.createPattern(this.ground, 'repeat');
+    this.macroPattern = this.ctx.createPattern(makeGroundMacro(pal), 'repeat');
+    this._ambient = null; // 浮尘按层重建
+  }
+
   setViewport(w, h, dpr) {
     this.vw = w;
     this.vh = h;
@@ -126,6 +143,7 @@ export class Game {
     this.voice.say('start');
     if (mode === 'quest') this.loadQuest(0);
     else {
+      this.setPalette(ARENA_PALETTE);
       // 开场先给一小波敌人，避免开局空场
       for (let i = 0; i < 5; i++) this.spawn('zombie', { hpMul: 1, dmgMul: 1, speedMul: 1 });
     }
@@ -165,6 +183,8 @@ export class Game {
     this.questName = this.questDef.name;
     // 每下一层，左臂多一条布条（设定 → 可见的进度标记）
     if (this.player) this.player.stripes = i + 1;
+    // 每层的视觉身份：地面材质 / 雾色 / 血迹 / 浮尘
+    this.setPalette(paletteForLayer(i));
     this.questQueue = buildQuestQueue(this.questDef);
     this.questTimer = 0.4;
     this.questDone = false;
@@ -679,7 +699,7 @@ export class Game {
     const ang = Math.atan2(e.y - p.y, e.x - p.x);
     this.particles.gore(e.x, e.y, ang, e.def.isBoss ? 26 : 10, e.def.blood);
     this.particles.blood(e.x, e.y, ang, e.def.isBoss ? 22 : 8, e.def.blood, 1);
-    this.decals.splat(e.x, e.y, e.r * (e.def.isBoss ? 1.6 : 1.1), this._bloodRgba(e.def.blood));
+    this.decals.splat(e.x, e.y, e.r * (e.def.isBoss ? 1.6 : 1.1), mixHex(e.def.blood, this.palette.blood, 0.45));
 
     if (e.def.isBoss) {
       this.cam.kick(16);
@@ -826,6 +846,14 @@ export class Game {
     if (gw > 0 && gh > 0) {
       ctx.fillStyle = this.groundPattern;
       ctx.fillRect(gx, gy, gw, gh);
+      // 宏观污渍叠层：放大 2.7 倍，把平铺周期从 512 拉到 ~1380
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.translate(gx, gy);
+      ctx.scale(GROUND_MACRO_SCALE, GROUND_MACRO_SCALE);
+      ctx.fillStyle = this.macroPattern;
+      ctx.fillRect(0, 0, gw / GROUND_MACRO_SCALE, gh / GROUND_MACRO_SCALE);
+      ctx.restore();
     }
 
     // 边界：内侧红光渐隐 + 边线
@@ -844,6 +872,7 @@ export class Game {
 
     // 屏幕空间
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    drawAmbient(ctx, this, w, h);
     this.drawVignette(ctx, w, h);
     drawThreatIndicators(ctx, this, w, h);
     drawHud(ctx, this, w, h);
@@ -885,9 +914,11 @@ export class Game {
   }
 
   drawVignette(ctx, w, h) {
-    const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
+    const pal = this.palette || ARENA_PALETTE;
+    const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.34, w / 2, h / 2, Math.max(w, h) * 0.76);
     g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(0,0,0,0.34)');
+    g.addColorStop(0.58, 'rgba(0,0,0,0.14)');
+    g.addColorStop(1, pal.fog);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
@@ -1105,9 +1136,9 @@ export class Game {
 
       if (b.kind === 'flame') {
         ctx.globalAlpha = 0.5;
-        ctx.fillStyle = M.random() < 0.5 ? '#ff7a2a' : '#ffbb4d';
+        ctx.fillStyle = fxRandom() < 0.5 ? '#ff7a2a' : '#ffbb4d';
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * M.rand(0.8, 1.2), 0, M.TAU);
+        ctx.arc(b.x, b.y, b.r * fxRand(0.8, 1.2), 0, M.TAU);
         ctx.fill();
         ctx.globalAlpha = 1;
         continue;

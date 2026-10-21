@@ -339,6 +339,26 @@ try {
 }
 assert(renderErr === null, `高侵蚀渲染异常：${renderErr && renderErr.message}`);
 
+// 分层配色（S6-A）：六层身份 + 竞技场 + 地面瓦片缓存
+const { LAYER_PALETTES, ARENA_PALETTE, paletteForLayer } = await import('../src/render/palettes.js');
+assert(LAYER_PALETTES.length === 6, `应有 6 层配色，实际 ${LAYER_PALETTES.length}`);
+const palIds = new Set([...LAYER_PALETTES.map((p) => p.id), ARENA_PALETTE.id]);
+assert(palIds.size === 7, `配色 id 不能重复，实际 ${palIds.size} 个`);
+const badPal = [...LAYER_PALETTES, ARENA_PALETTE].filter(
+  (p) => !p.ground || !p.ground.base || !p.blood || !p.fog || !p.ambient || !p.glow
+);
+assert(badPal.length === 0, `每层配色必须有 ground/blood/fog/ambient/glow：${badPal.map((p) => p.id).join(',')}`);
+
+game.start('quest');
+assert(game.palette.id === 'digest', `首层应使用 digest 配色，实际 ${game.palette.id}`);
+game.loadQuest(4);
+assert(game.palette.id === 'marrow', `第五层应使用 marrow 配色，实际 ${game.palette.id}`);
+game.start('survival');
+assert(game.palette.id === 'arena', `竞技场应使用 arena 配色，实际 ${game.palette.id}`);
+assert(game.groundPattern && game.macroPattern, '地面主瓦片与宏观叠层都应生成 pattern');
+assert(paletteForLayer(99).id === 'warden', '越界层索引应夹到最后一层');
+assert(paletteForLayer(-3).id === 'digest', '负数层索引应夹到第一层');
+
 // 边缘威胁指示器
 const { offscreenThreats } = await import('../src/game/threats.js');
 game.start('survival');
