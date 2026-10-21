@@ -519,6 +519,65 @@ assert(game.player.burstLeft === 0, '换枪后待补发数应清零');
 assert(game.stats.shots === beforeSwitchShots, `换枪后不应再补射，实际多了 ${game.stats.shots - beforeSwitchShots} 发`);
 input.mouse.down = false;
 
+// 武器锁定（v0.3.3）：锁定后捡更高等级也不换，转补给
+game.start('survival');
+game.enemies.length = 0;
+game.player.weapon = 'rifle';       // tier 2，玩得爽的那把
+game.player.secondaryUnlocked = false;
+game.player.secondary = null;
+game.player.weaponLocked = true;
+giveWeapon(game, game.player, 'hymn');   // tier 4，更高
+assert(game.player.weapon === 'rifle', `锁定时捡更高等级也不应换，实际 ${game.player.weapon}`);
+assert(game.player.weaponLocked === true, '锁定状态应保持');
+
+// 未锁定：更高等级自动换（自动选择）
+game.start('survival');
+game.enemies.length = 0;
+game.player.weapon = 'rifle';
+game.player.secondaryUnlocked = false;
+game.player.secondary = null;
+game.player.weaponLocked = false;
+giveWeapon(game, game.player, 'hymn');
+assert(game.player.weapon === 'hymn', `未锁定时更高等级应自动换，实际 ${game.player.weapon}`);
+
+// 图标：每把武器都有 icon
+const noIcon = WEAPON_IDS.filter((id) => !WEAPONS[id].icon);
+assert(noIcon.length === 0, `每把武器都应有 icon，缺：${noIcon.join(',')}`);
+
+// 新掉落物（v0.3.3）：护盾 / 加速 / 磁吸
+game.start('survival');
+game.enemies.length = 0;
+game.pickups.length = 0;
+// 护盾：加 60，受伤先扣盾
+game.player.shield = 0;
+game.pickups.push({ type: 'shield', x: game.player.x, y: game.player.y, vx: 0, vy: 0, t: 0 });
+game.collect(game.pickups[0]);
+game.pickups.length = 0;
+assert(game.player.shield >= 60, `护盾应加到至少 60，实际 ${game.player.shield}`);
+const hpBefore = game.player.hp;
+game.player.hp = 50;
+game.hurtPlayer(30);   // 30 伤害，盾应吸收
+assert(game.player.shield < 60, `受伤应先扣护盾，实际盾 ${game.player.shield}`);
+assert(game.player.hp === 50, `护盾未破前不应掉血，实际 ${game.player.hp}`);
+game.player.hp = hpBefore;
+
+// 加速：6 秒，移速 ×1.5
+game.player.boostT = 0;
+game.pickups.push({ type: 'boost', x: game.player.x, y: game.player.y, vx: 0, vy: 0, t: 0 });
+game.collect(game.pickups[0]);
+game.pickups.length = 0;
+assert(game.player.boostT > 0, '加速应设置持续时间');
+
+// 磁吸：把全场经验拉到玩家附近
+game.player.x = game.W / 2;
+game.player.y = game.H / 2;
+game.pickups.length = 0;
+game.pickups.push({ type: 'xp', x: game.W - 100, y: game.H - 100, value: 1, vx: 0, vy: 0, t: 0, scale: 1 });
+game.pickups.push({ type: 'magnet', x: game.player.x, y: game.player.y, vx: 0, vy: 0, t: 0 });
+game.collect(game.pickups[1]);
+const farXp = game.pickups.find((it) => it.type === 'xp');
+assert(farXp && Math.hypot(farXp.x - game.player.x, farXp.y - game.player.y) < 120, `磁吸应把经验拉到玩家附近`);
+
 // 机制型刻印的行为断言（S6-D）
 game.start('survival');
 game.enemies.length = 0;

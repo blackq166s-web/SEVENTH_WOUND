@@ -686,6 +686,92 @@ function drawCrate(ctx, S) {
   ctx.fillRect(c - w * 0.35, c - h * 0.55, 7, 4);
 }
 
+// ================= 新增掉落物（v0.3.3） =================
+
+/** 护盾：淡蓝圆盾 */
+function drawShield(ctx, S) {
+  const c = S / 2;
+  const r = S * 0.34;
+  const g = ctx.createRadialGradient(c, c, r * 0.2, c, c, r);
+  g.addColorStop(0, 'rgba(150,220,255,0.5)');
+  g.addColorStop(1, 'rgba(90,170,230,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(c, c, r, 0, TAU);
+  ctx.fill();
+
+  ctx.fillStyle = '#4a7fae';
+  ctx.beginPath();
+  ctx.arc(c, c, r * 0.62, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(210,240,255,0.9)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(210,240,255,0.35)';
+  ctx.beginPath();
+  ctx.arc(c - r * 0.18, c - r * 0.18, r * 0.18, 0, TAU);
+  ctx.fill();
+}
+
+/** 加速：黄色闪电 */
+function drawBoost(ctx, S) {
+  const c = S / 2;
+  const g = ctx.createRadialGradient(c, c, 0, c, c, S * 0.5);
+  g.addColorStop(0, 'rgba(255,209,102,0.5)');
+  g.addColorStop(1, 'rgba(255,180,60,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(c, c, S * 0.5, 0, TAU);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffd166';
+  ctx.beginPath();
+  ctx.moveTo(c + S * 0.12, c - S * 0.3);
+  ctx.lineTo(c - S * 0.16, c + S * 0.04);
+  ctx.lineTo(c - S * 0.02, c + S * 0.04);
+  ctx.lineTo(c - S * 0.12, c + S * 0.3);
+  ctx.lineTo(c + S * 0.16, c - S * 0.04);
+  ctx.lineTo(c + S * 0.02, c - S * 0.04);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(120,80,10,0.7)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+/** 磁吸：青色吸铁石（拾取后吸走全场经验） */
+function drawMagnet(ctx, S) {
+  const c = S / 2;
+  const g = ctx.createRadialGradient(c, c, 0, c, c, S * 0.5);
+  g.addColorStop(0, 'rgba(124,231,255,0.5)');
+  g.addColorStop(1, 'rgba(60,180,220,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(c, c, S * 0.5, 0, TAU);
+  ctx.fill();
+
+  // U 形磁铁
+  ctx.fillStyle = '#7ce7ff';
+  ctx.beginPath();
+  ctx.arc(c, c - S * 0.04, S * 0.22, Math.PI, 0);
+  ctx.lineTo(c + S * 0.22, c + S * 0.1);
+  ctx.lineTo(c + S * 0.12, c + S * 0.1);
+  ctx.lineTo(c + S * 0.12, c - S * 0.02);
+  ctx.lineTo(c - S * 0.12, c - S * 0.02);
+  ctx.lineTo(c - S * 0.12, c + S * 0.1);
+  ctx.lineTo(c - S * 0.22, c + S * 0.1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(20,60,80,0.6)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // 两端磁极（红/蓝）
+  ctx.fillStyle = '#ff5f6d';
+  ctx.fillRect(c - S * 0.22, c + S * 0.08, S * 0.1, S * 0.1);
+  ctx.fillStyle = '#5aa7ff';
+  ctx.fillRect(c + S * 0.12, c + S * 0.08, S * 0.1, S * 0.1);
+}
+
 const ANIM_STEPS = [0, 0.25, 0.5, 0.75];
 
 /** 生成一组动画帧（4 帧：呼吸 / 步态 / 蓄能） */
@@ -704,7 +790,10 @@ export function getSprites() {
     brute: frames('brute', 96, drawBrute),
     orb: build('orb', 26, drawOrb),
     health: build('health', 34, drawHealth),
-    crate: build('crate', 38, drawCrate)
+    crate: build('crate', 38, drawCrate),
+    shield: build('shield', 36, drawShield),
+    boost: build('boost', 36, drawBoost),
+    magnet: build('magnet', 36, drawMagnet)
   };
 }
 

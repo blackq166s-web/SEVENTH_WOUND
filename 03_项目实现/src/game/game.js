@@ -606,6 +606,31 @@ export class Game {
       const mode = giveWeapon(this, p, it.weapon);
       this.onWeaponPickup(it.weapon, mode);
       this.particles.ring(it.x, it.y, 34, 'rgba(255,180,60,0.9)', 0.5);
+    } else if (it.type === 'shield') {
+      p.shield = Math.min(p.maxHp, p.shield + 60);   // 护盾上限 = 最大生命
+      this.audio.pickup();
+      this.particles.ring(it.x, it.y, 30, 'rgba(150,220,255,0.9)', 0.45);
+      this.particles.text(p.x, p.y - 30, '+60 护盾', '#a8e0ff', 15);
+    } else if (it.type === 'boost') {
+      p.boostT = 6;   // 6 秒加速
+      this.audio.pickup();
+      this.particles.ring(it.x, it.y, 30, 'rgba(255,209,102,0.9)', 0.45);
+      this.particles.text(p.x, p.y - 30, '加速！', '#ffd166', 16);
+    } else if (it.type === 'magnet') {
+      // 吸走全场经验晶体：直接拉到玩家附近，交给归巢逻辑逐个吸走
+      let pulled = 0;
+      for (const it2 of this.pickups) {
+        if (it2.type === 'xp') {
+          const a = M.rand(0, M.TAU);
+          const d = 30 + M.rand(0, 60);
+          it2.x = p.x + Math.cos(a) * d;
+          it2.y = p.y + Math.sin(a) * d;
+          pulled++;
+        }
+      }
+      this.audio.pickup();
+      this.particles.ring(it.x, it.y, 60, 'rgba(124,231,255,0.9)', 0.5);
+      this.particles.text(p.x, p.y - 30, `磁吸 ${pulled} 颗结晶`, '#7ce7ff', 15);
     }
   }
 
@@ -827,13 +852,17 @@ export class Game {
     if (M.chance(0.045)) {
       this.pickups.push({ type: 'health', x: e.x, y: e.y, vx: M.rand(-40, 40), vy: M.rand(-40, 40), t: 0 });
     }
-    // 掉落：5% 概率 + 保底（连续 90 秒没掉就必掉），Boss 必掉
+    // 掉落：武器概率调低（5% → 2.5%），把频率让给护盾/加速/磁吸这类"有意思"的消耗品。
+    // 保底仍在：连续 90 秒没掉就必掉；Boss 必掉。
     const sinceDrop = this.time - this.lastWeaponDropAt;
     const pity = sinceDrop >= 90;
-    const dropChance = e.def.isBoss ? 1 : pity ? 1 : 0.05;
+    const dropChance = e.def.isBoss ? 1 : pity ? 1 : 0.025;
     if (M.chance(dropChance)) {
       const maxTier = e.def.isBoss ? 4 : Math.min(4, 1 + Math.floor(this.wave / 3));
       this.dropWeapon(e.x, e.y, maxTier);
+    } else {
+      // 没掉武器时，按概率掉一个消耗品（护盾 / 加速 / 磁吸）
+      this.dropPowerup(e);
     }
 
     // 死亡时钟
@@ -850,6 +879,7 @@ export class Game {
     const w = WEAPONS[id];
     this.toast = {
       name: w.name,
+      icon: w.icon || '',
       tier: w.tier,
       mode,
       t: 2.6,
@@ -926,6 +956,17 @@ export class Game {
         e.slowMul = Math.min(e.slowMul || 1, 0.6);
       }
     }
+  }
+
+  /**
+   * 掉一个消耗品（护盾 / 加速 / 磁吸）。概率约 6%，比武器（2.5%）更高频，
+   * 让战场上"有意思的小东西"比枪更常见。
+   */
+  dropPowerup(e) {
+    if (M.chance(0.06) === false) return;
+    const roll = M.random();
+    const type = roll < 0.4 ? 'shield' : roll < 0.75 ? 'boost' : 'magnet';
+    this.pickups.push({ type, x: e.x, y: e.y, vx: M.rand(-40, 40), vy: M.rand(-40, 40), t: 0 });
   }
 
   /**
@@ -1194,6 +1235,15 @@ export class Game {
         ctx.globalAlpha = 1;
       } else if (it.type === 'health') {
         const s = this.sprites.health;
+        ctx.drawImage(s.canvas, it.x - s.size / 2, it.y - s.size / 2 + bob, s.size, s.size);
+      } else if (it.type === 'shield') {
+        const s = this.sprites.shield;
+        ctx.drawImage(s.canvas, it.x - s.size / 2, it.y - s.size / 2 + bob, s.size, s.size);
+      } else if (it.type === 'boost') {
+        const s = this.sprites.boost;
+        ctx.drawImage(s.canvas, it.x - s.size / 2, it.y - s.size / 2 + bob, s.size, s.size);
+      } else if (it.type === 'magnet') {
+        const s = this.sprites.magnet;
         ctx.drawImage(s.canvas, it.x - s.size / 2, it.y - s.size / 2 + bob, s.size, s.size);
       } else {
         const s = this.sprites.crate;

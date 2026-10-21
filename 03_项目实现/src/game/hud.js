@@ -52,6 +52,15 @@ export function drawHud(ctx, g, w, h) {
   ctx.textAlign = 'left';
   ctx.fillText(`${Math.ceil(p.hp)} / ${Math.round(p.maxHp)}`, bx + 10, by + 9);
 
+  // 护盾条（有护盾时才显示，压在血条上方一层淡蓝）
+  if (p.shield > 0) {
+    const shRatio = p.shield / p.maxHp;
+    bar(ctx, bx, by - 8, bw, 6, Math.min(1, shRatio), '#7cc8f0', '#b8ecff', 'rgba(120,200,255,0.08)');
+    ctx.font = `700 10px ${FONT}`;
+    ctx.fillStyle = 'rgba(168,224,255,0.85)';
+    ctx.fillText(`护盾 ${Math.ceil(p.shield)}`, bx + 10, by - 5);
+  }
+
   // 等级徽标
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
@@ -91,7 +100,8 @@ export function drawHud(ctx, g, w, h) {
 
   ctx.font = `800 15px ${FONT}`;
   ctx.fillStyle = wDef.color || '#fff';
-  ctx.fillText(wDef.name.toUpperCase(), rx, h - 84);
+  const lockTag = p.weaponLocked ? ' 🔒' : '';
+  ctx.fillText(`${wDef.icon || ''} ${wDef.name}${lockTag}`, rx, h - 84);
 
   ctx.font = `800 40px ${FONT}`;
   ctx.fillStyle = p.reloading > 0 ? 'rgba(255,255,255,0.35)' : '#fff';
@@ -105,7 +115,7 @@ export function drawHud(ctx, g, w, h) {
   if (p.secondary) {
     ctx.font = `600 11px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.42)';
-    ctx.fillText(`Q 切换 → ${WEAPONS[p.secondary].name}`, rx, h - 26);
+    ctx.fillText(`Q 切换 → ${WEAPONS[p.secondary].icon || ''} ${WEAPONS[p.secondary].name}`, rx, h - 26);
   }
 
   if (p.reloading > 0) {
@@ -197,13 +207,15 @@ export function drawHud(ctx, g, w, h) {
     const modeText = tst.mode === 'secondary' ? '副武器槽 · 按 Q 切换'
       : tst.mode === 'ammo' ? '弹药补满'
         : tst.mode === 'swap' ? '同级替换'
-          : tst.mode === 'salvage' ? '弱于当前 · 转为补给' : '已装备';
+          : tst.mode === 'salvage' ? '弱于当前 · 转为补给'
+            : tst.mode === 'locked' ? '已锁定 · 转为补给' : '已装备';
     ctx.save();
     ctx.globalAlpha = Math.max(0, a);
     ctx.textBaseline = 'middle';
 
     ctx.font = `900 22px ${FONT}`;
-    const nameW = ctx.measureText(tst.name).width;
+    const nameText = `${tst.icon || ''} ${tst.name}`;
+    const nameW = ctx.measureText(nameText).width;
     ctx.font = `700 11px ${FONT}`;
     const tagW = 46;
     const modeW = ctx.measureText(modeText).width;
@@ -239,10 +251,10 @@ export function drawHud(ctx, g, w, h) {
     ctx.fillStyle = col;
     ctx.fillText('拾 取', x0 + 16, yb);
 
-    // 武器名
+    // 武器名（带图标）
     ctx.font = `900 22px ${FONT}`;
     ctx.fillStyle = '#fff';
-    ctx.fillText(tst.name, x0 + 18 + tagW, yb);
+    ctx.fillText(nameText, x0 + 18 + tagW, yb);
 
     // 结果
     ctx.font = `700 12px ${FONT}`;

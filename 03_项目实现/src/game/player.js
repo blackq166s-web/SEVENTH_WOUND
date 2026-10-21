@@ -32,6 +32,9 @@ export function createPlayer(x, y) {
     burstLeft: 0,    // 连发剩余发数（三连点射）
     burstTimer: 0,
     chargeT: 0,      // 蓄力进度（轨道炮）
+    weaponLocked: false,  // 锁定当前武器：捡到更高等级也不自动换（按 L 切换）
+    shield: 0,        // 护盾值（消耗品）：受伤先扣盾，扣完才扣血
+    boostT: 0,        // 加速剩余时间（秒）
     stats: {
       dmgMul: 1,
       speedMul: 1,
@@ -90,11 +93,12 @@ export function swapWeapon(g, p) {
 /**
  * 捡到武器。规则（按优先级）：
  *   1) 同名 → 补满弹匣
- *   2) 副武器槽空着 → 进副武器（永远不覆盖主武器）
- *   3) 比当前强 → 装备；如果副武器槽空着，旧枪退到副武器槽（不丢）
- *   4) 同级 → 装备（同级替换，属于"你自己走过去换的"）
- *   5) 更弱 → **不降级**：转成补给（补满当前弹匣 + 残响量）
- * 返回值：'ammo' | 'secondary' | 'equip' | 'swap' | 'salvage'
+ *   2) 锁定中 → 一律转补给（不管等级高低，玩家明确要保住当前枪）
+ *   3) 更强 → 自动装备；旧枪能放就退到副武器槽（不丢）
+ *   4) 副武器槽空着 → 进副武器
+ *   5) 同级 → 替换
+ *   6) 更弱 → 转补给（补满当前弹匣 + 残响量）
+ * 返回值：'ammo' | 'locked' | 'equip' | 'secondary' | 'swap' | 'salvage'
  */
 export function giveWeapon(g, p, id) {
   const cap = magSize(id, p.stats);
@@ -107,7 +111,14 @@ export function giveWeapon(g, p, id) {
     return 'ammo';
   }
 
-  // 2) 更强：先升级（旧枪能放就退到副武器槽，不丢）
+  // 2) 锁定中：不换主武器，转补给（补当前枪弹匣）
+  if (p.weaponLocked) {
+    p.ammo = magSize(p.weapon, p.stats);
+    if (g) g.score += 15;
+    return 'locked';
+  }
+
+  // 3) 更强：自动升级（旧枪能放就退到副武器槽，不丢）
   if (newTier > curTier) {
     if (p.secondaryUnlocked && !p.secondary) {
       p.secondary = p.weapon;
@@ -121,14 +132,14 @@ export function giveWeapon(g, p, id) {
     return 'equip';
   }
 
-  // 3) 副武器槽空着：进副武器，不动主武器
+  // 4) 副武器槽空着：进副武器，不动主武器
   if (p.secondaryUnlocked && !p.secondary) {
     p.secondary = id;
     p.secondaryAmmo = cap;
     return 'secondary';
   }
 
-  // 4) 同级：替换（玩家自己踩上来的，算选择）
+  // 5) 同级：替换（玩家自己踩上来的，算选择）
   if (newTier === curTier) {
     p.weapon = id;
     p.ammo = cap;
@@ -138,7 +149,7 @@ export function giveWeapon(g, p, id) {
     return 'swap';
   }
 
-  // 5) 更弱：绝不降级，转成补给（补的是**当前这把枪**的弹匣）
+  // 6) 更弱：绝不降级，转成补给（补的是**当前这把枪**的弹匣）
   p.ammo = magSize(p.weapon, p.stats);
   if (g) g.score += 25;
   return 'salvage';
@@ -154,10 +165,14 @@ export function updatePlayer(g, p, dt) {
   const input = g.input;
   const wDef = WEAPONS[p.weapon];
 
-  // 移动（蓄力时拖慢脚步，换那一发大伤害）
+  // 加速消耗品计时
+  if (p.boostT > 0) p.boostT = Math.max(0, p.boostT - dt);
+
+  // 移动（蓄力时拖慢脚步；加速时 ×1.5）
   const mv = input.moveVector();
   const chargeSlow = wDef.charge ? 1 - 0.4 * Math.min(1, (p.chargeT || 0) / wDef.charge) : 1;
-  const speed = p.speed * p.stats.speedMul * chargeSlow;
+  const boostMul = p.boostT > 0 ? 1.5 : 1;
+  const speed = p.speed * p.stats.speedMul * chargeSlow * boostMul;
   const k = damp(15, dt);
   p.vx += (mv.x * speed - p.vx) * k;
   p.vy += (mv.y * speed - p.vy) * k;
@@ -255,6 +270,13 @@ export function updatePlayer(g, p, dt) {
     input.mouse.rclicked = false;
     swapWeapon(g, p);
   }
+  // 锁定/解锁当前武器（L）：锁定时捡到更高等级也不自动换，只转补给
+  if (input.tap('KeyL')) {
+    p.weaponLocked = !p.weaponLocked;
+    g.particles.text(p.x, p.y - 40, p.weaponLocked ? '武器已锁定' : '武器已解锁',
+      p.weaponLocked ? '#ffd166' : '#9fb4c9', 14);
+    g.audio.click();
+  }
 
   // 自然回复
   if (p.stats.regen > 0 && p.hp > 0) {
@@ -270,6 +292,15 @@ export function hurtPlayer(g, dmg) {
   if (random() < p.stats.dodge) {
     g.particles.text(p.x, p.y - 26, '闪避', '#c9d6e5', 14);
     return;
+  }
+  // 护盾先扣：扣完前不掉血
+  if (p.shield > 0) {
+    const absorbed = Math.min(p.shield, dmg);
+    p.shield -= absorbed;
+    dmg -= absorbed;
+    g.particles.ring(p.x, p.y, 22, 'rgba(150,220,255,0.8)', 0.3);
+    g.particles.text(p.x, p.y - 26, `护盾 -${Math.round(absorbed)}`, '#a8e0ff', 13);
+    if (dmg <= 0) return;
   }
   p.hp -= dmg;
   p.hurtFlash = 1;
