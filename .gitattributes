@@ -1,0 +1,8 @@
+# 统一换行符：仓库内与工作区一律 LF
+# 原因：01_阶段成果 的版本索引用 sha256 记录文件指纹，
+# 若 checkout 时被 core.autocrlf 转成 CRLF，指纹全部失配，归档就不可核验。
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
