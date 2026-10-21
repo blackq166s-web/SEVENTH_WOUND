@@ -1,5 +1,6 @@
 node_modules/
 shots/*.png
+03_项目实现/shots/*.png
 *.log
 SECRETS.local.md
 _staging/

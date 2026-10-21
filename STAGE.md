@@ -18,19 +18,20 @@ S1 只解决这三件事，不加新武器/新敌人。
 | D1 | 屏幕边缘威胁指示器 | 视野外敌人在屏幕边缘显示方向标记；同屏最多 8 个（按距离取近）；Boss 独立样式；暂停/死亡时不绘制 | `shoot.mjs` 截图 + smoke 断言数量上限 |
 | D2 | 冲刺 | `Shift` 触发，0.18s 位移 + 0.12s 无敌帧 + 1.2s 冷却；HUD 有冷却指示；冲刺中不可开火 | smoke 断言：无敌期间 `hurtPlayer` 不掉血、冷却未结束不能二次冲刺 |
 | D3 | 受击反馈强化 | 击杀重击/Boss 受击加顿帧（hitstop ≤ 60ms）；玩家受击时有方向提示 | 截图 + 人工观感确认（记为「观感项」） |
-| D4 | 回归 | 上述改动不破坏既有 20 Perk / 9 武器 / 6 关卡 | `smoke.mjs` 全部功能校验 PASS；`fps.mjs` 战斗帧率不低于基线 10% |
+| D4 | 回归 | 上述改动不破坏既有 20 Perk / 9 武器 / 6 关卡 | `smoke.mjs` 全部功能校验 PASS + `shoot.mjs` `NO_PAGE_ERRORS` |
 
-`D4` 是硬门槛，任何一项没过都不算 S1 完成。
+`D4` 是硬门槛，任何一项没过都不算 S1 完成。**帧率不再作为门槛**：测量方法本身失真（24.9 / 54.3 / 60.4 三个数出自同一份代码），详见 `AGENTS.md` 验证门槛下的说明。
 
 ## 3. 进展
 
 - [x] 建立治理结构（AGENTS.md / STAGE.md / 01_阶段成果 / 02_输入材料 / 03_项目实现 / _staging / SECRETS.local.md）
 - [x] 基线校验：`smoke.mjs` → `SMOKE_OK`，功能校验 PASS
 - [x] 代码体检，问题清单入 `01_阶段成果/当前总结.md`
-- [x] 版本追溯：`git init` + 首次提交 `cbb5c81`（31 文件，`SECRETS.local.md`/`_staging/`/`.workbuddy/` 已 ignore）
-- [x] **D1 边缘威胁指示器**（`src/game/threats.js`，2026-10-21）
-  - 证据：`offscreenThreats()` 定向验证 → 4 个方向角 `[-45, 0, 180, -90, 90]`、Boss 计数 1、`NO_PAGE_ERRORS`；截图 `shots/v-threats.png` + 四边裁切 `shots/v-threats-{left,right,top,bottom}.png`
-  - 回归：`smoke.mjs` → `SMOKE_OK` / 功能校验 PASS（新增 4 条断言：上限 8、坐标在视口内、按距离升序、视野内不提示、非战斗不提示）；战斗帧率 60.4（基线 60.5）
+- [x] 版本追溯：`git init` + 首次提交 `cbb5c81`
+- [x] 代码归位：全树迁入 `03_项目实现/`（2026-10-21，提交记录见 `git log`），路径绑定全部验证通过
+- [x] **D1 边缘威胁指示器**（`03_项目实现/src/game/threats.js`，2026-10-21）
+  - 证据：`offscreenThreats()` 定向验证 → 4 个方向角 `[-45, 0, 180, -90, 90]`、Boss 计数 1、`NO_PAGE_ERRORS`；截图 `03_项目实现/shots/v-threats.png` + 四边裁切 `v-threats-{left,right,top,bottom}.png`
+  - 回归：`smoke.mjs` → `SMOKE_OK` / 功能校验 PASS（新增 5 条断言：上限 8、坐标在视口内、按距离升序、视野内不提示、非战斗不提示）
 - [ ] D2 冲刺
 - [ ] D3 受击反馈
 - [ ] D4 全量回归（每轮已随改动执行，阶段末统一复跑）
@@ -60,8 +61,9 @@ S1 只解决这三件事，不加新武器/新敌人。
 ## 7. 资料入口
 
 - 规则与权限：`AGENTS.md`
+- 仓库导航：`README.md`
 - 总结与证据：`01_阶段成果/当前总结.md`
 - 原始需求：`02_输入材料/20261021_总控启动.md`
-- 代码索引：`03_项目实现/README.md`
-- 扩展指南：`docs/EXTENDING.md`
-- 运行说明：`README.md`、`start.bat`
+- 代码与运行说明：`03_项目实现/README.md`
+- 扩展指南：`03_项目实现/docs/EXTENDING.md`
+- 启动：`03_项目实现/start.bat`

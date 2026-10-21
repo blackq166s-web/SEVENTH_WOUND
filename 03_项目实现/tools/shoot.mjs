@@ -1,10 +1,15 @@
 // 用真实浏览器验证渲染与交互，并截图。node tools/shoot.mjs
+// 截图固定写到本项目的 shots/（与脚本位置绑定，不受执行目录影响）
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 const require = createRequire(import.meta.url);
 const { chromium } = require('C:/Users/bhw/.workbuddy/binaries/node/workspace/node_modules/playwright-core');
 
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const URL = process.env.GAME_URL || 'http://127.0.0.1:8124/';
+const SHOTS = join(dirname(fileURLToPath(import.meta.url)), '..', 'shots');
+const shot = (name) => join(SHOTS, name);
 
 const browser = await chromium.launch({
   executablePath: CHROME,
@@ -19,7 +24,7 @@ page.on('pageerror', (e) => logs.push('pageerror: ' + e.message));
 
 await page.goto(URL, { waitUntil: 'load' });
 await page.waitForTimeout(600);
-await page.screenshot({ path: 'shots/v-menu.png' });
+await page.screenshot({ path: shot('v-menu.png') });
 
 // 开局 + 机器人快进到有战斗画面的时刻
 await page.goto(URL + '?auto=survival&warm=1500&bot=1', { waitUntil: 'load' });
@@ -32,7 +37,7 @@ for (let i = 0; i < 6; i++) {
   await page.click('#perkCards .card');
   await page.waitForTimeout(150);
 }
-await page.screenshot({ path: 'shots/v-play.png' });
+await page.screenshot({ path: shot('v-play.png') });
 
 const state = await page.evaluate(() => {
   const g = window.__game;
@@ -60,7 +65,7 @@ await page.evaluate(() => {
   g.gainXp(200);
 });
 await page.waitForTimeout(400);
-await page.screenshot({ path: 'shots/v-perks.png' });
+await page.screenshot({ path: shot('v-perks.png') });
 
 const perkInfo = await page.evaluate(() => ({
   state: window.__game.state,
@@ -76,7 +81,7 @@ await page.waitForTimeout(300);
 for (let i = 0; i < 4; i++) {
   await page.waitForTimeout(1500);
 }
-await page.screenshot({ path: 'shots/v-play2.png' });
+await page.screenshot({ path: shot('v-play2.png') });
 
 const state2 = await page.evaluate(() => {
   const g = window.__game;
@@ -95,7 +100,7 @@ console.log('after:', state2);
 // 关卡模式
 await page.goto(URL + '?auto=quest&warm=600&bot=1', { waitUntil: 'load' });
 await page.waitForTimeout(1200);
-await page.screenshot({ path: 'shots/v-quest.png' });
+await page.screenshot({ path: shot('v-quest.png') });
 
 // 高负载场景：90 秒，检查帧率与粒子/子弹数量
 await page.goto(URL + '?auto=survival&warm=2700&bot=1', { waitUntil: 'load' });
@@ -135,7 +140,7 @@ const load = await page.evaluate(() => {
   };
 });
 console.log('高负载:', load, 'FPS:', fps);
-await page.screenshot({ path: 'shots/v-busy.png' });
+await page.screenshot({ path: shot('v-busy.png') });
 
 // 贴墙视角检查
 await page.evaluate(() => {
@@ -146,7 +151,7 @@ await page.evaluate(() => {
   g.cam.snapTo(g.player.x, g.player.y);
 });
 await page.waitForTimeout(400);
-await page.screenshot({ path: 'shots/v-wall.png' });
+await page.screenshot({ path: shot('v-wall.png') });
 
 console.log(logs.length ? '页面错误:\n' + logs.join('\n') : 'NO_PAGE_ERRORS');
 await browser.close();

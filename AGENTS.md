@@ -13,17 +13,17 @@
 
 ```
 AGENTS.md                 本文件（规则与权限边界）
+README.md                 仓库导航（给人看的入口）
 STAGE.md                  当前阶段：目标 / 完成标准 / 进展 / 阻塞 / 下一步 / 资料入口
 01_阶段成果/当前总结.md    滚动总结：关键结论、方法、证据、遗留问题
 01_阶段成果/YYYYMMDD_名称/ 归档的快照（含当时的总结、关键文件、版本索引、适用条件）
 02_输入材料/               原始需求与参考资料（只增不改）
-03_项目实现/README.md      代码索引（代码实体不在此目录，见下）
+03_项目实现/               代码实现根：index.html / src / tools / docs / shots / start.bat
 _staging/YYYYMMDD_事项/    草稿与临时材料，同一事项复用目录
 SECRETS.local.md           敏感信息（不入库）
 ```
 
-**代码不搬迁**：实际代码在仓库根（`index.html`、`src/`、`tools/`、`docs/`、`shots/`）。`03_项目实现/` 只放索引说明。
-理由：搬迁会破坏 `start.bat`、README 相对路径与全部既有验证脚本，收益为零。
+代码全部位于 `03_项目实现/`（2026-10-21 从仓库根迁入）。该目录自成闭环：`start.bat`、`serve.mjs` 的 ROOT、`smoke.mjs` 的相对 import 都与其相对位置绑定，因此**只能在 `03_项目实现/` 内部再分层，不要把单个文件散到别处**。工具脚本的产物路径按脚本自身位置解析（`shoot.mjs` 用 `import.meta.url`），因此在仓库根执行 `node 03_项目实现/tools/shoot.mjs` 也能正确把截图写进 `03_项目实现/shots/`。
 
 ## 3. 工作循环（每轮）
 
@@ -50,11 +50,13 @@ SECRETS.local.md           敏感信息（不入库）
 
 | 改动类型 | 必跑 | 通过标准 |
 | --- | --- | --- |
-| 任何逻辑改动 | `node tools/smoke.mjs` | 末行 `SMOKE_OK` 且 `功能校验: PASS` |
-| 表现/渲染改动 | `node tools/serve.mjs 8124` + `node tools/shoot.mjs` | 截图落 `shots/`，无 `pageerror` |
-| 性能相关 | `node tools/fps.mjs` | 战斗场景帧率不低于基线 10% |
+| 任何逻辑改动 | `node 03_项目实现/tools/smoke.mjs` | 末行 `SMOKE_OK` 且 `功能校验: PASS` |
+| 表现/渲染改动 | `node 03_项目实现/tools/serve.mjs 8124` + `node 03_项目实现/tools/shoot.mjs` | 截图落 `03_项目实现/shots/`，输出 `NO_PAGE_ERRORS` |
+| 性能相关 | `node 03_项目实现/tools/fps.mjs` | 见下方说明（当前指标不可信） |
 
 没有证据的结论一律写进「未验证项」，不得表述为已完成。
+
+> **帧率指标暂不可用**：同一份代码、同一台机器连续测量得到 24.9 / 54.3 / 60.4 FPS，headless Chrome 的 rAF 调度与后台节流让数值失真；JS 侧 `render()` 计时也不可信（`--disable-gpu` 下绘制指令异步提交，测出 0.08ms/帧）。在把测量方法修好之前，不得用帧率数字判定"有无性能回退"；只做同一次会话内的 A/B 对照，或改成固定次数绘制的耗时统计。
 
 ## 6. 项目技术铁律
 
