@@ -1466,37 +1466,71 @@ export class Game {
   }
 
   drawBullets(ctx) {
+    const now = this.time;
     for (const b of this.bullets) {
       const col = b.color || '#fff';
+      const ang = Math.atan2(b.vy, b.vx);
+
+      // ---- gauss：细长贯穿线 + 放电毛刺 ----
       if (b.kind === 'gauss') {
         ctx.save();
+        const tx = b.x - b.vx * 0.02;
+        const ty = b.y - b.vy * 0.02;
+        ctx.globalAlpha = 0.35;
         ctx.strokeStyle = col;
-        ctx.lineWidth = 2.4;
-        ctx.globalAlpha = 0.9;
+        ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(b.x, b.y);
-        ctx.lineTo(b.x - b.vx * 0.012, b.y - b.vy * 0.012);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.globalAlpha = 0.95;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        // 放电毛刺（垂直于弹道的短抖线）
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        for (let i = 1; i <= 3; i++) {
+          const px = b.x - (b.vx * 0.02 * i) / 3;
+          const py = b.y - (b.vy * 0.02 * i) / 3;
+          const off = fxRand(-3, 3);
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + Math.cos(ang + Math.PI / 2) * off, py + Math.sin(ang + Math.PI / 2) * off);
+        }
         ctx.stroke();
         ctx.restore();
         ctx.fillStyle = '#fff';
         ctx.beginPath();
-        ctx.arc(b.x, b.y, 3, 0, M.TAU);
+        ctx.arc(b.x, b.y, 2.6, 0, M.TAU);
         ctx.fill();
         continue;
       }
 
+      // ---- acid：绿色液滴（沿弹道拉长的椭圆 + 液滴尾巴） ----
       if (b.kind === 'acid') {
-        ctx.globalAlpha = 0.55;
-        ctx.fillStyle = fxRandom() < 0.5 ? '#9dff2b' : '#d2ff7a';
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(ang);
+        ctx.globalAlpha = 0.62;
+        ctx.fillStyle = fxRandom() < 0.5 ? '#9dff2b' : '#c8f06a';
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * fxRand(0.7, 1.1), 0, M.TAU);
+        ctx.ellipse(0, 0, b.r * 1.5, b.r * 0.75, 0, 0, M.TAU);
         ctx.fill();
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.ellipse(-b.r * 1.8, 0, b.r * 0.9, b.r * 0.45, 0, 0, M.TAU);
+        ctx.fill();
+        ctx.restore();
         ctx.globalAlpha = 1;
         continue;
       }
 
+      // ---- saw：旋转锯片（保持） ----
       if (b.kind === 'saw') {
-        const spin = this.time * 42;
+        const spin = now * 42;
         ctx.save();
         ctx.translate(b.x, b.y);
         ctx.rotate(spin);
@@ -1513,24 +1547,30 @@ export class Game {
         continue;
       }
 
+      // ---- cryo：冰晶簇（六向星形，旋转） ----
       if (b.kind === 'cryo') {
         ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(now * 6 + b.dmg);
+        ctx.globalAlpha = 0.85;
         ctx.strokeStyle = col;
-        ctx.globalAlpha = 0.8;
-        ctx.lineWidth = b.r * 1.5;
-        ctx.lineCap = 'round';
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
-        ctx.moveTo(b.x, b.y);
-        ctx.lineTo(b.x - b.vx * 0.022, b.y - b.vy * 0.022);
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * M.TAU;
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a) * b.r * 1.7, Math.sin(a) * b.r * 1.7);
+        }
         ctx.stroke();
-        ctx.restore();
         ctx.fillStyle = '#eaffff';
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * 0.5, 0, M.TAU);
+        ctx.arc(0, 0, b.r * 0.55, 0, M.TAU);
         ctx.fill();
+        ctx.restore();
         continue;
       }
 
+      // ---- rail：三层粗线（保持） ----
       if (b.kind === 'rail') {
         const tx = b.x - b.vx * 0.032;
         const ty = b.y - b.vy * 0.032;
@@ -1558,6 +1598,7 @@ export class Game {
         continue;
       }
 
+      // ---- flame：火焰团（保持） ----
       if (b.kind === 'flame') {
         ctx.globalAlpha = 0.5;
         ctx.fillStyle = fxRandom() < 0.5 ? '#ff7a2a' : '#ffbb4d';
@@ -1568,27 +1609,74 @@ export class Game {
         continue;
       }
 
-      // 光晕
-      if (b.glow) {
-        ctx.globalAlpha = 0.22;
+      // ---- plasma：脉冲球（外圈呼吸） ----
+      if (b.kind === 'plasma') {
+        const pulse = 1 + Math.sin(now * 14 + b.dmg) * 0.18;
+        ctx.save();
+        ctx.globalAlpha = 0.28;
         ctx.fillStyle = col;
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * 2.6, 0, M.TAU);
+        ctx.arc(b.x, b.y, b.r * 2.8 * pulse, 0, M.TAU);
         ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, M.TAU);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 0.45, 0, M.TAU);
+        ctx.fill();
+        ctx.restore();
+        continue;
       }
 
+      // ---- rocket：带尾焰的火箭弹体 ----
+      if (b.kind === 'rocket') {
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(ang);
+        const fl = 6 + Math.sin(now * 30) * 2;
+        ctx.globalAlpha = 0.7;
+        ctx.fillStyle = '#ff8a3c';
+        ctx.beginPath();
+        ctx.moveTo(-b.r, -2.4);
+        ctx.lineTo(-b.r - fl, 0);
+        ctx.lineTo(-b.r, 2.4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, b.r * 1.5, b.r, 0, 0, M.TAU);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(b.r * 0.7, 0, b.r * 0.4, 0, M.TAU);
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
+
+      // ---- bullet（默认）：曳光弹（短尾 + 白芯弹头） ----
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = b.r * 1.2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y);
+      ctx.lineTo(b.x - b.vx * 0.014, b.y - b.vy * 0.014);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
       ctx.fillStyle = col;
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.r, 0, M.TAU);
       ctx.fill();
-
-      if (b.kind === 'plasma' || b.kind === 'rocket') {
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * 0.42, 0, M.TAU);
-        ctx.fill();
-      }
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r * 0.4, 0, M.TAU);
+      ctx.fill();
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
