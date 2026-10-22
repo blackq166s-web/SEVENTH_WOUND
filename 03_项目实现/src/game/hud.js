@@ -1,5 +1,6 @@
 import { clamp } from '../core/math.js';
 import { WEAPONS, magSize } from './weapons.js';
+import { getGunIcon } from '../render/sprites.js';
 
 const FONT = '"Segoe UI", system-ui, -apple-system, sans-serif';
 
@@ -101,7 +102,12 @@ export function drawHud(ctx, g, w, h) {
   ctx.font = `800 15px ${FONT}`;
   ctx.fillStyle = wDef.color || '#fff';
   const lockTag = p.weaponLocked ? ' 🔒' : '';
-  ctx.fillText(`${wDef.icon || ''} ${wDef.name}${lockTag}`, rx, h - 84);
+  const mainName = `${wDef.name}${lockTag}`;
+  const mainW = ctx.measureText(mainName).width;
+  const mainIcon = getGunIcon(p.weapon);
+  const iconY = h - 84;
+  ctx.drawImage(mainIcon.canvas, rx - mainW - mainIcon.size + 6, iconY - mainIcon.size / 2, mainIcon.size, mainIcon.size);
+  ctx.fillText(mainName, rx, iconY);
 
   ctx.font = `800 40px ${FONT}`;
   ctx.fillStyle = p.reloading > 0 ? 'rgba(255,255,255,0.35)' : '#fff';
@@ -115,7 +121,11 @@ export function drawHud(ctx, g, w, h) {
   if (p.secondary) {
     ctx.font = `600 11px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.42)';
-    ctx.fillText(`Q 切换 → ${WEAPONS[p.secondary].icon || ''} ${WEAPONS[p.secondary].name}`, rx, h - 26);
+    const secText = `Q 切换 → ${WEAPONS[p.secondary].name}`;
+    const secW = ctx.measureText(secText).width;
+    const secIcon = getGunIcon(p.secondary);
+    ctx.drawImage(secIcon.canvas, rx - secW - secIcon.size + 4, h - 26 - secIcon.size / 2, secIcon.size, secIcon.size);
+    ctx.fillText(secText, rx, h - 26);
   }
 
   if (p.reloading > 0) {
@@ -214,12 +224,13 @@ export function drawHud(ctx, g, w, h) {
     ctx.textBaseline = 'middle';
 
     ctx.font = `900 22px ${FONT}`;
-    const nameText = `${tst.icon || ''} ${tst.name}`;
+    const nameText = tst.name;
     const nameW = ctx.measureText(nameText).width;
     ctx.font = `700 11px ${FONT}`;
     const tagW = 46;
     const modeW = ctx.measureText(modeText).width;
-    const wBox = Math.min(w - 60, nameW + tagW + modeW + 82);
+    const toastIcon = getGunIcon(tst.id);
+    const wBox = Math.min(w - 60, toastIcon.size + nameW + tagW + modeW + 92);
     const yb = 92;
     const x0 = w / 2 - wBox / 2;
 
@@ -251,15 +262,18 @@ export function drawHud(ctx, g, w, h) {
     ctx.fillStyle = col;
     ctx.fillText('拾 取', x0 + 16, yb);
 
-    // 武器名（带图标）
+    // 枪械矢量图标
+    ctx.drawImage(toastIcon.canvas, x0 + 16 + tagW, yb - toastIcon.size / 2, toastIcon.size, toastIcon.size);
+
+    // 武器名
     ctx.font = `900 22px ${FONT}`;
     ctx.fillStyle = '#fff';
-    ctx.fillText(nameText, x0 + 18 + tagW, yb);
+    ctx.fillText(nameText, x0 + 18 + tagW + toastIcon.size, yb);
 
     // 结果
     ctx.font = `700 12px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.fillText(modeText, x0 + 16 + tagW + nameW + 12, yb);
+    ctx.fillText(modeText, x0 + 16 + tagW + toastIcon.size + nameW + 12, yb);
     ctx.restore();
   }
 

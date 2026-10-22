@@ -878,8 +878,8 @@ export class Game {
   onWeaponPickup(id, mode = 'equip') {
     const w = WEAPONS[id];
     this.toast = {
+      id,
       name: w.name,
-      icon: w.icon || '',
       tier: w.tier,
       mode,
       t: 2.6,

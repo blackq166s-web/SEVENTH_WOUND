@@ -6,6 +6,7 @@
 import { TAU } from '../core/math.js';
 import { fxRandom } from '../core/fx.js';
 import { LAYER_PALETTES, ARENA_PALETTE } from './palettes.js';
+import { WEAPONS } from '../game/weapons.js';
 
 const CACHE = new Map();
 const GROUND_CACHE = new Map();
@@ -762,6 +763,311 @@ const ANIM_STEPS = [0, 0.25, 0.5, 0.75];
 /** 生成一组动画帧（4 帧：呼吸 / 步态 / 蓄能） */
 function frames(key, size, draw) {
   return ANIM_STEPS.map((t, i) => build(`${key}${i}`, size, (c, s) => draw(c, s, t)));
+}
+
+// ================= 枪械矢量图标（S7-E） =================
+//
+// 每把枪一个侧视剪影，纯几何拼装（枪管 + 握把 + 特征件），主色取该枪 color，
+// 统一粗黑描边（和精灵同一套卡通语言）。替代 emoji，进 HUD / 拾取横幅 / 图鉴。
+
+const GUN_ICONS = new Map();
+
+/** 画枪身基础：枪管 + 握把（朝右），返回管口 x 便于接特征件 */
+function gunBase(ctx, c, barrelLen, barrelH, color) {
+  // 枪管
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(c - 14, c - barrelH / 2, barrelLen, barrelH, 1.5);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // 握把：斜向下
+  ctx.save();
+  ctx.translate(c - 9, c + barrelH / 2 - 1);
+  ctx.rotate(0.35);
+  ctx.beginPath();
+  ctx.roundRect(-3, 0, 6, 10, 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+  return c - 14 + barrelLen;
+}
+
+/** 15 把枪的特征件（在 gunBase 之上叠加） */
+function drawGunIconBody(ctx, S, id, color) {
+  const c = S / 2;
+  switch (id) {
+    case 'pistol': { // 第一声 · 手枪：短管
+      gunBase(ctx, c, 16, 5, color);
+      break;
+    }
+    case 'whistle': { // 口哨 · 精准手枪：短管 + 瞄准镜
+      gunBase(ctx, c, 17, 5, color);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 8, c - 7, 8, 3.5, 1.5);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+    }
+    case 'rifle': { // 连祷 · 突击步枪：长管 + 弹匣 + 枪托
+      gunBase(ctx, c, 24, 4.5, color);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 2, c + 2, 5, 9, 1.5);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.roundRect(c - 17, c - 2, 5, 5, 1.5);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'catechism': { // 教诲 · 三连点射：长管 + 三叉枪口
+      gunBase(ctx, c, 22, 4.5, color);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 2, c + 2, 5, 9, 1.5);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 三叉枪口
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.roundRect(c + 8, c - 3.5 + i * 3.2, 5, 2.2, 1);
+        ctx.fill();
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'smg': { // 口吃者 · 冲锋枪：中管 + 粗弹匣
+      gunBase(ctx, c, 18, 5.5, color);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 4, c + 3, 7, 11, 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+    }
+    case 'shotgun': { // 宽恕 · 霰弹枪：粗双管
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 15, c - 5, 26, 4.5, 2);
+      ctx.roundRect(c - 15, c + 0.5, 24, 4.5, 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 泵动握把
+      ctx.beginPath();
+      ctx.roundRect(c - 4, c + 1, 8, 5, 2);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'flamer': { // 焚稿 · 火焰喷射器：枪管 + 喷嘴喇叭 + 背部油罐
+      gunBase(ctx, c, 18, 6, color);
+      // 喇叭喷嘴
+      ctx.beginPath();
+      ctx.moveTo(c + 4, c - 4.5);
+      ctx.lineTo(c + 10, c - 7);
+      ctx.lineTo(c + 10, c + 7);
+      ctx.lineTo(c + 4, c + 4.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 背部油罐（圆）
+      ctx.beginPath();
+      ctx.arc(c - 14, c - 1, 5.5, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'plasma': { // 结晶之喉 · 等离子枪：枪身 + 发光核心
+      gunBase(ctx, c, 20, 5.5, color);
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = '#eaffff';
+      ctx.beginPath();
+      ctx.arc(c + 2, c, 4, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      break;
+    }
+    case 'gauss': { // 穿层者 · 电磁步枪：长管 + 双线圈
+      gunBase(ctx, c, 24, 4, color);
+      ctx.fillStyle = color;
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      for (const dx of [2, 9]) {
+        ctx.beginPath();
+        ctx.roundRect(c - 8 + dx, c - 4.5, 3.5, 9, 1.5);
+        ctx.fill();
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'rocket': { // 墓碑 · 火箭筒：粗圆筒 + 筒口
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 15, c - 4.5, 30, 9, 3);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.roundRect(c + 13, c - 6, 4, 12, 2);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'minigun': { // 蜂巢 · 转轮机枪：三管转轮
+      ctx.fillStyle = color;
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      for (const dy of [-3.5, 0, 3.5]) {
+        ctx.beginPath();
+        ctx.roundRect(c - 12, c - 2 + dy, 24, 3, 1.5);
+        ctx.fill();
+        ctx.stroke();
+      }
+      // 转轮
+      ctx.beginPath();
+      ctx.arc(c - 8, c, 6, 0, TAU);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'acidbag': { // 酸囊 · 腐蚀喷洒：圆罐 + 软管 + 喷嘴
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(c - 8, c, 7, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 软管
+      ctx.beginPath();
+      ctx.moveTo(c - 2, c - 3);
+      ctx.quadraticCurveTo(c + 4, c - 6, c + 8, c - 2);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.stroke();
+      // 喷嘴
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c + 7, c - 4, 7, 4.5, 1.5);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+    }
+    case 'bonesaw': { // 碎骨 · 链锯枪：矩形枪身 + 锯齿下缘
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 14, c - 5, 27, 8, 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 锯齿
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const x = c - 12 + i * 4.4;
+        ctx.moveTo(x, c + 3);
+        ctx.lineTo(x + 2, c + 7);
+        ctx.lineTo(x + 4, c + 3);
+      }
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      break;
+    }
+    case 'cryo': { // 裂层 · 冰冻射线：枪身 + 雪花喷嘴
+      gunBase(ctx, c, 18, 5.5, color);
+      ctx.save();
+      ctx.translate(c + 9, c);
+      ctx.strokeStyle = '#eaffff';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU;
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * 5, Math.sin(a) * 5);
+      }
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'hymn': { // 圣咏 · 轨道炮：长筒 + 双线圈 + 后座块
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 16, c - 3.5, 32, 7, 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 双线圈
+      for (const dx of [0, 9]) {
+        ctx.beginPath();
+        ctx.roundRect(c - 8 + dx, c - 6, 4, 12, 1.5);
+        ctx.fill();
+        ctx.stroke();
+      }
+      // 后座块
+      ctx.beginPath();
+      ctx.roundRect(c - 19, c - 5, 5, 10, 2);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    default: { // 兜底：一个简单枪形
+      gunBase(ctx, c, 18, 5, color);
+      break;
+    }
+  }
+}
+
+/**
+ * 取一把枪的矢量图标（侧视剪影，缓存复用）。
+ * 返回 { canvas, size }；HUD / 拾取横幅 / 图鉴通用。
+ */
+export function getGunIcon(id) {
+  if (GUN_ICONS.has(id)) return GUN_ICONS.get(id);
+  const S = 44;
+  const c = document.createElement('canvas');
+  c.width = S;
+  c.height = S;
+  const ctx = c.getContext('2d');
+  const color = (WEAPONS[id] && WEAPONS[id].color) || '#cfd8e3';
+  // 微光底：让图标在暗背景上浮出来
+  const g = ctx.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, S / 2);
+  g.addColorStop(0, 'rgba(255,255,255,0.10)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, S, S);
+  drawGunIconBody(ctx, S, id, color);
+  const entry = { canvas: c, size: S };
+  GUN_ICONS.set(id, entry);
+  return entry;
 }
 
 export function getSprites() {
