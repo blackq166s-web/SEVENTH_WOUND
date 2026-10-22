@@ -128,9 +128,28 @@ for (const key of order) {
 
 const bundle = chunks.join('\n');
 
+// ---------- 3.5 精灵 PNG 内联（S8） ----------
+// 开发模式下 loadPngSprites() 走 assets/sprites/<key>.png；
+// 单文件里没有 assets 目录，这里把 PNG 转 base64 注入 window.__SPRITE_ASSETS__。
+const SPRITE_KEYS = ['player', 'zombie', 'runner', 'spider', 'lizard', 'alien', 'brute'];
+const ASSET_DIR = join(ROOT, 'assets', 'sprites');
+const assetEntries = [];
+for (const key of SPRITE_KEYS) {
+  const f = join(ASSET_DIR, `${key}.png`);
+  if (!existsSync(f)) {
+    console.warn(`  警告：缺少精灵 ${key}.png，该角色将回落到代码绘制`);
+    continue;
+  }
+  const b64 = readFileSync(f).toString('base64');
+  assetEntries.push(`  ${JSON.stringify(key)}: 'data:image/png;base64,${b64}'`);
+}
+const assetBoot = assetEntries.length
+  ? `window.__SPRITE_ASSETS__ = {\n${assetEntries.join(',\n')}\n};`
+  : '';
+
 const outHtml = rawHtml.replace(
   SCRIPT_TAG,
-  ['<script>', '(function () {', bundle, '})();', '</script>'].join('\n')
+  ['<script>', assetBoot, '(function () {', bundle, '})();', '</script>'].join('\n')
 );
 
 // 自检：单文件里不该再有任何外链模块或相对资源
@@ -182,5 +201,6 @@ const kb = (n) => (n / 1024).toFixed(1) + ' KB';
 console.log(`版本      : v${VERSION}`);
 console.log(`模块      : ${order.length} 个（${order.join(', ')}）`);
 console.log(`源码体积  : ${kb(totalSrc)}`);
+console.log(`精灵内联  : ${assetEntries.length}/7 张 PNG（base64）`);
 console.log(`产物      : release/${outName}（${kb(outHtml.length)}）+ release/运行说明.txt`);
 console.log('PACK_OK 单文件无外部依赖，可直接双击打开');

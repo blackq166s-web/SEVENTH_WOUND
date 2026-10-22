@@ -136,3 +136,32 @@
 ### S7-F 打包 v0.3.4
 
 源码 173.3 KB → 单文件 199.2 KB，`PACK_OK` / `PACK_VERIFY_OK`。
+
+---
+
+## 7. S8 · PNG 精灵接入（2026-10-22，v0.4.0）
+
+代码绘制四轮迭代后到达上限（用户判定"太丑"），转为**图像 Agent 产出 PNG + 主控接入**的分工。
+
+**产出方**（绘图 Agent，按 `docs/角色精灵生成规范.md`）：
+7 张 256×256 单帧 PNG（player / zombie / runner / spider / lizard / alien / brute），俯视朝右、透明背景、粗描边卡通。质量验收全部通过。
+
+**接入方**（本批改动）：
+
+| 文件 | 改动 |
+| --- | --- |
+| `render/sprites.js` | `loadPngSprites()`：异步加载 PNG → 按 alpha 包围盒缩放居中 → 画进现有 4 帧画布（**保留 canvas 对象与引用，主循环零改动**）；失败自动回落代码精灵 |
+| `game/game.js` | 构造时调用 `loadPngSprites()`；敌人/玩家加 squash 变形（单帧 PNG 的行走感）；闪白从"白圆"改为 **filter 重画精灵**（提亮去色，贴形）；布条坐标适配新玩家图 |
+| `tools/pack.mjs` | 7 张 PNG 转 base64 注入 `window.__SPRITE_ASSETS__`，单文件可用 |
+| `AGENTS.md` | 铁律更新：美术 PNG 允许，但必须 base64 内联、失败回落代码精灵（用户授权） |
+
+**关键决策**：
+
+1. **单帧 + 代码 squash**，不用 AI 精灵表——帧对齐风险高，代码变形（`scale(2-sq, sq)`）生命感足够。
+2. **画进现有 canvas 而非替换对象**——`e.sprites` / `this.sprites.player` 引用不变，绘制代码零改动。
+3. **alpha 包围盒适配**——每张图内容占比不同，按非透明像素 bbox 缩放到画布 94%，统一大小。
+4. **闪白用 `ctx.filter`**——`brightness(2.4) saturate(0.35)` 重画精灵，比白色圆斑贴形。
+
+**验证**：`smoke` PASS / `DETERMINISM_OK` / `NO_PAGE_ERRORS` / `SPRITES_OK` / `PACK_OK`（v0.4.0 / **517.6 KB**，7/7 张内联）/ `PACK_VERIFY_OK`（file:// 下 data URL 正常）。
+
+截图：`v-sprites-sheet.png`（7 角色 PNG 同框）、`v-sprites-play.png`（实战）。

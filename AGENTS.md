@@ -64,6 +64,7 @@ SECRETS.local.md           敏感信息（不入库）
 ## 6. 项目技术铁律
 
 - **零依赖、零构建**：运行时只用浏览器原生 API；`tools/*.mjs` 只用 node 内置模块；仅 `tools/fps.mjs`、`tools/shoot.mjs` 使用本机已装的 playwright-core。
+- **美术资源规则（2026-10-22 更新，用户授权）**：角色精灵允许使用 PNG 图片（`assets/sprites/*.png`，由图像 Agent 产出），但**必须以 base64 内联进单文件**（`pack.mjs` 注入 `window.__SPRITE_ASSETS__`），不允许运行时外部文件依赖；加载失败自动回落到代码绘制精灵。图标/地面/特效仍程序化生成。
 - **必须走 http**：`start.bat` 或 `node tools/serve.mjs`，`file://` 下 ES Module 会被 CORS 拦。
 - **数据驱动**：新增武器 / 敌人 / Perk / 关卡只改对应数据表 + `sprites.js` 生成逻辑，不在 `game.js` 里堆 if。
 - **更新渲染分离**：`update*` 不碰 `ctx`，`render` 不改状态。

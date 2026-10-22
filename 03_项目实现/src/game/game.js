@@ -10,7 +10,7 @@ import { drawHud } from './hud.js';
 import { Voice, drawVoice } from './voice.js';
 import { drawThreatIndicators } from './threats.js';
 import { QUESTS, buildQuestQueue } from './quests.js';
-import { getSprites, makeGroundTile, makeGroundMacro, GROUND_MACRO_SCALE } from '../render/sprites.js';
+import { getSprites, loadPngSprites, makeGroundTile, makeGroundMacro, GROUND_MACRO_SCALE } from '../render/sprites.js';
 import { paletteForLayer, ARENA_PALETTE, mixHex } from '../render/palettes.js';
 import { drawAmbient } from './ambient.js';
 import { fxRandom, fxRand } from '../core/fx.js';
@@ -62,6 +62,10 @@ export class Game {
     this.vh = 720;
 
     this.sprites = getSprites();
+    // PNG 精灵（S8）：异步加载，完成后覆盖代码绘制的画布内容；
+    // 加载失败（缺文件）自动继续用代码精灵，不炸。
+    this.pngLoaded = [];
+    loadPngSprites().then((keys) => { this.pngLoaded = keys; });
     // 分层视觉：地面瓦片 / 雾色 / 血迹 / 浮尘全部按层取（render/palettes.js）
     this.palette = ARENA_PALETTE;
     this.ground = null;
@@ -1301,6 +1305,9 @@ export class Game {
       ctx.save();
       ctx.translate(e.x, e.y);
       ctx.rotate(e.face);
+      // squash（S8）：单帧 PNG 的"行走感"用挤压变形补
+      const sq = 1 + Math.sin((t * 6 + e.phase) * 2) * 0.04;
+      ctx.scale(2 - sq, sq);
       if (e.born > 0) {
         const s = 1 - e.born / 0.45 * 0.5;
         ctx.scale(s, s);
@@ -1310,16 +1317,19 @@ export class Game {
       ctx.restore();
       ctx.globalAlpha = 1;
 
-      // 命中闪白
+      // 命中闪白：重画一遍提亮去色的精灵（比白圆更贴形）
       if (e.flash > 0) {
         ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = Math.min(0.85, e.flash * 7);
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.r * 1.02, 0, M.TAU);
-        ctx.fill();
+        ctx.translate(e.x, e.y);
+        ctx.rotate(e.face);
+        ctx.globalAlpha = Math.min(0.9, e.flash * 7);
+        try {
+          ctx.filter = 'brightness(2.4) saturate(0.35)';
+        } catch (err) { /* 老浏览器不支持 filter 就跳过 */ }
+        ctx.drawImage(frame.canvas, -size / 2, -size / 2, size, size);
+        ctx.filter = 'none';
         ctx.restore();
+        ctx.globalAlpha = 1;
       }
 
       // 燃烧
@@ -1378,6 +1388,10 @@ export class Game {
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.body);
+    // squash（S8）：移动时更明显，待机轻微呼吸
+    const moving2 = Math.hypot(p.vx, p.vy) > 30;
+    const psq = 1 + Math.sin(p.walkPhase * 2.2) * (moving2 ? 0.05 : 0.018);
+    ctx.scale(2 - psq, psq);
     ctx.drawImage(frame.canvas, -frame.size / 2, -frame.size / 2, frame.size, frame.size);
     ctx.restore();
 
@@ -1390,20 +1404,20 @@ export class Game {
       ctx.lineWidth = 1.2;
       ctx.lineCap = 'round';
       ctx.globalAlpha = 0.85;
-      // 左臂在 -Y 侧（朝右时是屏幕上方），布条沿手臂等分缠上去。
-      // 坐标 = 精灵内手臂坐标 × 1.6（drawPlayer 里的整体放大系数 K）。
-      const ax = 1.6;
-      const ay = -16;
-      const bx = 13.6;
-      const by = -22.4;
+      // 左臂在新玩家图（S8 PNG）上的位置：头左侧、身体上方，
+      // 72px 画布内布条从肩后 (-9,-8) 缠到前臂 (-4,-11)，等距 4 条。
+      const ax = -9;
+      const ay = -8;
+      const bx = -4;
+      const by = -11;
       for (let i = 0; i < stripes; i++) {
         ctx.strokeStyle = STRIPE_COLORS[i];
-        const k = 0.3 + i * 0.13;
+        const k = 0.15 + i * 0.28;
         const px = ax + (bx - ax) * k;
         const py = ay + (by - ay) * k;
         ctx.beginPath();
-        ctx.moveTo(px - 1.2, py - 2.4);
-        ctx.lineTo(px + 1.2, py + 2.4);
+        ctx.moveTo(px - 1, py - 1.6);
+        ctx.lineTo(px + 1, py + 1.6);
         ctx.stroke();
       }
       ctx.restore();

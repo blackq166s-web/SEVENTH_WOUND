@@ -1,0 +1,149 @@
+﻿[
+    {
+        "file":  "player.png",
+        "width":  256,
+        "height":  256,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       36,
+                       84,
+                       184,
+                       87
+                   ],
+        "longestExtent":  0.71875,
+        "sha256":  "ee4e7b386181a8c320b16e896e1acea7571f844f4b599dc0adb9c53f5d24b3f0"
+    },
+    {
+        "file":  "zombie.png",
+        "width":  256,
+        "height":  256,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       36,
+                       77,
+                       184,
+                       101
+                   ],
+        "longestExtent":  0.71875,
+        "sha256":  "1ab10ee7ddbe6326628033dfe360223fc67fe98c3f1939ff6c306f6fcf1f99e3"
+    },
+    {
+        "file":  "runner.png",
+        "width":  256,
+        "height":  256,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       36,
+                       82,
+                       184,
+                       91
+                   ],
+        "longestExtent":  0.71875,
+        "sha256":  "8f203a26ec1c2b1c2957ecb047cb16fa0f7b5748fe144360304795199419a5c1"
+    },
+    {
+        "file":  "spider.png",
+        "width":  256,
+        "height":  256,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       41,
+                       36,
+                       174,
+                       184
+                   ],
+        "longestExtent":  0.71875,
+        "sha256":  "d94fce4b8fba9cf8346be813874b2295deaedda729b502edd44d353bfdc7205f"
+    },
+    {
+        "file":  "lizard.png",
+        "width":  256,
+        "height":  256,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       36,
+                       50,
+                       184,
+                       155
+                   ],
+        "longestExtent":  0.71875,
+        "sha256":  "0d92a4e59bfe81901301a1c6dbecf7d6a2a1673c14348d3350d6090d1d83a375"
+    },
+    {
+        "file":  "alien.png",
+        "width":  256,
+        "height":  256,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       42,
+                       36,
+                       172,
+                       184
+                   ],
+        "longestExtent":  0.71875,
+        "sha256":  "7bcbaf3ad776c97b732811cd78d95f9f4a91bf070686e24c10b6b14620529cff"
+    },
+    {
+        "file":  "brute.png",
+        "width":  256,
+        "height":  256,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       57,
+                       36,
+                       141,
+                       184
+                   ],
+        "longestExtent":  0.71875,
+        "sha256":  "ab12968e3991c545df787286d5292af3204ba849e8e1b03f8da41ec9afa7341d"
+    }
+]

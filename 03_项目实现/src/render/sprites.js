@@ -1088,6 +1088,91 @@ export function getSprites() {
   };
 }
 
+// ================= PNG 精灵接入（S8，图像 Agent 产出） =================
+//
+// 策略：PNG 加载完成后**画进现有精灵画布**（替换内容、保留 canvas 对象与引用），
+// 主循环 / 敌人 / 玩家的绘制代码零改动。加载完成前先用代码绘制的精灵顶着，
+// 加载完成自动切换——不会有黑块或闪烁。
+//
+// 动画：PNG 只有单帧，4 帧数组里每帧内容相同；行走生命感由 game.js 的
+// squash 变形（按 walkPhase 缩放）补足。
+
+const SPRITE_KEYS = ['player', 'zombie', 'runner', 'spider', 'lizard', 'alien', 'brute'];
+
+/** 打包模式下由 pack.mjs 注入 base64 data URL；开发模式回落到 http 路径 */
+function spriteUrl(key) {
+  const map = typeof window !== 'undefined' ? window.__SPRITE_ASSETS__ : null;
+  if (map && map[key]) return map[key];
+  return `assets/sprites/${key}.png`;
+}
+
+/** 把图片的非透明内容缩放居中画进画布（按 alpha 包围盒，填满率 fill） */
+function fitPngToCanvas(img, canvas, fill = 0.94) {
+  const ctx = canvas.getContext('2d');
+  const tmp = document.createElement('canvas');
+  tmp.width = img.width;
+  tmp.height = img.height;
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(img, 0, 0);
+  let data = null;
+  try {
+    data = tctx.getImageData(0, 0, tmp.width, tmp.height).data;
+  } catch (err) {
+    // getImageData 被跨域污染时直接整图铺满（兜底，不炸）
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return false;
+  }
+  let minX = tmp.width, minY = tmp.height, maxX = -1, maxY = -1;
+  for (let y = 0; y < tmp.height; y += 2) {
+    for (let x = 0; x < tmp.width; x += 2) {
+      if (data[(y * tmp.width + x) * 4 + 3] > 16) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return false;
+  const bw = maxX - minX + 1;
+  const bh = maxY - minY + 1;
+  const s = Math.min(canvas.width / bw, canvas.height / bh) * fill;
+  const w = bw * s;
+  const h = bh * s;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(tmp, minX, minY, bw, bh, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+  return true;
+}
+
+/**
+ * 异步加载 PNG 精灵并覆盖到对应角色的全部帧画布上。
+ * fire-and-forget：加载完成前用代码绘制精灵，完成后自动替换。
+ * @returns {Promise<string[]>} 成功接入的 key 列表
+ */
+export function loadPngSprites() {
+  const loaded = [];
+  return Promise.all(
+    SPRITE_KEYS.map(
+      (key) =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            // 同 key 的 4 帧画布全部覆盖（内容一致，动画交给 squash）
+            for (let i = 0; i < 4; i++) {
+              const entry = CACHE.get(`${key}${i}`);
+              if (entry) fitPngToCanvas(img, entry.canvas);
+            }
+            loaded.push(key);
+            resolve(key);
+          };
+          img.onerror = () => resolve(null); // 图片缺失不炸，继续用代码精灵
+          img.src = spriteUrl(key);
+        })
+    )
+  ).then(() => loaded);
+}
+
 // ================= 地面（按层配色 + 按层材质） =================
 //
 // 分两层绘制，用来藏住"平铺感"：
