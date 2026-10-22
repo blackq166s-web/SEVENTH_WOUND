@@ -31,12 +31,13 @@ export const WEAPONS = {
     color: '#ff8a3c', size: 9, life: 0.24, sound: 'flame', kind: 'flame', burn: 0.5
   },
   plasma: {
-    name: '结晶之喉 · 等离子枪', icon: '⚡', tier: 3, desc: '高伤单发，脉冲爆发', dmg: 27, rate: 0.3, speed: 820, spread: 0.03,
-    pellets: 1, mag: 18, reload: 1.2, pierce: 1, knockback: 130,
-    color: '#7ce7ff', size: 5, life: 1.4, sound: 'plasma', kind: 'plasma', glow: 26
+    name: '结晶之喉 · 等离子枪', icon: '⚡', tier: 3, desc: '脉冲爆发，命中溅射', dmg: 27, rate: 0.3, speed: 820, spread: 0.03,
+    pellets: 1, mag: 18, reload: 1.2, pierce: 0, knockback: 130,
+    color: '#7ce7ff', size: 5, life: 1.4, sound: 'plasma', kind: 'plasma', glow: 26,
+    splash: { radius: 48, dmg: 40 }
   },
   gauss: {
-    name: '穿层者 · 电磁步枪', icon: '☄️', tier: 4, desc: '贯穿六敌，蓄力一击', dmg: 90, rate: 0.95, speed: 2800, spread: 0.004,
+    name: '穿层者 · 电磁步枪', icon: '☄️', tier: 4, desc: '高速贯穿，精准狙杀', dmg: 90, rate: 0.95, speed: 2800, spread: 0.004,
     pellets: 1, mag: 6, reload: 1.5, pierce: 6, knockback: 260,
     color: '#b8ffef', size: 3.4, life: 1.6, sound: 'gauss', kind: 'gauss', glow: 20
   },
@@ -55,9 +56,9 @@ export const WEAPONS = {
   // ---------- v0.3 新增 6 把（S6-C） ----------
   // 遗留：对称、工业感，靠"手艺"而不是蛮力
   whistle: {
-    name: '口哨 · 精准手枪', icon: '🎯', tier: 2, desc: '精准点射，一枪高伤', dmg: 27, rate: 0.42, speed: 1500, spread: 0.004,
-    pellets: 1, mag: 8, reload: 0.95, pierce: 1, knockback: 150,
-    color: '#ffeacd', size: 2.8, life: 1.3, sound: 'pistol'
+    name: '口哨 · 精准手枪', icon: '🎯', tier: 2, desc: '穿甲狙击，一枪重创', dmg: 40, rate: 0.6, speed: 1600, spread: 0.003,
+    pellets: 1, mag: 6, reload: 1.1, pierce: 2, knockback: 180,
+    color: '#ffeacd', size: 2.8, life: 1.4, sound: 'pistol'
   },
   catechism: {
     name: '教诲 · 三连点射', icon: '🔱', tier: 2, desc: '三连点射，中距压制', dmg: 10, rate: 0.62, burst: 3, burstGap: 0.06,
@@ -71,9 +72,9 @@ export const WEAPONS = {
     color: '#9dff2b', size: 8, life: 0.26, sound: 'flame', kind: 'acid', poison: 3
   },
   bonesaw: {
-    name: '碎骨 · 链锯枪', icon: '🪚', tier: 3, desc: '贴脸链锯，极高输出', dmg: 7.5, rate: 0.052, speed: 1000, spread: 0.34,
+    name: '碎骨 · 链锯枪', icon: '🪚', tier: 3, desc: '贴脸链锯，极高输出', dmg: 9, rate: 0.052, speed: 1050, spread: 0.3,
     pellets: 1, mag: 200, reload: 2.0, pierce: 1, knockback: 40,
-    color: '#e8d9b0', size: 2.6, life: 0.13, sound: 'minigun', kind: 'saw'
+    color: '#e8d9b0', size: 2.6, life: 0.22, sound: 'minigun', kind: 'saw'
   },
   // 重火力：控场与爆发
   cryo: {

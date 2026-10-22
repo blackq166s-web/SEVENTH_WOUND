@@ -218,3 +218,41 @@
 **方向性要求**（后续批次）："每一把武器都要有存在的理由"——17 把里仍有定位重叠（pistol/whistle、smg/minigun、rifle/catechism），下一批做差异化平衡。
 
 **验证**：`smoke` PASS（新增 3 条：hitR≥r / 追踪弹朝目标偏转 / 电弧连锁恢复）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.2 / 530.3 KB）。
+
+---
+
+## 10. S11 · 武器差异化（2026-10-22，v0.4.3）
+
+第六轮反馈的方向性要求："每一把武器都要有存在的理由"。梳理 17 把武器，定位重叠最严重的三处，做针对性差异化：
+
+**① whistle 口哨·精准手枪**：原来是 pistol 的纯上位（dmg 27 vs 14，同是点射）。改**狙击定位**：dmg 27→40、rate 0.42→0.6（慢速重击）、pierce 1→2、speed→1600、mag→6。与 pistol 的"连点"彻底区分——whistle 是"一枪重创"的穿甲狙。
+
+**② plasma 结晶之喉·等离子枪**：原来"高伤单发+穿透1"，与 gauss/hymn 的"贯穿"重叠。改**脉冲溅射**：加 `splash { radius 48, dmg 40 }`，去掉 pierce——命中即溅射，成为"中距范围"武器，与贯穿系区分。
+
+**③ bonesaw 碎骨·链锯枪**：射程 life 0.13（约 130px）太短，贴脸几乎用不了。改 life 0.22（约 220px）+ dmg 7.5→9，让它真正值得贴脸。
+
+**④ gauss desc 修正**："贯穿六敌，蓄力一击"（蓄力是 hymn 的，gauss 没有 charge）→"高速贯穿，精准狙杀"。
+
+**武器职能矩阵**（策划基线，每把都有独特机制而非数值差异）：
+
+| tier | 武器 | 职能 | 机制 |
+| --- | --- | --- | --- |
+| 1 | pistol 手枪 | 连点 | 稳定点射、换弹快 |
+| 2 | whistle 精准手枪 | 狙击 | 高伤贯穿、慢速 |
+| 2 | rifle 步枪 | 均衡自动 | 全自动精准 |
+| 2 | smg 冲锋枪 | 近距压制 | 高速散射 |
+| 2 | shotgun 霰弹 | 近距爆发 | 贯穿散弹 |
+| 2 | catechism 三连 | 三连爆发 | 扣一次三发 |
+| 3 | flamer 火焰 | 持续灼烧 | 火焰 DoT |
+| 3 | plasma 等离子 | 脉冲范围 | 命中溅射 |
+| 3 | acidbag 酸囊 | 酸毒 | 酸液 DoT |
+| 3 | bonesaw 链锯 | 贴脸高 DPS | 极短程链锯 |
+| 3 | lightning 电弧 | 电弧连锁 | 命中跳链 |
+| 4 | gauss 电磁 | 贯穿狙杀 | 高速穿透 |
+| 4 | rocket 火箭 | 范围爆炸 | 大范围 |
+| 4 | minigun 转轮 | 弹幕倾泻 | 极速 |
+| 4 | cryo 冰冻 | 冰冻控场 | 减速 |
+| 4 | hymn 轨道炮 | 蓄力贯穿 | 满穿透 |
+| 4 | laser 激光 | 持续光束 | 射线 |
+
+**验证**：`smoke` PASS · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.3）。
