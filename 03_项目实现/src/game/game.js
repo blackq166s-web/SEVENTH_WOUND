@@ -1159,7 +1159,7 @@ export class Game {
     const pal = this.palette || ARENA_PALETTE;
     const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.34, w / 2, h / 2, Math.max(w, h) * 0.76);
     g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(0.58, 'rgba(0,0,0,0.10)');
+    g.addColorStop(0.58, 'rgba(0,0,0,0.13)');
     g.addColorStop(1, pal.fog);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
