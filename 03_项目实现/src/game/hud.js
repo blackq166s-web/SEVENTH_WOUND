@@ -111,7 +111,7 @@ export function drawHud(ctx, g, w, h) {
 
   ctx.font = `800 40px ${FONT}`;
   ctx.fillStyle = p.reloading > 0 ? 'rgba(255,255,255,0.35)' : '#fff';
-  ctx.fillText(String(p.ammo), rx - 44, h - 50);
+  ctx.fillText(String(Math.ceil(p.ammo)), rx - 44, h - 50);
   ctx.font = `700 16px ${FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.fillText('/ ' + cap, rx, h - 44);
@@ -214,11 +214,9 @@ export function drawHud(ctx, g, w, h) {
     const tst = g.toast;
     const a = Math.min(1, (tst.total - tst.t) / 0.14, tst.t / 0.45);
     const col = TIER_COLORS_HUD[tst.tier] || TIER_COLORS_HUD[1];
-    const modeText = tst.mode === 'secondary' ? '副武器槽 · 按 Q 切换'
-      : tst.mode === 'ammo' ? '弹药补满'
-        : tst.mode === 'swap' ? '同级替换'
-          : tst.mode === 'salvage' ? '弱于当前 · 转为补给'
-            : tst.mode === 'locked' ? '已锁定 · 转为补给' : '已装备';
+    const modeText = tst.mode === 'secondary' ? '已放入副武器槽'
+      : tst.mode === 'salvage' ? '已放弃 · 转为补给'
+        : tst.mode === 'ammo' ? '弹药补满' : '已装备';
     ctx.save();
     ctx.globalAlpha = Math.max(0, a);
     ctx.textBaseline = 'middle';

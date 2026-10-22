@@ -115,6 +115,15 @@ export class Audio {
     this.noise(0.2, 0.14, 700, 120);
   }
 
+  /** 持续激光的嗡鸣（S9-C beam）：节流，避免每帧尖响 */
+  beam() {
+    if (!this._ok()) return;
+    const now = performance.now();
+    if (now - (this._beamT || 0) < 120) return;
+    this._beamT = now;
+    this.noise(0.14, 0.07, 4200, 2600, 'highpass');
+  }
+
   pickup() {
     if (!this._ok()) return;
     this.tone(680, 700, 0.05, 'sine', 0.14);

@@ -1039,6 +1039,58 @@ function drawGunIconBody(ctx, S, id, color) {
       ctx.stroke();
       break;
     }
+    case 'lightning': { // 引线 · 电弧枪：枪身 + 前端电弧球
+      gunBase(ctx, c, 20, 5, color);
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = '#eaffff';
+      ctx.beginPath();
+      ctx.arc(c + 8, c, 3.6, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      // 三道小电弧
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const a = -1.2 + i * 1.2;
+        ctx.moveTo(c + 11, c);
+        ctx.lineTo(c + 11 + Math.cos(a) * 5, c + Math.sin(a) * 5);
+      }
+      ctx.stroke();
+      break;
+    }
+    case 'laser': { // 焦痕 · 持续激光：细长枪身 + 聚焦透镜
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(c - 16, c - 2.6, 30, 5.2, 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 聚焦透镜（前端三角）
+      ctx.beginPath();
+      ctx.moveTo(c + 14, c - 4);
+      ctx.lineTo(c + 19, c);
+      ctx.lineTo(c + 14, c + 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // 发光核心
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 7;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(c - 6, c, 2.6, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+      break;
+    }
     default: { // 兜底：一个简单枪形
       gunBase(ctx, c, 18, 5, color);
       break;

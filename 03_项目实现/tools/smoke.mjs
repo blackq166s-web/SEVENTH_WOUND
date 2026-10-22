@@ -153,7 +153,7 @@ console.log('Perk 压测:', {
 
 // 功能点校验
 const { PERK_MAP, PERKS, SYNERGY, synergyWith } = await import('../src/game/perks.js');
-const { giveWeapon, swapWeapon } = await import('../src/game/player.js');
+const { applyWeaponChoice, refillWeapon, swapWeapon } = await import('../src/game/player.js');
 const { damageEnemy } = await import('../src/game/enemies.js');
 
 let fnErrors = 0;
@@ -168,9 +168,9 @@ const pl = game.player;
 game.setState('levelup');
 game.pickPerk(PERK_MAP.alternate);
 assert(pl.secondaryUnlocked === true, '备用武器应解锁副武器槽');
-// 更强的枪 → 升级为主武器，旧枪退到副武器槽（不丢）
-giveWeapon(game, pl, 'rifle');
-assert(pl.weapon === 'rifle', `捡到更强的枪应升级为主武器，实际 ${pl.weapon}`);
+// S9-A 手动替换：装备 → 替换主武器，旧枪退到副武器槽（不丢）
+applyWeaponChoice(game, pl, 'rifle', 'equip');
+assert(pl.weapon === 'rifle', `装备应替换主武器，实际 ${pl.weapon}`);
 assert(pl.secondary === 'pistol', `旧枪应退到副武器槽，实际 ${pl.secondary}`);
 const cur = pl.weapon;
 swapWeapon(game, pl);
@@ -390,28 +390,32 @@ assert(enemyKeys.every((k) => sp[k][0].size >= 50), '敌人精灵尺寸不应小
 assert(!!(sp.orb && sp.health && sp.crate), '三种拾取物精灵必须存在');
 assert(sp.orb.size < sp.brute[0].size, '掉落物应比 Boss 小得多');
 
-// 武器表（S6-C）：15 把、字段齐全、名字唯一
+// 武器表（S9-C）：17 把、字段齐全、名字唯一
 const { WEAPONS, WEAPON_IDS } = await import('../src/game/weapons.js');
-assert(WEAPON_IDS.length === 15, `应有 15 把武器，实际 ${WEAPON_IDS.length}`);
+assert(WEAPON_IDS.length === 17, `应有 17 把武器，实际 ${WEAPON_IDS.length}`);
 const badW = WEAPON_IDS.filter((id) => {
   const w = WEAPONS[id];
+  // beam 武器没有 rate/（dmg 是每秒伤害），单独豁免
+  if (w.kind === 'beam') return !w.name || !w.tier || !w.dmg || !w.mag || !w.reload || !w.range;
   return !w.name || !w.tier || !w.dmg || !w.rate || !w.mag || !w.reload;
 });
 assert(badW.length === 0, `武器字段缺失：${badW.join(',')}`);
 const wNames = new Set(WEAPON_IDS.map((id) => WEAPONS[id].name));
 assert(wNames.size === WEAPON_IDS.length, '武器名不能重复');
-const KINDS = new Set(['bullet', 'plasma', 'flame', 'gauss', 'rocket', 'acid', 'saw', 'cryo', 'rail']);
+const KINDS = new Set(['bullet', 'plasma', 'flame', 'gauss', 'rocket', 'acid', 'saw', 'cryo', 'rail', 'chain', 'beam']);
 const badKind = WEAPON_IDS.filter((id) => WEAPONS[id].kind && !KINDS.has(WEAPONS[id].kind));
 assert(badKind.length === 0, `未实现的子弹类型：${badKind.join(',')}`);
 assert(WEAPON_IDS.some((id) => WEAPONS[id].burst > 1), '应存在连发武器');
 assert(WEAPON_IDS.some((id) => WEAPONS[id].charge > 0), '应存在蓄力武器');
 assert(WEAPON_IDS.some((id) => WEAPONS[id].slow > 0), '应存在减速武器');
+assert(WEAPON_IDS.some((id) => WEAPONS[id].kind === 'beam'), '应存在持续激光武器');
+assert(WEAPON_IDS.some((id) => WEAPONS[id].kind === 'chain'), '应存在电弧武器');
 
 // 三连点射：一次扣扳机打三发
 game.start('survival');
 game.enemies.length = 0;
 game.bullets.length = 0;
-giveWeapon(game, game.player, 'catechism');
+applyWeaponChoice(game, game.player, 'catechism', 'equip');
 input.mouse.down = true;
 game.player.cd = 0;
 const ammoBeforeBurst = game.player.ammo;
@@ -424,7 +428,7 @@ input.mouse.down = false;
 game.start('survival');
 game.enemies.length = 0;
 game.bullets.length = 0;
-giveWeapon(game, game.player, 'hymn');
+applyWeaponChoice(game, game.player, 'hymn', 'equip');
 input.mouse.down = true;
 for (let i = 0; i < 18; i++) { game.update(STEP); input.endFrame(); }  // 0.30s < 0.6s
 assert(game.bullets.length === 0, `蓄力未满不应开火，实际 ${game.bullets.length} 发`);
@@ -455,52 +459,92 @@ assert(game.pickups.some((it) => it.type === 'weapon'), '22 秒应保底掉一�
 const openingDrop = game.pickups.find((it) => it.type === 'weapon');
 assert(openingDrop.tier >= 1 && openingDrop.tier <= 4, '掉落物应带合法 tier');
 
-// 保底：超过 90 秒没掉，下一只怪必掉
+// 保底：超过 120 秒没掉，下一只怪必掉
 game.start('survival');
 game.pickups.length = 0;
 game.enemies.length = 0;
-game.lastWeaponDropAt = game.time - 91;
+game.lastWeaponDropAt = game.time - 121;
 const pityZombie = game.spawn('zombie', {});
 pityZombie.hp = 1;
 damageEnemy(game, pityZombie, 999, {});
-assert(game.pickups.some((it) => it.type === 'weapon'), '超 90 秒未掉落应触发保底');
+assert(game.pickups.some((it) => it.type === 'weapon'), '超 120 秒未掉落应触发保底');
 
-// 拾取武器的大提示（S6-F）
+// 拾取武器的大提示（S9-A）：确认替换后弹出
 game.start('survival');
 game.pickups.length = 0;
 game.toast = null;
 game.player.weapon = 'pistol';
+game.player.secondaryUnlocked = false;
+game.player.secondary = null;
 game.dropWeapon(game.player.x + 30, game.player.y, 3);
 const wpIt = game.pickups.find((it) => it.type === 'weapon');
 assert(!!wpIt, '应掉落一把武器');
-game.collect(wpIt);
-assert(!!game.toast, '拾取武器应弹出提示');
+game.collect(wpIt);   // 弹面板，还没 toast
+game.chooseWeapon('equip');   // 确认后才提示
+assert(!!game.toast, '确认替换后应弹出提示');
 assert(game.toast && game.toast.name && game.toast.name.length > 0, '提示应带武器名');
-assert(['equip', 'secondary', 'ammo'].includes(game.toast.mode), `提示应带结果模式，实际 ${game.toast && game.toast.mode}`);
+assert(['equip', 'secondary', 'salvage', 'ammo'].includes(game.toast.mode), `提示应带结果模式，实际 ${game.toast && game.toast.mode}`);
 assert(game.toast.tier >= 1 && game.toast.tier <= 4, '提示应带合法等级');
 // 提示会自己消失
 for (let i = 0; i < 60 * 3; i++) game.update(STEP);
 assert(game.toast === null, '提示应在 2.6 秒后自动消失');
 
-// 武器成长曲线（v0.3.2）：绝不降级；三连发不串枪
+// 武器手动替换（S9-A）：不再自动判断，玩家明确选择
+// 1) 装备：替换主武器
 game.start('survival');
 game.enemies.length = 0;
-game.player.weapon = 'hymn';        // tier 4
-game.player.ammo = 3;
+game.player.weapon = 'rifle';
 game.player.secondaryUnlocked = false;
 game.player.secondary = null;
-giveWeapon(game, game.player, 'pistol');   // tier 1
-assert(game.player.weapon === 'hymn', `捡到更弱的枪不应降级，实际 ${game.player.weapon}`);
-assert(game.player.ammo === 3, `salvage 应补当前枪弹匣（3），实际 ${game.player.ammo}`);
-assert(game.player.secondary === null, '更弱的枪不应占用副武器槽');
+applyWeaponChoice(game, game.player, 'hymn', 'equip');
+assert(game.player.weapon === 'hymn', `装备应替换主武器，实际 ${game.player.weapon}`);
 
-// 同级：没有副武器槽时算替换，有副武器槽时优先进槽
+// 2) 副武器：槽空时进槽，不动主武器
 game.start('survival');
 game.player.weapon = 'rifle';
 game.player.secondaryUnlocked = true;
 game.player.secondary = null;
-giveWeapon(game, game.player, 'smg');       // 同为 tier 2
-assert(game.player.weapon === 'rifle' && game.player.secondary === 'smg', '同级枪有空槽时应进副武器槽');
+applyWeaponChoice(game, game.player, 'smg', 'secondary');
+assert(game.player.weapon === 'rifle' && game.player.secondary === 'smg', '副武器槽空时 secondary 应进槽不动主武器');
+
+// 3) 放弃：转补给，补满当前弹匣 + 残响
+game.start('survival');
+game.player.weapon = 'hymn';
+game.player.ammo = 1;
+game.player.secondaryUnlocked = false;
+game.player.secondary = null;
+const scoreBefore = game.score;
+applyWeaponChoice(game, game.player, 'pistol', 'salvage');
+assert(game.player.weapon === 'hymn', '放弃不应换武器');
+assert(game.player.ammo === 3, `放弃应补满当前弹匣（3），实际 ${game.player.ammo}`);
+assert(game.score > scoreBefore, '放弃应给残响');
+
+// 4) 同一把枪：直接补弹，不弹面板
+game.start('survival');
+game.enemies.length = 0;
+game.pickups.length = 0;
+game.player.weapon = 'pistol';
+game.player.ammo = 3;
+game.pickups.push({ type: 'weapon', weapon: 'pistol', tier: 1, x: game.player.x, y: game.player.y, vx: 0, vy: 0, t: 0 });
+game.collect(game.pickups[0]);
+assert(game.state === 'playing', `同枪补弹不应弹面板，实际 state=${game.state}`);
+assert(game.player.ammo === 12, `同枪应补满弹匣（12），实际 ${game.player.ammo}`);
+
+// 5) 不同枪：进入武器选择状态（暂停），待玩家确认
+game.start('survival');
+game.enemies.length = 0;
+game.pickups.length = 0;
+game.player.weapon = 'pistol';
+game.player.secondaryUnlocked = false;
+game.player.secondary = null;
+game.pickups.push({ type: 'weapon', weapon: 'rifle', tier: 2, x: game.player.x, y: game.player.y, vx: 0, vy: 0, t: 0 });
+game.collect(game.pickups[0]);
+assert(game.state === 'weaponchoice', `捡不同枪应进入选择状态，实际 ${game.state}`);
+assert(game.pendingWeapon === 'rifle', `应暂存待选武器，实际 ${game.pendingWeapon}`);
+// 玩家选装备后回到 playing
+game.chooseWeapon('equip');
+assert(game.state === 'playing', `确认后应回到 playing，实际 ${game.state}`);
+assert(game.player.weapon === 'rifle', '确认装备后主武器应为新枪');
 
 // 三连发：中途换枪不能把剩余发数打到新枪上
 game.start('survival');
@@ -519,30 +563,41 @@ assert(game.player.burstLeft === 0, '换枪后待补发数应清零');
 assert(game.stats.shots === beforeSwitchShots, `换枪后不应再补射，实际多了 ${game.stats.shots - beforeSwitchShots} 发`);
 input.mouse.down = false;
 
-// 武器锁定（v0.3.3）：锁定后捡更高等级也不换，转补给
-game.start('survival');
-game.enemies.length = 0;
-game.player.weapon = 'rifle';       // tier 2，玩得爽的那把
-game.player.secondaryUnlocked = false;
-game.player.secondary = null;
-game.player.weaponLocked = true;
-giveWeapon(game, game.player, 'hymn');   // tier 4，更高
-assert(game.player.weapon === 'rifle', `锁定时捡更高等级也不应换，实际 ${game.player.weapon}`);
-assert(game.player.weaponLocked === true, '锁定状态应保持');
-
-// 未锁定：更高等级自动换（自动选择）
-game.start('survival');
-game.enemies.length = 0;
-game.player.weapon = 'rifle';
-game.player.secondaryUnlocked = false;
-game.player.secondary = null;
-game.player.weaponLocked = false;
-giveWeapon(game, game.player, 'hymn');
-assert(game.player.weapon === 'hymn', `未锁定时更高等级应自动换，实际 ${game.player.weapon}`);
-
 // 图标：每把武器都有 icon
 const noIcon = WEAPON_IDS.filter((id) => !WEAPONS[id].icon);
 assert(noIcon.length === 0, `每把武器都应有 icon，缺：${noIcon.join(',')}`);
+
+// 持续激光（S9-C beam）：对光束路径上的敌人持续伤害
+game.start('survival');
+game.enemies.length = 0;
+game.player.weapon = 'laser';
+game.player.secondaryUnlocked = false;
+game.player.secondary = null;
+const beamTarget = game.spawn('zombie', {});
+beamTarget.x = game.player.x + 150;
+beamTarget.y = game.player.y;
+beamTarget.born = 0;
+game.player.beamOn = true;
+game.player.beamAngle = 0;   // 朝右，正对 target
+const hpBeforeBeam = beamTarget.hp;
+for (let i = 0; i < 30; i++) game.updateBeam(STEP);
+assert(beamTarget.hp < hpBeforeBeam, `激光应持续伤害，实际 ${hpBeforeBeam} → ${beamTarget.hp}`);
+game.player.beamOn = false;
+
+// 电弧（S9-C chain）：命中后连锁到附近敌人
+game.start('survival');
+game.enemies.length = 0;
+game.bullets.length = 0;
+game.player.weapon = 'lightning';
+game.player.ammo = 30;
+const chainA = game.spawn('zombie', {});
+chainA.x = game.player.x + 150; chainA.y = game.player.y; chainA.born = 0;
+const chainB = game.spawn('zombie', {});
+chainB.x = chainA.x + 50; chainB.y = chainA.y + 8; chainB.born = 0;
+const chainBhp = chainB.hp;
+game.addBullet({ x: chainA.x - 30, y: chainA.y, vx: 1200, vy: 0, r: 3, dmg: 20, pierce: 0, life: 1, color: '#9be7ff', kind: 'chain', chain: 4, chainDmg: 0.6, chainRange: 220 });
+for (let i = 0; i < 8; i++) { game.update(STEP); input.endFrame(); }
+assert(chainB.hp < chainBhp, `电弧应连锁到附近敌人，实际 ${chainBhp} → ${chainB.hp}`);
 
 // 新掉落物（v0.3.3）：护盾 / 加速 / 磁吸
 game.start('survival');

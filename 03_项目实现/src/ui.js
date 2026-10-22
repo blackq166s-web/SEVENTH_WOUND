@@ -1,5 +1,7 @@
 import { DEATH_LINE } from './game/voice.js';
 import { synergyWith, RARITY_LABEL } from './game/perks.js';
+import { WEAPONS, magSize } from './game/weapons.js';
+import { getGunIcon } from './render/sprites.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -13,12 +15,16 @@ export class UI {
     this.panels = {
       menu: $('p-menu'),
       perks: $('p-perks'),
+      weapon: $('p-weapon'),
       dead: $('p-dead'),
       pause: $('p-pause'),
       clear: $('p-clear'),
       help: $('p-help')
     };
     this.perkCards = $('perkCards');
+    this.weaponNew = $('weaponNew');
+    this.weaponCur = $('weaponCur');
+    this.weaponChoiceHint = $('weaponChoiceHint');
     this.deadStats = $('deadStats');
     this.clearText = $('clearText');
     this.nextIsLast = false;
@@ -43,6 +49,9 @@ export class UI {
     on('btnQuit', () => this.toMenu());
     on('btnNext', () => this.nextLevel());
     on('btnReroll', () => { if (g.rerollPerks()) this.showPerks(g.perkChoices, g.player); });
+    on('btnEquip', () => g.chooseWeapon('equip'));
+    on('btnSecondary', () => g.chooseWeapon('secondary'));
+    on('btnSalvage', () => g.chooseWeapon('salvage'));
   }
 
   toMenu() {
@@ -126,6 +135,45 @@ export class UI {
       rr.textContent = used ? '本局已重掷过' : '重掷（R）· 本局一次';
     }
     this.show('perks');
+  }
+
+  /**
+   * 武器选择面板（S9-A 手动替换）：新武器 vs 当前武器，玩家明确选择。
+   * 1 装备 / 2 副武器（槽空时）/ 3 放弃。
+   */
+  showWeaponChoice(id) {
+    const g = this.game;
+    const p = g.player;
+    const nw = WEAPONS[id];
+    const cw = WEAPONS[p.weapon];
+
+    const card = (w, key, wid, extra, accent) => {
+      const icon = getGunIcon(wid);
+      let iconUrl = '';
+      try { iconUrl = icon.canvas.toDataURL('image/png'); } catch (err) { /* 桩环境无 toDataURL，跳过图标 */ }
+      const iconHtml = iconUrl ? `<img class="wicon" src="${iconUrl}" alt="" />` : '';
+      return `
+      <div class="wcard" style="--accent:${accent || w.color || '#fff'}">
+        <span class="key">${key}</span>
+        ${iconHtml}
+        <span class="wname">${w.name}</span>
+        <span class="wdesc">${w.desc || ''}</span>
+        <span class="wstat">伤害 ${w.dmg} · 射速 ${(1 / (w.rate || 0.1)).toFixed(1)}/s · 弹匣 ${w.mag}</span>
+        ${extra || ''}
+      </div>`;
+    };
+
+    const hasSecondary = p.secondaryUnlocked && !p.secondary;
+    this.weaponNew.innerHTML = card(nw, '新', id, '', nw.color);
+    this.weaponCur.innerHTML = card(cw, '现', p.weapon, '', cw.color);
+    this.weaponChoiceHint.textContent = hasSecondary
+      ? '按 1 装备 · 2 放副武器 · 3 放弃'
+      : '按 1 装备 · 3 放弃（副武器槽未解锁）';
+
+    const btnSec = $('btnSecondary');
+    if (btnSec) btnSec.style.display = hasSecondary ? '' : 'none';
+
+    this.show('weapon');
   }
 
   showDead(s) {

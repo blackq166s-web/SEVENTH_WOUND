@@ -2,7 +2,7 @@ import * as M from '../core/math.js';
 import { Camera } from '../core/camera.js';
 import { Decals } from './decals.js';
 import { Particles } from './particles.js';
-import { createPlayer, updatePlayer, hurtPlayer, giveWeapon, healPlayer } from './player.js';
+import { createPlayer, updatePlayer, hurtPlayer, applyWeaponChoice, refillWeapon, healPlayer } from './player.js';
 import { WEAPONS, magSize, randomWeaponDrop } from './weapons.js';
 import { spawnEnemy, updateEnemy, damageEnemy, ENEMY_TYPES } from './enemies.js';
 import { rollPerks, applyPerk } from './perks.js';
@@ -120,6 +120,8 @@ export class Game {
     this.rerollUsed = false;
     // 拾取武器的大提示（S6-F）
     this.toast = null;
+    // 待确认的武器（S9-A：手动替换）
+    this.pendingWeapon = null;
     // 侵蚀值（P4-1）：本局峰值，死亡面板用
     this.maxErosion = 0;
     this.heartTimer = 0;
@@ -239,6 +241,13 @@ export class Game {
       if (this.input.tap('KeyR')) this.rerollPerks();
     }
 
+    // 武器选择（S9-A）：1 装备 / 2 副武器 / 3 放弃
+    if (this.state === 'weaponchoice') {
+      if (this.input.tap('Digit1')) this.chooseWeapon('equip');
+      else if (this.input.tap('Digit2')) this.chooseWeapon('secondary');
+      else if (this.input.tap('Digit3')) this.chooseWeapon('salvage');
+    }
+
     // 暂停切换
     if (this.input.tap('Escape') || this.input.tap('KeyP')) {
       if (this.state === 'playing') { this.setState('paused'); this.ui.showPause(); }
@@ -265,7 +274,7 @@ export class Game {
       }
       this.time += step;
       this.updateWorld(step);
-    } else if (this.state === 'paused' || this.state === 'levelup' || this.state === 'clear') {
+    } else if (this.state === 'paused' || this.state === 'levelup' || this.state === 'weaponchoice' || this.state === 'clear') {
       // 冻结世界
     } else if (this.state === 'dead') {
       this.particles.update(dt);
@@ -349,6 +358,7 @@ export class Game {
     this.enemies = this.enemies.filter((e) => !e.dead);
 
     this.updateBullets(dt);
+    this.updateBeam(dt);
     this.updatePickups(dt);
     this.updateTraps(dt);
 
@@ -532,6 +542,31 @@ export class Game {
             }
           }
 
+          // 电弧（S9-C 电弧枪）：命中后跳向最近敌人，连闪 b.chain 次
+          if (b.chain > 0) {
+            let from = e;
+            let curDmg = b.dmg * b.chainDmg;
+            const hitIds = new Set([e.id]);
+            for (let hop = 0; hop < b.chain; hop++) {
+              let next = null;
+              let nd = (b.chainRange || 200) * (b.chainRange || 200);
+              for (let m = 0; m < es.length; m++) {
+                const e2 = es[m];
+                if (e2.dead || hitIds.has(e2.id)) continue;
+                const d2 = M.dist2(from.x, from.y, e2.x, e2.y);
+                if (d2 < nd) { nd = d2; next = e2; }
+              }
+              if (!next) break;
+              // 闪电线（用粒子画一段亮线 + 火花）
+              this.particles.sparks(next.x, next.y, Math.atan2(next.y - from.y, next.x - from.x), 6, '#9be7ff');
+              this.particles.ring(next.x, next.y, 12, 'rgba(155,231,255,0.85)', 0.18);
+              damageEnemy(this, next, curDmg, { silent: true, source: 'lightning' });
+              curDmg *= b.chainDmg;
+              hitIds.add(next.id);
+              from = next;
+            }
+          }
+
           if (b.splash) {
             this.explode(b.x, b.y, b.splash.radius, b.splash.dmg, false);
             dead = true;
@@ -550,6 +585,40 @@ export class Game {
       }
 
       if (dead) bs.splice(i, 1);
+    }
+  }
+
+  /**
+   * 持续激光（S9-C beam）：对光束路径上的敌人每帧施加持续伤害。
+   * 用射线投影法判定（点在射线上的投影 + 垂直距离 < 敌人半径）。
+   */
+  updateBeam(dt) {
+    const p = this.player;
+    if (!p.beamOn) return;
+    const w = WEAPONS[p.weapon];
+    const range = w.range || 400;
+    const dx = Math.cos(p.beamAngle);
+    const dy = Math.sin(p.beamAngle);
+    const dps = (w.dmg || 50) * p.stats.dmgMul;
+    const dmg = dps * dt;
+
+    for (const e of this.enemies) {
+      if (e.dead) continue;
+      const rx = e.x - p.x;
+      const ry = e.y - p.y;
+      const proj = rx * dx + ry * dy;
+      if (proj < 0 || proj > range) continue;
+      const perp = Math.abs(rx * dy - ry * dx);
+      if (perp > e.r + 3) continue;
+
+      damageEnemy(this, e, dmg, { silent: true, source: 'beam' });
+      this.stats.damage += dmg;
+      // 命中点火花（沿光束，稀疏）
+      if (M.random() < dt * 18) {
+        const hx = p.x + dx * proj;
+        const hy = p.y + dy * proj;
+        this.particles.sparks(hx, hy, p.beamAngle + Math.PI / 2, 2, '#ff8a9c');
+      }
     }
   }
 
@@ -607,9 +676,7 @@ export class Game {
       this.audio.pickup();
       this.particles.ring(it.x, it.y, 26, 'rgba(93,255,155,0.9)', 0.4);
     } else if (it.type === 'weapon') {
-      const mode = giveWeapon(this, p, it.weapon);
-      this.onWeaponPickup(it.weapon, mode);
-      this.particles.ring(it.x, it.y, 34, 'rgba(255,180,60,0.9)', 0.5);
+      this.openWeaponChoice(it.weapon);
     } else if (it.type === 'shield') {
       p.shield = Math.min(p.maxHp, p.shield + 60);   // 护盾上限 = 最大生命
       this.audio.pickup();
@@ -636,6 +703,37 @@ export class Game {
       this.particles.ring(it.x, it.y, 60, 'rgba(124,231,255,0.9)', 0.5);
       this.particles.text(p.x, p.y - 30, `磁吸 ${pulled} 颗结晶`, '#7ce7ff', 15);
     }
+  }
+
+  /**
+   * 捡到武器（S9-A：手动替换）。同一把枪直接补弹；否则暂停并弹对比面板，
+   * 由玩家明确选择"装备 / 副武器 / 放弃"，不再自动替换。
+   */
+  openWeaponChoice(id) {
+    const p = this.player;
+    // 同一把枪：直接补弹，不弹面板（避免打断节奏）
+    if (p.weapon === id) {
+      refillWeapon(p, id);
+      this.onWeaponPickup(id, 'ammo');
+      this.particles.ring(p.x, p.y, 34, 'rgba(255,180,60,0.9)', 0.5);
+      return;
+    }
+    this.pendingWeapon = id;
+    this.setState('weaponchoice');
+    this.ui.showWeaponChoice(id);
+  }
+
+  /** 玩家在武器选择面板做出的决定（1=装备 2=副武器 3=放弃） */
+  chooseWeapon(action) {
+    const id = this.pendingWeapon;
+    if (!id) return;
+    const p = this.player;
+    const mode = applyWeaponChoice(this, p, id, action);
+    this.pendingWeapon = null;
+    this.onWeaponPickup(id, mode);
+    this.particles.ring(p.x, p.y, 34, 'rgba(255,180,60,0.9)', 0.5);
+    this.ui.hide();
+    this.setState('playing');
   }
 
   gainXp(v) {
@@ -856,11 +954,11 @@ export class Game {
     if (M.chance(0.045)) {
       this.pickups.push({ type: 'health', x: e.x, y: e.y, vx: M.rand(-40, 40), vy: M.rand(-40, 40), t: 0 });
     }
-    // 掉落：武器概率调低（5% → 2.5%），把频率让给护盾/加速/磁吸这类"有意思"的消耗品。
-    // 保底仍在：连续 90 秒没掉就必掉；Boss 必掉。
+    // 掉落：武器概率进一步调低（2.5% → 1.2%），节奏放慢——武器是"稀有事件"，值得手动选择。
+    // 保底拉长到 120 秒；Boss 必掉。消耗品（护盾/加速/磁吸）承担"击杀掉落"的常态反馈。
     const sinceDrop = this.time - this.lastWeaponDropAt;
-    const pity = sinceDrop >= 90;
-    const dropChance = e.def.isBoss ? 1 : pity ? 1 : 0.025;
+    const pity = sinceDrop >= 120;
+    const dropChance = e.def.isBoss ? 1 : pity ? 1 : 0.012;
     if (M.chance(dropChance)) {
       const maxTier = e.def.isBoss ? 4 : Math.min(4, 1 + Math.floor(this.wave / 3));
       this.dropWeapon(e.x, e.y, maxTier);
@@ -963,11 +1061,11 @@ export class Game {
   }
 
   /**
-   * 掉一个消耗品（护盾 / 加速 / 磁吸）。概率约 6%，比武器（2.5%）更高频，
-   * 让战场上"有意思的小东西"比枪更常见。
+   * 掉一个消耗品（护盾 / 加速 / 磁吸）。概率约 8%，比武器（1.2%）高频，
+   * 让战场上"有意思的小东西"承担击杀掉落的常态反馈。
    */
   dropPowerup(e) {
-    if (M.chance(0.06) === false) return;
+    if (M.chance(0.08) === false) return;
     const roll = M.random();
     const type = roll < 0.4 ? 'shield' : roll < 0.75 ? 'boost' : 'magnet';
     this.pickups.push({ type, x: e.x, y: e.y, vx: M.rand(-40, 40), vy: M.rand(-40, 40), t: 0 });
@@ -1111,6 +1209,7 @@ export class Game {
     this.drawPickups(ctx);
     this.drawEnemies(ctx);
     this.drawPlayer(ctx);
+    this.drawBeam(ctx);
     this.drawBullets(ctx);
     this.particles.draw(ctx);
 
@@ -1476,6 +1575,44 @@ export class Game {
       ctx.fill();
       ctx.restore();
     }
+    ctx.restore();
+  }
+
+  /** 持续激光（S9-C beam）：从玩家沿 beamAngle 延伸的光束 + 内层亮线 */
+  drawBeam(ctx) {
+    const p = this.player;
+    if (!p.beamOn) return;
+    const w = WEAPONS[p.weapon];
+    const range = w.range || 400;
+    const ex = p.x + Math.cos(p.beamAngle) * range;
+    const ey = p.y + Math.sin(p.beamAngle) * range;
+    const flick = 0.94 + Math.sin(this.time * 40) * 0.04;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    // 外层光晕
+    ctx.strokeStyle = w.color || '#ff6b81';
+    ctx.globalAlpha = 0.22;
+    ctx.lineWidth = 14 * flick;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    // 中层
+    ctx.globalAlpha = 0.6;
+    ctx.lineWidth = 6 * flick;
+    ctx.stroke();
+    // 内层白芯
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+    // 枪口光球
+    ctx.fillStyle = w.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 7, 0, M.TAU);
+    ctx.fill();
     ctx.restore();
   }
 

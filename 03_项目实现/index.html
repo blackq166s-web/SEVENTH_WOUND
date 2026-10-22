@@ -191,6 +191,78 @@
     width: 100%;
   }
 
+  /* 武器选择面板（S9-A）：新 vs 现 */
+  .wcompare {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 14px;
+    align-items: stretch;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .wvs {
+    align-self: center;
+    font-size: 22px;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 0.1em;
+  }
+
+  .wcard {
+    --accent: #ffd166;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px 18px 18px;
+    text-align: left;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background:
+      radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+      linear-gradient(180deg, rgba(40, 44, 52, 0.97), rgba(18, 20, 24, 0.97));
+    box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.9);
+  }
+
+  .wcard .key {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: color-mix(in srgb, var(--accent) 90%, white);
+  }
+
+  .wcard .wname {
+    font-size: 19px;
+    font-weight: 900;
+    color: #fff;
+  }
+
+  .wcard .wdesc {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .wcard .wstat {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .wcard .icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .wcard .wicon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  }
+
   .card {
     --accent: #ff4d5e;
     position: relative;
@@ -425,6 +497,21 @@
     <button id="btnReroll" class="btn ghost">重掷（R）· 本局一次</button>
   </section>
 
+  <section class="panel hidden" id="p-weapon">
+    <h2>捡到了武器</h2>
+    <div class="wcompare">
+      <div id="weaponNew"></div>
+      <div class="wvs">VS</div>
+      <div id="weaponCur"></div>
+    </div>
+    <p id="weaponChoiceHint" class="hint"></p>
+    <div class="btns">
+      <button id="btnEquip" class="btn primary">1 · 装备</button>
+      <button id="btnSecondary" class="btn">2 · 放副武器</button>
+      <button id="btnSalvage" class="btn ghost">3 · 放弃</button>
+    </div>
+  </section>
+
   <section class="panel hidden" id="p-dead">
     <h2 class="danger">你的残响已被记录</h2>
     <p class="voice-line" id="deadVoice"></p>
@@ -466,7 +553,7 @@
       <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>升级时选择能力</span></li>
     </ul>
     <p class="hint">击杀敌人掉落魔素结晶，升级后可从三个刻印中选一个。<br />绿色十字是治疗包，金色箱子是武器补给。<br />按 L 锁定武器后，捡到更高等级的枪也不会自动换。</p>
-    <p class="hint ver" id="verLine">v0.4.0</p>
+    <p class="hint ver" id="verLine">v0.4.1</p>
     <button id="btnBack" class="btn">返回</button>
   </section>
 </div>

@@ -35,6 +35,8 @@ export function createPlayer(x, y) {
     weaponLocked: false,  // 锁定当前武器：捡到更高等级也不自动换（按 L 切换）
     shield: 0,        // 护盾值（消耗品）：受伤先扣盾，扣完才扣血
     boostT: 0,        // 加速剩余时间（秒）
+    beamOn: false,    // 持续激光（S9-C）：是否在照射
+    beamAngle: 0,     // 激光方向
     stats: {
       dmgMul: 1,
       speedMul: 1,
@@ -91,68 +93,44 @@ export function swapWeapon(g, p) {
 }
 
 /**
- * 捡到武器。规则（按优先级）：
- *   1) 同名 → 补满弹匣
- *   2) 锁定中 → 一律转补给（不管等级高低，玩家明确要保住当前枪）
- *   3) 更强 → 自动装备；旧枪能放就退到副武器槽（不丢）
- *   4) 副武器槽空着 → 进副武器
- *   5) 同级 → 替换
- *   6) 更弱 → 转补给（补满当前弹匣 + 残响量）
- * 返回值：'ammo' | 'locked' | 'equip' | 'secondary' | 'swap' | 'salvage'
+ * 执行武器选择（S9-A：手动替换）。由 game.js 的武器选择面板调用，
+ * action 只可能是玩家明确选出的结果，不再有自动判断：
+ *   'equip'     → 替换主武器（旧枪若副武器槽空则退槽，不丢）
+ *   'secondary' → 放进副武器槽（仅槽空时）
+ *   'salvage'   → 放弃，补满当前弹匣 + 残响
+ * 返回实际动作（'equip' | 'secondary' | 'salvage'）。
  */
-export function giveWeapon(g, p, id) {
+export function applyWeaponChoice(g, p, id, action) {
   const cap = magSize(id, p.stats);
-  const newTier = WEAPONS[id].tier || 1;
-  const curTier = WEAPONS[p.weapon].tier || 1;
 
-  // 1) 同一把枪：补弹
-  if (p.weapon === id) {
-    p.ammo = cap;
-    return 'ammo';
-  }
-
-  // 2) 锁定中：不换主武器，转补给（补当前枪弹匣）
-  if (p.weaponLocked) {
-    p.ammo = magSize(p.weapon, p.stats);
-    if (g) g.score += 15;
-    return 'locked';
-  }
-
-  // 3) 更强：自动升级（旧枪能放就退到副武器槽，不丢）
-  if (newTier > curTier) {
-    if (p.secondaryUnlocked && !p.secondary) {
-      p.secondary = p.weapon;
-      p.secondaryAmmo = magSize(p.weapon, p.stats);
-    }
-    p.weapon = id;
-    p.ammo = cap;
-    p.reloading = 0;
-    p.cd = Math.max(p.cd, 0.1);
-    resetBurst(p);
-    return 'equip';
-  }
-
-  // 4) 副武器槽空着：进副武器，不动主武器
-  if (p.secondaryUnlocked && !p.secondary) {
+  if (action === 'secondary' && p.secondaryUnlocked && !p.secondary) {
     p.secondary = id;
     p.secondaryAmmo = cap;
     return 'secondary';
   }
 
-  // 5) 同级：替换（玩家自己踩上来的，算选择）
-  if (newTier === curTier) {
-    p.weapon = id;
-    p.ammo = cap;
-    p.reloading = 0;
-    p.cd = Math.max(p.cd, 0.1);
-    resetBurst(p);
-    return 'swap';
+  if (action === 'salvage') {
+    p.ammo = magSize(p.weapon, p.stats);
+    if (g) g.score += 25;
+    return 'salvage';
   }
 
-  // 6) 更弱：绝不降级，转成补给（补的是**当前这把枪**的弹匣）
-  p.ammo = magSize(p.weapon, p.stats);
-  if (g) g.score += 25;
-  return 'salvage';
+  // 默认（含 'equip'）：替换主武器
+  if (p.secondaryUnlocked && !p.secondary && p.weapon !== id) {
+    p.secondary = p.weapon;
+    p.secondaryAmmo = magSize(p.weapon, p.stats);
+  }
+  p.weapon = id;
+  p.ammo = cap;
+  p.reloading = 0;
+  p.cd = Math.max(p.cd, 0.1);
+  resetBurst(p);
+  return 'equip';
+}
+
+/** 同一把枪：补满弹匣（不弹面板） */
+export function refillWeapon(p, id) {
+  p.ammo = magSize(id, p.stats);
 }
 
 /** 换枪时清掉连发残留：否则三连的第二、三发会从新枪里打出来 */
@@ -230,8 +208,27 @@ export function updatePlayer(g, p, dt) {
     p.chargeT = 0;
   }
 
-  // 开火
-  if (input.mouse.down && p.reloading <= 0 && p.cd <= 0) {
+  // 持续激光（S9-C beam）：按住持续照射，每帧按 drain 耗弹；松手或弹尽即停
+  if (wDef.kind === 'beam') {
+    if (input.mouse.down && p.reloading <= 0 && p.ammo > 0) {
+      p.beamOn = true;
+      p.beamAngle = p.aim;
+      p.ammo = Math.max(0, p.ammo - (wDef.drain || 12) * dt);
+      p.muzzle = 0.05;
+      g.audio.beam();   // 激光持续嗡鸣（audio 里节流，不会每帧都尖响）
+    } else {
+      p.beamOn = false;
+      if (p.ammo <= 0 && input.mouse.down && p.reloading <= 0) {
+        g.audio.empty();
+        startReload(g, p);
+      }
+    }
+  } else {
+    p.beamOn = false;
+  }
+
+  // 开火（beam 武器不走这里）
+  if (input.mouse.down && p.reloading <= 0 && p.cd <= 0 && wDef.kind !== 'beam') {
     const charged = !wDef.charge || p.chargeT >= wDef.charge;
     if (p.ammo > 0 && charged) {
       fireWeapon(g, p);
