@@ -106,3 +106,33 @@
 ---
 
 ## 5. 待确认（暂无，全部已拍板）
+
+---
+
+## 6. 执行记录
+
+### S7-A 背景压暗（提交 79dc928）
+
+7 套层色批量降饱和降亮：base 各降一档、blotch 透明度 0.34→0.26 档、grain 亮颗粒档下调、ambient 浮尘 0.40-0.45 → 0.30-0.32、酸池 accent/glow 收敛、暗角黑场 0.10 → 0.13。验证 `LAYERS_OK`，截图 `v-layer1/4/5/6.png`。
+
+### S7-B/C 主角极简 + 敌人卡通化（提交 84bfd26）
+
+- 主角重写为单色胶囊剪影 + 头 + 发光眼，删背脊线/双肩圆/领口/头发/护胸
+- `shadeBody` 描边统一 `max(2.8, lw*1.6)` + `rgba(0,0,0,0.88)`，高光半径 1.5r→1.15r
+- `glowEyes` 眼径 ×1.4、辉光 ×1.5、加黑色瞳孔（偏 +X，"在看"有方向感）
+- 灰度剪影测试仍六种可辨（`v-sprites-gray.png`）
+
+### S7-D 弹道多样化（提交 d94187e）
+
+`drawBullets` 重写，8 种 kind 各自形态：bullet 曳光弹 / plasma 脉冲球 / gauss 贯穿线+放电毛刺 / rocket 火箭弹体+尾焰 / acid 液滴拖尾 / cryo 六向冰晶 / saw / rail 保持。截图 `v-wpn-*.png`。
+
+### S7-E 枪械矢量图标（提交 a6a5201）
+
+- `getGunIcon(id)`：44px 侧视剪影，缓存复用
+- `gunBase()`（枪管+握把）+ `drawGunIconBody()`（15 把枪的特征件）
+- 接入 HUD 武器名 / 副武器提示 / 拾取横幅，emoji 不再使用
+- 图标一览 `v-gun-icons.png`（15 格）
+
+### S7-F 打包 v0.3.4
+
+源码 173.3 KB → 单文件 199.2 KB，`PACK_OK` / `PACK_VERIFY_OK`。
