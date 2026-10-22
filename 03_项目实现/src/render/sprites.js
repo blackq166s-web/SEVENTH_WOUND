@@ -94,6 +94,11 @@ function capsulePath(ctx, x1, y1, x2, y2, r) {
 
 /** 三色调 + 左上定向光 + 黑边 */
 function shadeBody(ctx, pathFn, cx, cy, r, base, hi, lo, outline = 'rgba(0,0,0,0.62)', lw = 1.8) {
+  // S7-C 卡通化：描边统一加粗加深（在调用点传值的基础上再强化），
+  // 改在函数内部做，所有精灵一次受益，不用逐个调用点改参数。
+  const olw = Math.max(2.8, lw * 1.6);
+  const ocol = 'rgba(0,0,0,0.88)';
+
   pathFn();
   ctx.fillStyle = base;
   ctx.fill();
@@ -102,7 +107,7 @@ function shadeBody(ctx, pathFn, cx, cy, r, base, hi, lo, outline = 'rgba(0,0,0,0
   pathFn();
   ctx.clip();
 
-  let g = ctx.createRadialGradient(cx - r * 0.42, cy - r * 0.5, r * 0.06, cx - r * 0.42, cy - r * 0.5, r * 1.5);
+  let g = ctx.createRadialGradient(cx - r * 0.42, cy - r * 0.5, r * 0.06, cx - r * 0.42, cy - r * 0.5, r * 1.15);
   g.addColorStop(0, hi);
   g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g;
@@ -115,21 +120,21 @@ function shadeBody(ctx, pathFn, cx, cy, r, base, hi, lo, outline = 'rgba(0,0,0,0
   ctx.fillRect(cx - r * 2.2, cy - r * 2.2, r * 4.4, r * 4.4);
 
   // 左上轮廓光：在裁剪区内沿路径描一道亮边并整体左上偏移，做出'被光打亮'的边缘
-  ctx.globalAlpha = 0.75;
-  ctx.translate(-1.1, -1.1);
+  ctx.globalAlpha = 0.8;
+  ctx.translate(-1.2, -1.2);
   pathFn();
   ctx.strokeStyle = hi;
-  ctx.lineWidth = 2.6;
+  ctx.lineWidth = 3;
   ctx.lineJoin = 'round';
   ctx.stroke();
-  ctx.translate(1.1, 1.1);
+  ctx.translate(1.2, 1.2);
   ctx.globalAlpha = 1;
   ctx.restore();
 
   if (outline) {
     pathFn();
-    ctx.strokeStyle = outline;
-    ctx.lineWidth = lw;
+    ctx.strokeStyle = ocol;
+    ctx.lineWidth = olw;
     ctx.lineJoin = 'round';
     ctx.stroke();
   }
@@ -172,28 +177,38 @@ function jointLimb(ctx, pts, w, fill, outline = 'rgba(0,0,0,0.5)') {
   ctx.stroke();
 }
 
-/** 一对（或三只）发光的眼睛 */
+/** 发光的眼睛（S7-C 卡通化）：眼径 ×1.4、辉光更强，并加黑色瞳孔做出"在看" */
 function glowEyes(ctx, pts, r, color, blur = 7) {
   ctx.save();
   ctx.shadowColor = color;
-  ctx.shadowBlur = blur;
+  ctx.shadowBlur = blur * 1.5;
   ctx.fillStyle = color;
   for (const p of pts) {
+    const pr = (p[2] || r) * 1.4;
     ctx.beginPath();
-    ctx.arc(p[0], p[1], p[2] || r, 0, TAU);
+    ctx.arc(p[0], p[1], pr, 0, TAU);
     ctx.fill();
   }
   ctx.restore();
+  // 黑瞳孔：偏向前方（+X 朝向），让"在看"有方向感
+  ctx.fillStyle = 'rgba(12,8,10,0.85)';
+  for (const p of pts) {
+    const pr = (p[2] || r) * 1.4;
+    ctx.beginPath();
+    ctx.arc(p[0] + pr * 0.2, p[1], pr * 0.42, 0, TAU);
+    ctx.fill();
+  }
 }
 
-// ================= 玩家（72px）=================
+// ================= 玩家（72px，S7-B 极简版）=================
 //
-// 俯视角的读法（这一版的核心）：**从上往下看，看到的是头、肩、手臂**，看不到腿。
-// 所以：一个椭圆肩背 + 一个头 + 两条手臂 + （游戏里另画的）枪。
-// 不做背包方块、不做腿、不做直角躯干——那些一画出来就"像侧视图立牌"，跟俯视对不上。
+// 俯视角 + 单色剪影：整个身体只有一个主色 + 描边，可读要素只有三个——
+//   头（发光眼）、肩背（一个大椭圆）、持枪手（枪是游戏另画的）。
+// 删掉的：背脊线、双肩圆、领口、头发分层、护胸——俯视里全是噪音。
+// 左臂胶囊保留：game.js 要在它上面画层数布条。
 function drawPlayer(ctx, S, t = 0) {
   const c = S / 2;
-  const swing = Math.sin(t * TAU) * 1.6;
+  const swing = Math.sin(t * TAU) * 1.4;
   const K = 1.6;
 
   ctx.save();
@@ -201,63 +216,33 @@ function drawPlayer(ctx, S, t = 0) {
   ctx.scale(K, K);
   ctx.translate(-c, -c);
 
-  // 肩背：一个略宽的椭圆，重心比正中心稍后（人往前压）
-  shadeBody(ctx, () => pathEllipse(ctx, c - 1.5, c, 10.5, 13), c - 1.5, c, 13,
-    '#33445a', '#7d97b5', 'rgba(4,6,10,0.66)', 'rgba(0,0,0,0.72)', 2);
+  // 肩背：一个圆角胶囊（比椭圆更卡通），主色 + 粗描边
+  shadeBody(ctx, () => capsulePath(ctx, c - 8, c, c + 4, c, 11), c - 2, c, 12,
+    '#39485e', '#8ea8c2', 'rgba(4,6,10,0.55)', 'rgba(0,0,0,0.85)', 3);
 
-  // 背脊一线（从上往下看，唯一该出现在背上的纵向细节）
-  ctx.strokeStyle = 'rgba(14,20,28,0.7)';
-  ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.moveTo(c - 9, c);
-  ctx.lineTo(c + 4, c);
-  ctx.stroke();
-
-  // 双肩：小圆压在肩线上（别画大，大了会像"耳朵"）
-  for (const s of [-1, 1]) {
-    ctx.fillStyle = '#3d5068';
-    ctx.beginPath();
-    ctx.ellipse(c - 1, c + s * 10, 4.2, 3.4, 0, 0, TAU);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  // 领口（把头接在身体上）
-  ctx.fillStyle = '#1e2836';
-  ctx.beginPath();
-  ctx.ellipse(c + 6, c - 0.5, 4.2, 5, 0, 0, TAU);
-  ctx.fill();
-
-  // 右臂（持枪手，向前伸）
-  capsulePath(ctx, c + 2, c + 9, c + 9, c + 4, 3.4);
-  ctx.fillStyle = '#232f3e';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  // 持枪手：一个小圆（枪由 game.js 另画，从手的位置延伸）
   ctx.fillStyle = '#c9d6e5';
   ctx.beginPath();
-  ctx.arc(c + 10, c + 3.4, 2.8, 0, TAU);
+  ctx.arc(c + 9, c + 4, 3.4, 0, TAU);
   ctx.fill();
-
-  // 左臂（缠布条）：布条本体由 game.js 按层数叠加
-  capsulePath(ctx, c + 2, c - 9, c + 8.5, c - 13 + swing, 3.6);
-  ctx.fillStyle = '#6b6054';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+  ctx.lineWidth = 1.6;
   ctx.stroke();
 
-  // 头：从上往下看到的是头发，前面露一点额头
-  shadeBody(ctx, () => pathEllipse(ctx, c + 9, c - 1.4, 6.8, 7.2), c + 9, c - 2.4, 7,
-    '#7d5f47', '#b98f6f', 'rgba(36,20,12,0.66)', 'rgba(0,0,0,0.68)', 1.4);
-  // 头发盖住后 2/3，只在前额留一条肤色——俯视时这是"人在朝这边"的唯一信号
-  ctx.fillStyle = '#241a14';
-  ctx.beginPath();
-  ctx.ellipse(c + 7, c - 1.4, 6.2, 6.8, 0, Math.PI * 0.3, Math.PI * 1.7);
+  // 左臂（缠布条）：game.js 在这条手臂上叠层数布条
+  capsulePath(ctx, c + 2, c - 9, c + 8.5, c - 13 + swing, 3.4);
+  ctx.fillStyle = '#6b6054';
   ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // 头：单色圆 + 发光眼（卡通化的核心：眼睛要大、要亮）
+  shadeBody(ctx, () => pathEllipse(ctx, c + 8, c - 1, 6.6, 7), c + 8, c - 2, 7,
+    '#8a6a52', '#c9a184', 'rgba(30,18,12,0.5)', 'rgba(0,0,0,0.85)', 3);
+
+  // 发光眼：俯视里唯一需要亮的东西
+  glowEyes(ctx, [[c + 11, c - 2.4, 1.9], [c + 12.4, c + 0.6, 1.5]], 1.7, '#ffd166', 9);
 
   ctx.restore();
 }
