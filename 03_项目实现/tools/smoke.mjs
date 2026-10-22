@@ -154,7 +154,7 @@ console.log('Perk 压测:', {
 // 功能点校验
 const { PERK_MAP, PERKS, SYNERGY, synergyWith } = await import('../src/game/perks.js');
 const { applyWeaponChoice, refillWeapon, swapWeapon } = await import('../src/game/player.js');
-const { damageEnemy } = await import('../src/game/enemies.js');
+const { damageEnemy, ENEMY_TYPES } = await import('../src/game/enemies.js');
 
 let fnErrors = 0;
 const assert = (cond, msg) => {
@@ -598,6 +598,24 @@ const chainBhp = chainB.hp;
 game.addBullet({ x: chainA.x - 30, y: chainA.y, vx: 1200, vy: 0, r: 3, dmg: 20, pierce: 0, life: 1, color: '#9be7ff', kind: 'chain', chain: 4, chainDmg: 0.6, chainRange: 220 });
 for (let i = 0; i < 8; i++) { game.update(STEP); input.endFrame(); }
 assert(chainB.hp < chainBhp, `电弧应连锁到附近敌人，实际 ${chainBhp} → ${chainB.hp}`);
+
+// 受击半径（S10）：每个敌人都有 hitR 且大于物理半径 r
+const badHitR = Object.entries(ENEMY_TYPES).filter(([, t]) => !t.hitR || t.hitR < t.r);
+assert(badHitR.length === 0, `每个敌人 hitR 应 ≥ r，异常：${badHitR.map(([k]) => k).join(',')}`);
+
+// 追踪弹（S10）：homing 转向率制，子弹朝目标偏转而非直线
+game.start('survival');
+game.enemies.length = 0;
+game.bullets.length = 0;
+const homingTarget = game.spawn('zombie', {});
+homingTarget.x = game.player.x + 80;
+homingTarget.y = game.player.y + 120;   // 右下方
+homingTarget.born = 0;
+game.addBullet({ x: game.player.x, y: game.player.y, vx: 800, vy: 0, r: 3, dmg: 10, pierce: 0, life: 2, color: '#fff', homing: 6 });
+const vyBefore = game.bullets[0].vy;
+for (let i = 0; i < 10; i++) { game.update(STEP); input.endFrame(); }
+assert(game.bullets.length > 0, '追踪弹应仍在场');
+assert(game.bullets[0].vy > 0 || game.bullets[0].vy !== vyBefore, '追踪弹应朝下方目标偏转（vy 增加）');
 
 // 新掉落物（v0.3.3）：护盾 / 加速 / 磁吸
 game.start('survival');

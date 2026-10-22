@@ -200,3 +200,21 @@
 **验证**：`smoke` PASS（新增 12 条：手动替换三动作 / 同枪补弹不弹面板 / 捡不同枪进选择状态并确认 / 激光持续伤害 / 电弧连锁 / 17 把武器 / beam·chain 类型）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `S9_OK`（beam/chain/面板三截图）· `PACK_OK` + `PACK_VERIFY_OK`（v0.4.1 / 528.8 KB）。
 
 截图：`v-s9-beam.png`（红色贯穿激光）、`v-s9-weaponchoice.png`（对比面板）、`v-s9-chain.png`。
+
+---
+
+## 9. S10 · 手感细节修复（2026-10-22，v0.4.2）
+
+第六轮试玩反馈四条，全部是明确的手感/视觉问题：
+
+**① 敌人子弹 vs 经验晶体太像**：敌人子弹原来是黄绿（`#b6ff5c`），经验是青色六边形，混战里难分。修：敌人子弹改**危险橙红**（`#ff5a3c`）+ 暗芯 + 警示外环 + 拖尾（drawBullets 加 hostile 专属分支）；经验晶体**缩小**（r 0.30→0.24）**压淡光晕**（0.55→0.35）。一眼可辨"危险 vs 收益"。
+
+**② 追踪弹很怪（追不到、像随机拐弯）**：根因是 homing 用 `angleLerp(homing*dt)` 当**插值因子**，每帧只消除 ~5% 角度差，转向太慢。改**转向率制**：`maxTurn = homing * dt`，`cur + clamp(normAngle(want-cur), ±maxTurn)`——homing 值是"每秒可转弧度"，能真正咬住横向移动目标。
+
+**③ 小怪受击面积太小**：根因是碰撞半径 `r`（13/11/9/…）远小于 PNG 精灵视觉尺寸（52~96px）。修：**分离物理半径与受击半径**——新增 `hitR`（取视觉尺寸 ~80%，zombie 20 / runner 19 / spider 18 / lizard 24 / alien 26 / brute 36），`r` 仍用于互相分离/攻击距离，命中判定（子弹 + beam）改用 `hitR`。小怪好打，但不会因受击变大而散太开。
+
+**④ 激光 + 追踪不兼容（歪扭）**：beam 本就是"射线型"，不吃 homing/bounce/chain/pierce 等弹丸修饰符（策划边界已在 `drawBeam` 注释明确）。视觉抖动从 `sin(t*40)*0.04` 降到 `sin(t*22)*0.02`（柔和能量脉动，不是抖）。配合②的 homing 修复，追踪的"乱拐"误解也消除。
+
+**方向性要求**（后续批次）："每一把武器都要有存在的理由"——17 把里仍有定位重叠（pistol/whistle、smg/minigun、rifle/catechism），下一批做差异化平衡。
+
+**验证**：`smoke` PASS（新增 3 条：hitR≥r / 追踪弹朝目标偏转 / 电弧连锁恢复）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.2 / 530.3 KB）。

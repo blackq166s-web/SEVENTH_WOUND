@@ -403,7 +403,8 @@ export class Game {
       const b = bs[i];
       let dead = false;
 
-      // 追踪
+      // 追踪（homing 是每秒可转弧度数）：转向率制，能真正咬住横向移动的敌人。
+      // 旧实现用 angleLerp(homing*dt) 当插值因子，每帧只消除 ~5% 角度差，追不上=像随机拐弯。
       if (b.homing > 0 && !b.hostile) {
         let best = null, bestD = 380 * 380;
         for (let k = 0; k < es.length; k++) {
@@ -416,7 +417,9 @@ export class Game {
           const sp = Math.hypot(b.vx, b.vy) || 1;
           const want = Math.atan2(best.y - b.y, best.x - b.x);
           const cur = Math.atan2(b.vy, b.vx);
-          const na = M.angleLerp(cur, want, Math.min(1, b.homing * dt));
+          const diff = M.normAngle(want - cur);
+          const maxTurn = b.homing * dt;
+          const na = cur + M.clamp(diff, -maxTurn, maxTurn);
           b.vx = Math.cos(na) * sp;
           b.vy = Math.sin(na) * sp;
         }
@@ -471,7 +474,7 @@ export class Game {
         for (let k = 0; k < es.length; k++) {
           const e = es[k];
           if (e.dead) continue;
-          const rr = e.r + b.r;
+          const rr = (e.hitR || e.r) + b.r;   // 受击半径（比物理半径大）
           if (M.dist2(b.x, b.y, e.x, e.y) > rr * rr) continue;
           if (b.hit.has(e.id)) continue;
 
@@ -609,7 +612,7 @@ export class Game {
       const proj = rx * dx + ry * dy;
       if (proj < 0 || proj > range) continue;
       const perp = Math.abs(rx * dy - ry * dx);
-      if (perp > e.r + 3) continue;
+      if (perp > (e.hitR || e.r) + 3) continue;
 
       damageEnemy(this, e, dmg, { silent: true, source: 'beam' });
       this.stats.damage += dmg;
@@ -1578,7 +1581,9 @@ export class Game {
     ctx.restore();
   }
 
-  /** 持续激光（S9-C beam）：从玩家沿 beamAngle 延伸的光束 + 内层亮线 */
+  /** 持续激光（S9-C beam）：从玩家沿 beamAngle 延伸的光束 + 内层亮线。
+   *  策划边界：beam 是"射线型"，不吃 homing / bounce / chain / pierce 等弹丸修饰符——
+   *  它只受伤害倍率 dmgMul 影响。保持直线稳定，避免"追踪激光"的违和感。 */
   drawBeam(ctx) {
     const p = this.player;
     if (!p.beamOn) return;
@@ -1586,7 +1591,7 @@ export class Game {
     const range = w.range || 400;
     const ex = p.x + Math.cos(p.beamAngle) * range;
     const ey = p.y + Math.sin(p.beamAngle) * range;
-    const flick = 0.94 + Math.sin(this.time * 40) * 0.04;
+    const flick = 0.97 + Math.sin(this.time * 22) * 0.02;   // 柔和的能量脉动，不是抖动
 
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -1621,6 +1626,38 @@ export class Game {
     for (const b of this.bullets) {
       const col = b.color || '#fff';
       const ang = Math.atan2(b.vy, b.vx);
+
+      // ---- 敌人子弹（危险橙红，带外圈，与青色经验晶体明确区分） ----
+      if (b.hostile) {
+        ctx.save();
+        // 拖尾
+        ctx.globalAlpha = 0.45;
+        ctx.strokeStyle = col;
+        ctx.lineWidth = b.r * 1.3;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.x - b.vx * 0.016, b.y - b.vy * 0.016);
+        ctx.stroke();
+        // 外圈（危险警示环）
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 1.8, 0, M.TAU);
+        ctx.stroke();
+        // 弹体 + 暗芯
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, M.TAU);
+        ctx.fill();
+        ctx.fillStyle = '#40120a';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r * 0.45, 0, M.TAU);
+        ctx.fill();
+        ctx.restore();
+        continue;
+      }
 
       // ---- gauss：细长贯穿线 + 放电毛刺 ----
       if (b.kind === 'gauss') {

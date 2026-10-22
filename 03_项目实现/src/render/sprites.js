@@ -585,10 +585,10 @@ function drawBrute(ctx, S, t = 0) {
 // ================= 拾取物（人类遗留物：严格对称 + 工业配色） =================
 function drawOrb(ctx, S) {
   const c = S / 2;
-  const r = S * 0.3;
-  // 光晕
-  const g = ctx.createRadialGradient(c, c, 0, c, c, S * 0.5);
-  g.addColorStop(0, 'rgba(124,231,255,0.55)');
+  const r = S * 0.24;   // 缩小：经验颗粒更小，不与敌人子弹抢视觉
+  // 光晕（压淡）
+  const g = ctx.createRadialGradient(c, c, 0, c, c, S * 0.42);
+  g.addColorStop(0, 'rgba(124,231,255,0.35)');
   g.addColorStop(1, 'rgba(124,231,255,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, S, S);
@@ -603,16 +603,16 @@ function drawOrb(ctx, S) {
   }
   ctx.closePath();
   const gg = ctx.createLinearGradient(c - r, c - r, c + r, c + r);
-  gg.addColorStop(0, '#e8fdff');
-  gg.addColorStop(0.5, '#7ce7ff');
-  gg.addColorStop(1, '#1d7f96');
+  gg.addColorStop(0, '#c8ecf5');
+  gg.addColorStop(0.5, '#6ac2dd');
+  gg.addColorStop(1, '#1d6f86');
   ctx.fillStyle = gg;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(6,24,30,0.6)';
+  ctx.strokeStyle = 'rgba(6,24,30,0.55)';
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(c - r * 0.4, c - r * 0.1);
   ctx.lineTo(c + r * 0.15, c - r * 0.55);

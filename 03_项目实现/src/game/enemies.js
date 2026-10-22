@@ -7,32 +7,32 @@ let nextId = 1;
  */
 export const ENEMY_TYPES = {
   zombie: {
-    name: '腐化者', hp: 24, speed: 70, dmg: 8, r: 13, xp: 1, score: 10,
+    name: '腐化者', hp: 24, speed: 70, dmg: 8, r: 13, hitR: 20, xp: 1, score: 10,
     spriteSet: 'zombie', spriteScale: 1, blood: '#a51622', mass: 1,
     behavior: 'chase', attackCd: 0.8
   },
   runner: {
-    name: '疾行者', hp: 16, speed: 150, dmg: 6, r: 11, xp: 1, score: 14,
+    name: '疾行者', hp: 16, speed: 150, dmg: 6, r: 11, hitR: 19, xp: 1, score: 14,
     spriteSet: 'runner', spriteScale: 1, blood: '#8f2a1c', mass: 0.8,
     behavior: 'chase', attackCd: 0.65
   },
   spider: {
-    name: '织网者', hp: 13, speed: 158, dmg: 5, r: 9, xp: 1, score: 16,
+    name: '织网者', hp: 13, speed: 158, dmg: 5, r: 9, hitR: 18, xp: 1, score: 16,
     spriteSet: 'spider', spriteScale: 1, blood: '#3f6b2a', mass: 0.6, shell: true,
     behavior: 'erratic', attackCd: 0.6
   },
   lizard: {
-    name: '哨眼', hp: 38, speed: 82, dmg: 7, r: 13, xp: 2, score: 28,
+    name: '哨眼', hp: 38, speed: 82, dmg: 7, r: 13, hitR: 24, xp: 2, score: 28,
     spriteSet: 'lizard', spriteScale: 1, blood: '#4c7a26', mass: 1, shell: true,
     behavior: 'ranged', attackCd: 0.8, keepDist: 250, shootCd: 1.9, projSpeed: 480, projDmg: 9
   },
   alien: {
-    name: '融生体', hp: 100, speed: 66, dmg: 14, r: 17, xp: 4, score: 55,
+    name: '融生体', hp: 100, speed: 66, dmg: 14, r: 17, hitR: 26, xp: 4, score: 55,
     spriteSet: 'alien', spriteScale: 1, blood: '#6b2b93', mass: 2.2,
     behavior: 'chase', attackCd: 0.85
   },
   brute: {
-    name: '守层者', hp: 850, speed: 54, dmg: 26, r: 27, xp: 16, score: 400,
+    name: '守层者', hp: 850, speed: 54, dmg: 26, r: 27, hitR: 36, xp: 16, score: 400,
     spriteSet: 'brute', spriteScale: 1, blood: '#8f1220', mass: 6, shell: true,
     behavior: 'chase', attackCd: 1.0, isBoss: true
   }
@@ -52,6 +52,9 @@ export function spawnEnemy(g, type, x, y, mods = {}) {
     hp: t.hp * hpMul,
     maxHp: t.hp * hpMul,
     r: t.r,
+    // 受击半径（S10）：与物理半径 r 分离。r 用于互相分离/攻击距离，
+    // hitR 用于子弹命中判定，取视觉尺寸 ~80%，小怪更好打。
+    hitR: t.hitR || t.r,
     dmg: t.dmg * (mods.dmgMul || 1),
     speed: t.speed * (mods.speedMul || 1),
     face: rand(0, TAU),
@@ -123,7 +126,7 @@ export function updateEnemy(g, e, dt) {
         r: 5,
         dmg: d.projDmg * (e.dmg / d.dmg),
         life: 2.4,
-        color: '#b6ff5c'
+        color: '#ff5a3c'   // 危险橙红（与青色经验晶体明确区分）
       });
       g.audio.shoot('plasma');
     }
