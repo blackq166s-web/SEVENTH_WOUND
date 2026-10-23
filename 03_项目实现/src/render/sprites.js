@@ -1122,6 +1122,59 @@ export function getGunIcon(id) {
   return entry;
 }
 
+// ---- PNG 武器图标接入（S12，图像 Agent 产出） ----
+// 策略同角色精灵：先程序化矢量图标占位，PNG 异步加载完成后覆盖缓存画布，
+// 引用不变，HUD / 面板 / 图鉴零改动。加载失败自动继续用矢量图标。
+
+function weaponIconUrl(key) {
+  const map = typeof window !== 'undefined' ? window.__WEAPON_ICON_ASSETS__ : null;
+  if (map && map[key]) return map[key];
+  return `assets/weapon-icons/${key}.png`;
+}
+
+/** 武器图标专用：浅色圆角底板 + 深色剪影缩放居中（剪影是深色，暗 HUD 上需要浅底才可见） */
+function fitWeaponIcon(img, canvas) {
+  const ctx = canvas.getContext('2d');
+  const S = canvas.width;
+  ctx.clearRect(0, 0, S, S);
+  ctx.fillStyle = 'rgba(214,224,234,0.92)';
+  ctx.beginPath();
+  ctx.roundRect(2, 2, S - 4, S - 4, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(10,14,20,0.55)';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  const s = (S * 0.76) / Math.max(img.width, img.height);
+  const w = img.width * s;
+  const h = img.height * s;
+  ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+}
+
+/**
+ * 异步加载 17 张武器图标 PNG 并覆盖矢量图标缓存。
+ * @returns {Promise<string[]>} 成功接入的 id 列表
+ */
+export function loadWeaponIcons() {
+  const ids = Object.keys(WEAPONS);
+  const loaded = [];
+  return Promise.all(
+    ids.map(
+      (key) =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const entry = getGunIcon(key);   // 确保程序化占位已生成
+            fitWeaponIcon(img, entry.canvas);
+            loaded.push(key);
+            resolve(key);
+          };
+          img.onerror = () => resolve(null); // 缺图不炸，继续用矢量图标
+          img.src = weaponIconUrl(key);
+        })
+    )
+  ).then(() => loaded);
+}
+
 export function getSprites() {
   return {
     player: frames('player', 72, drawPlayer),

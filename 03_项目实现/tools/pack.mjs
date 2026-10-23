@@ -147,9 +147,29 @@ const assetBoot = assetEntries.length
   ? `window.__SPRITE_ASSETS__ = {\n${assetEntries.join(',\n')}\n};`
   : '';
 
+// ---------- 3.6 武器图标 PNG 内联（S12） ----------
+const WEAPON_ICON_KEYS = [
+  'pistol', 'rifle', 'smg', 'shotgun', 'flamer', 'plasma', 'gauss', 'rocket', 'minigun',
+  'whistle', 'catechism', 'acidbag', 'bonesaw', 'cryo', 'hymn', 'lightning', 'laser'
+];
+const WEAPON_ICON_DIR = join(ROOT, 'assets', 'weapon-icons');
+const wIconEntries = [];
+for (const key of WEAPON_ICON_KEYS) {
+  const f = join(WEAPON_ICON_DIR, `${key}.png`);
+  if (!existsSync(f)) {
+    console.warn(`  警告：缺少武器图标 ${key}.png，该枪将回落到矢量图标`);
+    continue;
+  }
+  const b64 = readFileSync(f).toString('base64');
+  wIconEntries.push(`  ${JSON.stringify(key)}: 'data:image/png;base64,${b64}'`);
+}
+const wIconBoot = wIconEntries.length
+  ? `window.__WEAPON_ICON_ASSETS__ = {\n${wIconEntries.join(',\n')}\n};`
+  : '';
+
 const outHtml = rawHtml.replace(
   SCRIPT_TAG,
-  ['<script>', assetBoot, '(function () {', bundle, '})();', '</script>'].join('\n')
+  ['<script>', assetBoot, wIconBoot, '(function () {', bundle, '})();', '</script>'].join('\n')
 );
 
 // 自检：单文件里不该再有任何外链模块或相对资源
@@ -202,5 +222,6 @@ console.log(`版本      : v${VERSION}`);
 console.log(`模块      : ${order.length} 个（${order.join(', ')}）`);
 console.log(`源码体积  : ${kb(totalSrc)}`);
 console.log(`精灵内联  : ${assetEntries.length}/7 张 PNG（base64）`);
+console.log(`图标内联  : ${wIconEntries.length}/17 张武器 PNG（base64）`);
 console.log(`产物      : release/${outName}（${kb(outHtml.length)}）+ release/运行说明.txt`);
 console.log('PACK_OK 单文件无外部依赖，可直接双击打开');

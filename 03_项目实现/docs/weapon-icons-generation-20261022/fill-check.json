@@ -1,0 +1,87 @@
+[
+  {
+    "file": "acidbag.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "bonesaw.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "catechism.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "cryo.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "flamer.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "gauss.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "hymn.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "laser.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "lightning.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "minigun.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "pistol.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "plasma.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "rifle.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "rocket.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "shotgun.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "smg.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  },
+  {
+    "file": "whistle.png",
+    "nontransparentRGBcolors": 1,
+    "fillRGB": "#20242A"
+  }
+]

@@ -1,0 +1,393 @@
+﻿[
+    {
+        "file":  "pistol.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       27,
+                       102,
+                       73
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "68a935d1620240f13372f74ed0ab688659829caf5fa1695b99cc4d2e6f503f83"
+    },
+    {
+        "file":  "rifle.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       50,
+                       102,
+                       28
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "9fa285bfbb1890721767f4e5ab0d14419da6075219b91a9b2faf4ab1cbd32fd8"
+    },
+    {
+        "file":  "smg.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       38,
+                       102,
+                       51
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "754602499976b34aab02d794c939a646d77c38fc33408b9fbedb09824cf9342e"
+    },
+    {
+        "file":  "shotgun.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       52,
+                       102,
+                       23
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "bc44e2d9236327f69fd63f603aef5903847e06a20cd2e94a64f924c1d98e87ce"
+    },
+    {
+        "file":  "flamer.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       46,
+                       102,
+                       36
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "b8bbc17d7fbc92b039b81161b4777a982016dcaec58b8e4ac2fa22a3829513c8"
+    },
+    {
+        "file":  "plasma.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       35,
+                       102,
+                       58
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "6ce2a77d8695c39eae14564574a5d74a5208e7702b0e4c95c29d20fbfc81015b"
+    },
+    {
+        "file":  "gauss.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       55,
+                       102,
+                       18
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "b29e14f8e9578c58294a5e79f7bac2836aa10fb05a5a072887008346db13ad74"
+    },
+    {
+        "file":  "rocket.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       49,
+                       102,
+                       30
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "08ba9a3e258fc94a3f53de53970d49b95aa7f7c924b453c6b1a0ea0f812d072b"
+    },
+    {
+        "file":  "minigun.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       40,
+                       102,
+                       47
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "3ea4ecad529befdec7c9ccc345020f3fd8aee78c9cf45d4eae88e8e6c123be37"
+    },
+    {
+        "file":  "whistle.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       21,
+                       102,
+                       86
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "b4714e6839fe5ed217802b740bef686af795447fe437661da063385806d84d50"
+    },
+    {
+        "file":  "catechism.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       51,
+                       102,
+                       26
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "5e9cf03cc56ac3310fcfb7ff19ff03ab70f3edeb16886452899fbd00beace4a5"
+    },
+    {
+        "file":  "acidbag.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       32,
+                       102,
+                       64
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "a7bd2ee286af6b3a57b1939afb5992260d4c15c6b73eda21bc76f309848da5c4"
+    },
+    {
+        "file":  "bonesaw.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       49,
+                       102,
+                       30
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "17b2a96f610c1a6e0aa6924c2f7c49b1f3743a45bd4b21dc97f8fdfddfffb31d"
+    },
+    {
+        "file":  "cryo.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       37,
+                       102,
+                       53
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "a7092caee57065d3ebf7df8f606212745c3c2c9ed939850ac196cc835c78ce35"
+    },
+    {
+        "file":  "hymn.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       48,
+                       102,
+                       32
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "67fadfd1da6f104216398498845697897f7fee8788e79aa26f2a9797417afa36"
+    },
+    {
+        "file":  "lightning.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       40,
+                       102,
+                       48
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "a7e7912445e39a4c9f0169550485fe46d70c0946746b6b8fd2b775469ef8f203"
+    },
+    {
+        "file":  "laser.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       13,
+                       48,
+                       102,
+                       31
+                   ],
+        "longestExtent":  0.796875,
+        "fillRGB":  "#20242A",
+        "singleFill":  true,
+        "sha256":  "bdf8b71612ee0c0be8670a600b12a823fb124badd6271c04bef2c6bd958d4b5f"
+    }
+]

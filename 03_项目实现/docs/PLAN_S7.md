@@ -256,3 +256,17 @@
 | 4 | laser 激光 | 持续光束 | 射线 |
 
 **验证**：`smoke` PASS · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.3）。
+
+---
+
+## 11. S12 · 武器图标 PNG 接入（2026-10-23，v0.4.4）
+
+绘图 Agent 按 `docs/武器图标生成规范.md` 产出 17 张 128×128 极简剪影 PNG（单一深色、侧视朝右、透明背景，验收全部通过），本批接入：
+
+- `render/sprites.js`：`loadWeaponIcons()` 异步加载 → **浅色圆角底板 + 深色剪影**（剪影是深色，暗 HUD 上需要浅底才可见）→ 覆盖 `GUN_ICONS` 缓存；失败自动回落程序化矢量图标
+- `tools/pack.mjs`：17 张 PNG 转 base64 注入 `window.__WEAPON_ICON_ASSETS__`
+- HUD 武器名 / 副武器提示 / 武器选择面板 / 图鉴接口（`getGunIcon`）全部切换为 PNG 图标
+
+**验证**：`smoke` PASS · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `ICONS_OK`（17 格一览 `v-gun-icons.png`）· `PICKUP_OK`（手动替换四场景：装备/副武器/放弃/同枪补弹）· `PACK_OK` + `PACK_VERIFY_OK`（v0.4.4 / **576.4 KB**，精灵 7 + 图标 17 全内联）。
+
+**踩坑**：①深色剪影在暗 HUD 上会隐身，必须加浅色底板；②验证脚本场景间要彻底清场（enemies/pickups/pendingWeapon + 强制回 playing），否则 sleep 期间残留 pickup 被踩到会污染断言。
