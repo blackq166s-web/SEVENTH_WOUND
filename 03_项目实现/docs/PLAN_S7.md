@@ -270,3 +270,33 @@
 **验证**：`smoke` PASS · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `ICONS_OK`（17 格一览 `v-gun-icons.png`）· `PICKUP_OK`（手动替换四场景：装备/副武器/放弃/同枪补弹）· `PACK_OK` + `PACK_VERIFY_OK`（v0.4.4 / **576.4 KB**，精灵 7 + 图标 17 全内联）。
 
 **踩坑**：①深色剪影在暗 HUD 上会隐身，必须加浅色底板；②验证脚本场景间要彻底清场（enemies/pickups/pendingWeapon + 强制回 playing），否则 sleep 期间残留 pickup 被踩到会污染断言。
+
+---
+
+## 12. S13 · 选择面板 UI 升级（2026-10-23，v0.4.5）
+
+用户要求刻印 / 武器选择页面 UI 升级："保持极简，突出主题，武器图片更大，整体极简高级"。
+
+**统一设计语言**（两套面板共用）：
+
+| 元素 | 改前 | 改后 |
+| --- | --- | --- |
+| 主题锚点 | 渐变背景光晕 | **顶部 2px 主题色细线**（`::before` 渐变线，克制） |
+| 描边 | 1px rgba 0.16 | 1px rgba **0.08**（更细） |
+| 圆角 | 14px | **18px / 20px** |
+| 阴影 | 重 | 轻（`0 20px 50px -30px`） |
+| 背景 | 径向渐变+线性渐变叠加 | 单一线性渐变（更干净） |
+
+**武器面板**：
+- PNG 图标 **48px → 104px**，居中成为视觉主角（浅底圆角自带）
+- 卡片改居中布局，key（新/现）移到左上角小字
+- 名字 20px、特点 accent 色、数值小灰字——三级信息层级
+
+**刻印面板**：
+- 图标 44px → **52px**
+- 同款顶部细线 + 细描边 + 大圆角
+- 稀有/禁忌的边色覆盖保留，其余噪点去除
+
+**验证**：`smoke` PASS · `PERKS_UI_OK` · `PICKUP_OK` · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.5 / 576.7 KB）。
+
+截图：`v-perks-rarity.png`（刻印三卡）、`v-pickup-toast.png`（武器对比）。
