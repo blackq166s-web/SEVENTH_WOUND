@@ -365,3 +365,20 @@
 **验证**：`smoke` PASS（quest 拒绝 + 侵蚀分档 + 二阶段加速/召唤 6 条）· `BOSS2_OK`（加速 54→81 / 召唤 2 小怪 + 12 弹幕）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.8 / 589.6 KB）。
 
 截图：`v-boss-phase2.png`（红光晕 + 橙红血条）、`v-boss-phase2-spawn.png`（召唤+弹幕）。
+
+---
+
+## 16. S17 · 刻印页图标重设计（2026-10-27，v0.5.0）
+
+用户反馈刻印页"丑、图标不该以大字为主"，要求简洁高级、符合游戏主题。
+
+**改动**：
+- 新增 `getPerkIcon(id)`：25 个刻印配**语义化几何图标**（尖角星/十字/盾牌/箭头/火焰/液滴/目标环/沙漏/雪花/折线/链节/齿轮等），替代单字汉字
+- 每类用刻印主色绘制（perks.js 的 color），浅色圆角底板 + 描边衬托
+- 标签胶囊统一：路线标签 + 稀有度标签都改圆角胶囊 + 半透明底（去掉方角 + inset 描边的"网页感"）
+- 备用武器（alternate）改"双循环箭头"（切换语义），与双持（dualwield 双枪）区分
+- 图鉴·刻印页同步用几何图标
+
+**验证**：`smoke` PASS · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PERKS_UI_OK` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.0 / 599.7 KB）。
+
+截图：`v-perk-icons.png`（20 刻印图标一览）、`v-perks-rarity.png`（稀有/禁忌同框）。

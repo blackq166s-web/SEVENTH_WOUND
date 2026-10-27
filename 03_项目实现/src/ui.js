@@ -2,7 +2,7 @@ import { DEATH_LINE } from './game/voice.js';
 import { synergyWith, RARITY_LABEL, PERKS } from './game/perks.js';
 import { WEAPONS, magSize } from './game/weapons.js';
 import { ENEMY_TYPES } from './game/enemies.js';
-import { getGunIcon, getSpriteDataUrl } from './render/sprites.js';
+import { getGunIcon, getSpriteDataUrl, getPerkIcon } from './render/sprites.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -170,11 +170,14 @@ export class UI {
   renderCodexPerks() {
     this.codexGrid.innerHTML = '';
     for (const perk of PERKS) {
+      const icon = getPerkIcon(perk.id);
+      let iconUrl = '';
+      try { iconUrl = icon.canvas.toDataURL('image/png'); } catch (err) { /* 桩环境 */ }
       const cell = document.createElement('div');
       cell.className = 'codex-cell';
       cell.style.setProperty('--accent', perk.color || '#7ce7ff');
       cell.innerHTML = `
-        <span class="c-icon badge">${perk.icon || perk.name[0]}</span>
+        ${iconUrl ? `<img class="c-icon" src="${iconUrl}" alt="" />` : `<span class="c-icon badge">${perk.icon || perk.name[0]}</span>`}
         <span class="c-name">${perk.name}</span>
         <span class="c-line">${LINE_LABEL[perk.line] || '残响'}${perk.max ? ' · 叠 ' + perk.max : ''}</span>
         <span class="c-lore">${perk.desc}</span>
@@ -190,12 +193,15 @@ export class UI {
       const stacks = player.perkCounts[perk.id] || 0;
       const rarity = perk.rarity || 'common';
       const syn = synergyWith(player, perk);
+      const icon = getPerkIcon(perk.id);
+      let iconUrl = '';
+      try { iconUrl = icon.canvas.toDataURL('image/png'); } catch (err) { /* 桩环境 */ }
       const card = document.createElement('button');
       card.className = 'card rar-' + rarity;
       card.style.setProperty('--accent', perk.color);
       card.innerHTML = `
         <span class="key">${i + 1}</span>
-        <span class="icon">${perk.icon}</span>
+        ${iconUrl ? `<img class="picon" src="${iconUrl}" alt="" />` : `<span class="icon">${perk.icon}</span>`}
         <span class="tags">
           <span class="ln ${perk.line}">${LINE_LABEL[perk.line] || '残响'}</span>
           <span class="rar ${rarity}">${RARITY_LABEL[rarity] || ''}</span>

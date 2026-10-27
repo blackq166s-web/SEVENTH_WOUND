@@ -341,6 +341,19 @@
     text-shadow: 0 0 22px var(--accent);
   }
 
+  /* 刻印几何图标（S17）：替代单字，浅色底板衬托矢量图形 */
+  .card .picon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    object-fit: contain;
+    padding: 8px;
+    box-sizing: border-box;
+    background: color-mix(in srgb, var(--accent) 10%, rgba(255,255,255,0.03));
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 50%, transparent));
+  }
+
   .card .name {
     font-size: 17px;
     font-weight: 800;
@@ -348,48 +361,50 @@
   }
 
   .card .ln {
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.16em;
-    padding: 2px 7px;
+    letter-spacing: 0.14em;
+    padding: 2px 9px;
     border-radius: 999px;
-    border: 1px solid currentColor;
-    opacity: 0.8;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+    opacity: 0.9;
   }
 
   .card .ln.steel { color: #9fb4c9; }
   .card .ln.instinct { color: #7ce7ff; }
   .card .ln.erosion { color: #ff4d5e; }
 
-  /* 稀有度徽标（S6-D）：普通不抢眼，稀有描边，禁忌发红 */
+  /* 稀有度徽标（S6-D）：普通不抢眼，稀有描边，禁忌发红；圆角胶囊与路线标签统一 */
   .card .tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 
   .card .rar {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.12em;
-    padding: 1px 6px;
-    border-radius: 4px;
-    color: rgba(255, 255, 255, 0.35);
+    padding: 2px 9px;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .card .rar.rare {
     color: #a8f0ff;
     background: rgba(124, 231, 255, 0.12);
-    box-shadow: inset 0 0 0 1px rgba(124, 231, 255, 0.45);
+    border-color: rgba(124, 231, 255, 0.4);
   }
 
   .card .rar.forbidden {
     color: #ff8a72;
     background: rgba(255, 45, 63, 0.14);
-    box-shadow: inset 0 0 0 1px rgba(255, 45, 63, 0.55);
+    border-color: rgba(255, 45, 63, 0.5);
     animation: forbidPulse 2.2s ease-in-out infinite;
   }
 
   @keyframes forbidPulse {
-    0%, 100% { box-shadow: inset 0 0 0 1px rgba(255, 45, 63, 0.55); }
-    50% { box-shadow: inset 0 0 0 1px rgba(255, 90, 100, 0.95), 0 0 18px -6px rgba(255, 45, 63, 0.8); }
+    0%, 100% { border-color: rgba(255, 45, 63, 0.5); }
+    50% { border-color: rgba(255, 90, 100, 0.95); box-shadow: 0 0 18px -6px rgba(255, 45, 63, 0.8); }
   }
 
   /* 稀有 / 禁忌卡片整体加一点光，扫一眼就能分出层级 */
@@ -698,7 +713,7 @@
       <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>升级时选择能力</span></li>
     </ul>
     <p class="hint">击杀敌人掉落魔素结晶，升级后可从三个刻印中选一个。<br />绿色十字是治疗包，金色箱子是武器补给。<br />按 L 锁定武器后，捡到更高等级的枪也不会自动换。</p>
-    <p class="hint ver" id="verLine">v0.4.9</p>
+    <p class="hint ver" id="verLine">v0.5.0</p>
     <button id="btnBack" class="btn">返回</button>
   </section>
 </div>

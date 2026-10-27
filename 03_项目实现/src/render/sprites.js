@@ -7,6 +7,7 @@ import { TAU } from '../core/math.js';
 import { fxRandom } from '../core/fx.js';
 import { LAYER_PALETTES, ARENA_PALETTE } from './palettes.js';
 import { WEAPONS } from '../game/weapons.js';
+import { PERKS } from '../game/perks.js';
 
 const CACHE = new Map();
 const GROUND_CACHE = new Map();
@@ -1124,7 +1125,351 @@ export function getGunIcon(id) {
 
 // ---- PNG 武器图标接入（S12，图像 Agent 产出） ----
 // 策略同角色精灵：先程序化矢量图标占位，PNG 异步加载完成后覆盖缓存画布，
-// 引用不变，HUD / 面板 / 图鉴零改动。加载失败自动继续用矢量图标。
+
+// ================= 刻印图标（S17，程序化几何图形，替代单字） =================
+//
+// 25 个刻印，每个配一个语义化几何符号（圆/线/多边形/尖角），用刻印主色绘制。
+// 简洁、高级、可读，符合"地渊造物/工业感/生物感"三路线主题。
+
+const PERK_ICON_CACHE = new Map();
+
+function drawPerkIconBody(ctx, S, id, color) {
+  const c = S / 2;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  switch (id) {
+    // ---- 伤害/暴击：尖角爆破 ----
+    case 'bloody_mess':
+    case 'critical': {
+      // 尖角 + 中心点（爆发）
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * TAU - Math.PI / 2;
+        const r = i % 2 === 0 ? 17 : 7;
+        const x = c + Math.cos(a) * r;
+        const y = c + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    // ---- 装填：旋转箭头 ----
+    case 'fastloader': {
+      ctx.beginPath();
+      ctx.arc(c, c, 12, -0.6, Math.PI + 0.6);
+      ctx.stroke();
+      // 箭头
+      ctx.beginPath();
+      ctx.moveTo(c + 10, c - 8);
+      ctx.lineTo(c + 16, c - 12);
+      ctx.lineTo(c + 12, c - 16);
+      ctx.stroke();
+      break;
+    }
+    // ---- 弹匣：三颗子弹 ----
+    case 'ammomaniac': {
+      for (let i = 0; i < 3; i++) {
+        const x = c - 10 + i * 10;
+        ctx.beginPath();
+        ctx.roundRect(x - 3, c - 12, 6, 20, 3);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x - 3, c - 6);
+        ctx.lineTo(x + 3, c - 12);
+        ctx.lineTo(x + 3, c + 8);
+        ctx.lineTo(x - 3, c + 8);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
+    }
+    // ---- 厚皮：盾牌 ----
+    case 'thick_skin': {
+      ctx.beginPath();
+      ctx.moveTo(c, c - 16);
+      ctx.lineTo(c + 13, c - 10);
+      ctx.lineTo(c + 13, c + 2);
+      ctx.quadraticCurveTo(c + 13, c + 12, c, c + 16);
+      ctx.quadraticCurveTo(c - 13, c + 12, c - 13, c + 2);
+      ctx.lineTo(c - 13, c - 10);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    // ---- 再生/医学：十字 ----
+    case 'regeneration':
+    case 'doctor': {
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(c, c - 13);
+      ctx.lineTo(c, c + 13);
+      ctx.moveTo(c - 13, c);
+      ctx.lineTo(c + 13, c);
+      ctx.stroke();
+      break;
+    }
+    // ---- 疾风步：速度箭头 ----
+    case 'ninja':
+    case 'long_ranged': {
+      ctx.beginPath();
+      ctx.moveTo(c - 14, c + 6);
+      ctx.lineTo(c + 10, c + 6);
+      ctx.lineTo(c + 4, c - 1);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(c + 10, c + 6);
+      ctx.lineTo(c + 4, c + 13);
+      ctx.stroke();
+      // 速度线
+      ctx.beginPath();
+      ctx.moveTo(c - 14, c - 6);
+      ctx.lineTo(c - 2, c - 6);
+      ctx.stroke();
+      break;
+    }
+    // ---- 磁力：U 形磁铁 ----
+    case 'bonus_magnet': {
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(c - 6, c, 9, -Math.PI / 2, Math.PI / 2);
+      ctx.arc(c + 6, c, 9, -Math.PI / 2, Math.PI / 2);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.fillRect(c - 9, c - 2, 4, 6);
+      ctx.fillRect(c + 5, c - 2, 4, 6);
+      break;
+    }
+    // ---- 追踪：目标环 ----
+    case 'angry_bullets': {
+      ctx.beginPath();
+      ctx.arc(c, c, 13, 0, TAU);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(c, c, 4, 0, TAU);
+      ctx.fill();
+      break;
+    }
+    // ---- 纵火：火焰 ----
+    case 'pyromaniac': {
+      ctx.beginPath();
+      ctx.moveTo(c, c - 16);
+      ctx.quadraticCurveTo(c + 14, c - 4, c, c + 16);
+      ctx.quadraticCurveTo(c - 14, c - 4, c, c - 16);
+      ctx.fill();
+      break;
+    }
+    // ---- 剧毒：液滴 ----
+    case 'toxic': {
+      ctx.beginPath();
+      ctx.moveTo(c, c - 15);
+      ctx.quadraticCurveTo(c + 12, c + 2, c, c + 15);
+      ctx.quadraticCurveTo(c - 12, c + 2, c, c - 15);
+      ctx.fill();
+      break;
+    }
+    // ---- 闪避：虚线回旋 ----
+    case 'dodging': {
+      ctx.beginPath();
+      ctx.arc(c, c, 12, 0.8, Math.PI * 1.7);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(c + 11, c + 3);
+      ctx.lineTo(c + 16, c + 6);
+      ctx.lineTo(c + 11, c + 10);
+      ctx.stroke();
+      break;
+    }
+    // ---- 散射：三向放射 ----
+    case 'scatter': {
+      for (const a of [-0.5, 0, 0.5]) {
+        ctx.beginPath();
+        ctx.moveTo(c, c);
+        ctx.lineTo(c + Math.cos(a) * 17, c + Math.sin(a) * 17);
+        ctx.stroke();
+      }
+      break;
+    }
+    // ---- 穿甲：穿过圆心的线 ----
+    case 'piercing': {
+      ctx.beginPath();
+      ctx.arc(c, c, 11, 0, TAU);
+      ctx.stroke();
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(c - 16, c);
+      ctx.lineTo(c + 16, c);
+      ctx.stroke();
+      break;
+    }
+    // ---- 死亡时钟/爆炸：放射线 ----
+    case 'death_clock': {
+      ctx.beginPath();
+      ctx.arc(c, c, 13, 0, TAU);
+      ctx.stroke();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * TAU;
+        ctx.beginPath();
+        ctx.moveTo(c + Math.cos(a) * 15, c + Math.sin(a) * 15);
+        ctx.lineTo(c + Math.cos(a) * 20, c + Math.sin(a) * 20);
+        ctx.stroke();
+      }
+      break;
+    }
+    // ---- 时间扭曲：沙漏 ----
+    case 'time_warp': {
+      ctx.beginPath();
+      ctx.moveTo(c - 9, c - 14);
+      ctx.lineTo(c + 9, c - 14);
+      ctx.lineTo(c - 9, c + 14);
+      ctx.lineTo(c + 9, c + 14);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(c - 9, c - 14);
+      ctx.lineTo(c + 9, c + 14);
+      ctx.moveTo(c + 9, c - 14);
+      ctx.lineTo(c - 9, c + 14);
+      ctx.stroke();
+      break;
+    }
+    // ---- 超级战士：人形 ----
+    case 'uber': {
+      ctx.beginPath();
+      ctx.arc(c, c - 6, 5, 0, TAU);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(c, c - 1);
+      ctx.lineTo(c, c + 12);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(c, c + 2);
+      ctx.lineTo(c - 9, c + 13);
+      ctx.moveTo(c, c + 2);
+      ctx.lineTo(c + 9, c + 13);
+      ctx.stroke();
+      break;
+    }
+    // ---- 备用武器：两个切换循环箭头 ----
+    case 'alternate': {
+      ctx.lineWidth = 3;
+      // 上箭头（顺时针）
+      ctx.beginPath();
+      ctx.arc(c - 4, c - 3, 9, -0.6, Math.PI * 0.9);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(c + 5, c - 4);
+      ctx.lineTo(c + 10, c - 6);
+      ctx.lineTo(c + 6, c - 11);
+      ctx.stroke();
+      // 下箭头（逆时针）
+      ctx.beginPath();
+      ctx.arc(c + 4, c + 3, 9, Math.PI - 0.6, Math.PI * 1.9);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(c - 5, c + 4);
+      ctx.lineTo(c - 10, c + 6);
+      ctx.lineTo(c - 6, c + 11);
+      ctx.stroke();
+      break;
+    }
+    // ---- 双持：两把枪并排 ----
+    case 'dualwield': {
+      for (const off of [-1, 1]) {
+        ctx.beginPath();
+        ctx.roundRect(c - 12 + off * 2, c - 4 + off * -6, 18, 6, 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.roundRect(c + 2 + off * 2, c - 2 + off * -6, 4, 8, 2);
+        ctx.fill();
+      }
+      break;
+    }
+    // ---- 跳弹：折线 ----
+    case 'ricochet': {
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(c - 16, c + 12);
+      ctx.lineTo(c - 4, c - 4);
+      ctx.lineTo(c + 12, c + 8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(c + 12, c + 8, 3, 0, TAU);
+      ctx.fill();
+      break;
+    }
+    // ---- 连锁：链节 ----
+    case 'chain': {
+      ctx.lineWidth = 3.5;
+      for (let i = 0; i < 3; i++) {
+        const x = c - 12 + i * 12;
+        ctx.beginPath();
+        ctx.roundRect(x, c - 5, 10, 10, 5);
+        ctx.stroke();
+      }
+      break;
+    }
+    // ---- 布雷：地雷 ----
+    case 'minefield': {
+      ctx.beginPath();
+      ctx.arc(c, c, 13, 0, TAU);
+      ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU;
+        ctx.beginPath();
+        ctx.moveTo(c + Math.cos(a) * 13, c + Math.sin(a) * 13);
+        ctx.lineTo(c + Math.cos(a) * 19, c + Math.sin(a) * 19);
+        ctx.stroke();
+      }
+      break;
+    }
+    // ---- 冰痕：雪花 ----
+    case 'frosttrail': {
+      ctx.lineWidth = 2.6;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU;
+        ctx.beginPath();
+        ctx.moveTo(c, c);
+        ctx.lineTo(c + Math.cos(a) * 15, c + Math.sin(a) * 15);
+        ctx.stroke();
+      }
+      break;
+    }
+    // ---- 兜底：圆 ----
+    default: {
+      ctx.beginPath();
+      ctx.arc(c, c, 12, 0, TAU);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(c, c, 4, 0, TAU);
+      ctx.fill();
+      break;
+    }
+  }
+}
+
+/**
+ * 取一个刻印的矢量图标（几何图形，缓存复用）。
+ * 返回 { canvas, size }。
+ */
+export function getPerkIcon(id) {
+  if (PERK_ICON_CACHE.has(id)) return PERK_ICON_CACHE.get(id);
+  const S = 44;
+  const c = document.createElement('canvas');
+  c.width = S;
+  c.height = S;
+  const ctx = c.getContext('2d');
+  const perk = PERKS.find((p) => p.id === id);
+  const color = (perk && perk.color) || '#7ce7ff';
+  drawPerkIconBody(ctx, S, id, color);
+  const entry = { canvas: c, size: S };
+  PERK_ICON_CACHE.set(id, entry);
+  return entry;
+}
 
 function weaponIconUrl(key) {
   const map = typeof window !== 'undefined' ? window.__WEAPON_ICON_ASSETS__ : null;
