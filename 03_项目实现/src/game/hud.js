@@ -285,5 +285,44 @@ export function drawHud(ctx, g, w, h) {
     ctx.fillRect(0, 0, w, h);
   }
 
+  // ---------- 冲刺冷却（S1-D2）：血条左上方独立小圈，避免与血条重叠 ----------
+  if (p.dashCd > 0) {
+    const cx = 24, cy = h - 112, R = 11;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // 冷却弧（从顶部顺时针）
+    const prog = 1 - p.dashCd / 1.2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + prog * Math.PI * 2);
+    ctx.strokeStyle = 'rgba(160,214,255,0.9)';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---------- 受击方向提示（S1-D3）：屏幕中央一闪的方向弧 ----------
+  if (p.hurtFlash > 0.4 && (p.hurtDirX || p.hurtDirY)) {
+    const a = Math.atan2(p.hurtDirY, p.hurtDirX);
+    const alpha = (p.hurtFlash - 0.4) * 1.5;
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(a);
+    ctx.globalAlpha = Math.min(1, alpha);
+    ctx.fillStyle = 'rgba(255,70,60,0.7)';
+    ctx.beginPath();
+    ctx.moveTo(46, -13);
+    ctx.lineTo(72, 0);
+    ctx.lineTo(46, 13);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
   ctx.restore();
 }

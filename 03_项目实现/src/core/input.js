@@ -10,7 +10,7 @@ export class Input {
   _bind() {
     const block = new Set([
       'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab',
-      'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyR', 'KeyE', 'KeyP'
+      'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyR', 'KeyE', 'KeyP', 'ShiftLeft', 'ShiftRight'
     ]);
     window.addEventListener('keydown', (e) => {
       if (block.has(e.code)) e.preventDefault();

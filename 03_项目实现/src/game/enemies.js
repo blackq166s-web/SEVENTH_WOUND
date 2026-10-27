@@ -192,7 +192,7 @@ export function updateEnemy(g, e, dt) {
   const hitDist = e.r + p.r;
   if (distToPlayer < hitDist && e.atkCd <= 0 && p.hp > 0) {
     e.atkCd = d.attackCd;
-    g.hurtPlayer(e.dmg);
+    g.hurtPlayer(e.dmg, p.x - e.x, p.y - e.y);   // 敌人指向玩家 = 受击方向
   }
 }
 
@@ -200,6 +200,11 @@ export function damageEnemy(g, e, dmg, opts = {}) {
   if (e.dead) return;
   e.hp -= dmg;
   e.flash = 0.1;
+
+  // Boss 受击顿帧（S1-D3）：重击才有顿帧，≤60ms，普通小伤害不打断节奏
+  if (e.def.isBoss && !opts.noHitstop && dmg >= 40) {
+    g.hitstop = Math.max(g.hitstop || 0, Math.min(0.06, 0.02 + dmg * 0.0004));
+  }
 
   if (!opts.silent) {
     const col = opts.color || '#ffffff';

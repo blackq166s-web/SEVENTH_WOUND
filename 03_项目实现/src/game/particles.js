@@ -183,6 +183,13 @@ export class Particles {
           ctx.arc(p.x, p.y, p.size, 0, TAU);
           ctx.fill();
           break;
+        case 'ghost':
+          // 冲刺残影（S1-D2）：淡出的虚影圆
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * (1 - t * 0.3), 0, TAU);
+          ctx.fill();
+          break;
         case 'flash': {
           const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
           g.addColorStop(0, p.color);

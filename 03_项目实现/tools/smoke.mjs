@@ -567,6 +567,47 @@ input.mouse.down = false;
 const noIcon = WEAPON_IDS.filter((id) => !WEAPONS[id].icon);
 assert(noIcon.length === 0, `每把武器都应有 icon，缺：${noIcon.join(',')}`);
 
+// 冲刺（S1-D2）：Shift 触发，无敌帧不掉血，冷却未结束不能二次冲刺
+game.start('survival');
+game.enemies.length = 0;
+game.bullets.length = 0;
+game.setState('playing');
+const dp = game.player;
+dp.x = game.W / 2; dp.y = game.H / 2;
+dp.dashT = 0; dp.dashCd = 0; dp.dashInv = 0;
+// 模拟按下 Shift（无方向输入时朝 aim 方向冲刺）
+input.keys.add('ShiftLeft');
+dp.aim = 0;   // 朝右
+game.update(STEP); input.endFrame();
+assert(dp.dashT > 0, '按下 Shift 应触发冲刺');
+assert(dp.dashCd > 0, '冲刺后应进入冷却');
+assert(dp.dashInv > 0, '冲刺应有无敌帧');
+// 无敌帧期间不吃伤害
+const dashHp = dp.hp;
+dp.hp = 100;
+game.hurtPlayer(30, 1, 0);
+assert(dp.hp === 100, `冲刺无敌帧应不吃伤害，实际 ${dp.hp}`);
+dp.hp = dashHp;
+// 冷却未结束不能二次冲刺
+dp.dashT = 0;   // 冲刺位移结束，但冷却仍在
+game.update(STEP); input.endFrame();
+assert(dp.dashT === 0, '冷却未结束不应二次冲刺');
+// 冷却结束后可再冲
+dp.dashCd = 0;
+input.keys.add('ShiftLeft');
+game.update(STEP); input.endFrame();
+assert(dp.dashT > 0, '冷却结束后应可再次冲刺');
+input.keys.delete('ShiftLeft');
+
+// 受击方向（S1-D3）：hurtPlayer 记录方向
+game.start('survival');
+game.enemies.length = 0;
+game.player.dashInv = 0;
+game.player.hurtDirX = 0; game.player.hurtDirY = 0;
+game.player.hp = game.player.maxHp;
+game.hurtPlayer(5, 1, 0);   // 从右方来
+assert(game.player.hurtDirX > 0, '受击方向应记录（从右来 x>0）');
+
 // 持续激光（S9-C beam）：对光束路径上的敌人持续伤害
 game.start('survival');
 game.enemies.length = 0;

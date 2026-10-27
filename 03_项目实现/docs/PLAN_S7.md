@@ -318,3 +318,27 @@
 截图：`v-codex-enemy.png` / `v-codex-weapon.png` / `v-codex-perk.png`。
 
 **踩坑**：dom-stub 桩环境没有 `document.querySelectorAll`，图鉴标签切换不能用动态选择器，改固定 id + `$`。
+
+---
+
+## 14. S15 · S1-D2/D3 冲刺与受击反馈（2026-10-23，v0.4.7）
+
+补上 S1 挂起已久的两个手感短板：
+
+**D2 冲刺**（Shift 触发）：
+- 0.18s 位移（速度 1050）+ 0.12s 无敌帧 + 1.2s 冷却
+- 方向优先移动方向，否则朝瞄准方向
+- 冲刺中不可开火（普通 + beam 都挡）、跳过普通移动
+- HUD 血条左上方加圆形冷却指示（进度弧）
+- 残影粒子（新增 `ghost` 类型，半透明圆沿路径铺开）
+- 无敌帧在 `hurtPlayer` 里 `dashInv > 0` 直接 return
+
+**D3 受击反馈**：
+- 受击方向：`hurtPlayer` 加 `dirX/dirY` 参数，弹道/接触伤害都传方向，HUD 屏幕中央画方向三角（`hurtFlash` 高时）
+- Boss 受击顿帧：重击（dmg≥40）触发 `hitstop`（≤60ms），普通小伤害不打断节奏；Boss 击杀顿帧已有
+
+**验证**：`smoke` PASS（新增 7 条：冲刺触发/冷却/无敌帧不吃伤害/冷却未结束不二冲/冷却结束可再冲/受击方向记录）· `DASH_OK`（冲刺状态/Boss顿帧/受击方向）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.7 / 587.5 KB）。
+
+截图：`v-dash.png`（冲刺+冷却指示）、`v-hurtdir.png`（受击方向三角）。
+
+**踩坑**：①冲刺位移和普通移动必须用同一 `if/else` 分支，否则 y 位移被二次计算；②冷却指示器不能放 `h-70`（和血条重叠），移到血条左上方 `h-112`；③`hurtFlash` 每帧衰减 2.4，截图验证要立即拍别 sleep。

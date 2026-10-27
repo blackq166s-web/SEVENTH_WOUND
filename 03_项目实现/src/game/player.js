@@ -37,6 +37,11 @@ export function createPlayer(x, y) {
     boostT: 0,        // 加速剩余时间（秒）
     beamOn: false,    // 持续激光（S9-C）：是否在照射
     beamAngle: 0,     // 激光方向
+    dashT: 0,         // 冲刺（S1-D2）：剩余位移时间
+    dashCd: 0,        // 冲刺冷却
+    dashInv: 0,       // 冲刺无敌帧剩余
+    dashDirX: 0, dashDirY: 0,  // 冲刺方向
+    hurtDirX: 0, hurtDirY: 0,  // 受击方向（S1-D3 方向提示）
     stats: {
       dmgMul: 1,
       speedMul: 1,
@@ -146,16 +151,55 @@ export function updatePlayer(g, p, dt) {
   // 加速消耗品计时
   if (p.boostT > 0) p.boostT = Math.max(0, p.boostT - dt);
 
-  // 移动（蓄力时拖慢脚步；加速时 ×1.5）
+  // ---- 冲刺（S1-D2）：Shift 触发，0.18s 位移 + 0.12s 无敌帧 + 1.2s 冷却 ----
+  const dashKey = input.isDown('ShiftLeft') || input.isDown('ShiftRight');
+  if (p.dashCd > 0) p.dashCd = Math.max(0, p.dashCd - dt);
+  if (p.dashInv > 0) p.dashInv = Math.max(0, p.dashInv - dt);
+
+  // 冲刺进行中：按冲刺方向强制位移，不响应普通移动
+  if (p.dashT > 0) {
+    p.dashT -= dt;
+    const dspeed = 1050;
+    p.vx = p.dashDirX * dspeed;
+    p.vy = p.dashDirY * dspeed;
+    p.x = clamp(p.x + p.vx * dt, p.r, g.W - p.r);
+    p.y = clamp(p.y + p.vy * dt, p.r, g.H - p.r);
+    // 冲刺残影
+    if (random() < dt * 40) {
+      g.particles.add({
+        type: 'ghost', x: p.x, y: p.y,
+        life: 0.3, size: 16,
+        color: 'rgba(160,210,255,0.85)'
+      });
+    }
+  } else if (dashKey && p.dashCd <= 0 && p.dashT <= 0) {
+    // 触发冲刺：方向优先移动方向，否则朝向（aim）
+    let dx = 0, dy = 0;
+    const mvNow = input.moveVector();
+    if (mvNow.x || mvNow.y) { dx = mvNow.x; dy = mvNow.y; }
+    else { dx = Math.cos(p.aim); dy = Math.sin(p.aim); }
+    const l = Math.hypot(dx, dy) || 1;
+    p.dashDirX = dx / l;
+    p.dashDirY = dy / l;
+    p.dashT = 0.18;
+    p.dashInv = 0.12;
+    p.dashCd = 1.2;
+    g.audio.click();
+    g.particles.ring(p.x, p.y, 20, 'rgba(150,200,255,0.6)', 0.22);
+  }
+
+  // 移动（蓄力时拖慢脚步；加速时 ×1.5）；冲刺期间跳过普通移动
   const mv = input.moveVector();
   const chargeSlow = wDef.charge ? 1 - 0.4 * Math.min(1, (p.chargeT || 0) / wDef.charge) : 1;
   const boostMul = p.boostT > 0 ? 1.5 : 1;
   const speed = p.speed * p.stats.speedMul * chargeSlow * boostMul;
   const k = damp(15, dt);
-  p.vx += (mv.x * speed - p.vx) * k;
-  p.vy += (mv.y * speed - p.vy) * k;
-  p.x = clamp(p.x + p.vx * dt, p.r, g.W - p.r);
-  p.y = clamp(p.y + p.vy * dt, p.r, g.H - p.r);
+  if (p.dashT <= 0) {
+    p.vx += (mv.x * speed - p.vx) * k;
+    p.vy += (mv.y * speed - p.vy) * k;
+    p.x = clamp(p.x + p.vx * dt, p.r, g.W - p.r);
+    p.y = clamp(p.y + p.vy * dt, p.r, g.H - p.r);
+  }
 
   // 瞄准
   p.aim = Math.atan2(g.mouseWorld.y - p.y, g.mouseWorld.x - p.x);
@@ -209,8 +253,9 @@ export function updatePlayer(g, p, dt) {
   }
 
   // 持续激光（S9-C beam）：按住持续照射，每帧按 drain 耗弹；松手或弹尽即停
+  // 冲刺中不照射（S1-D2）
   if (wDef.kind === 'beam') {
-    if (input.mouse.down && p.reloading <= 0 && p.ammo > 0) {
+    if (input.mouse.down && p.reloading <= 0 && p.ammo > 0 && p.dashT <= 0) {
       p.beamOn = true;
       p.beamAngle = p.aim;
       p.ammo = Math.max(0, p.ammo - (wDef.drain || 12) * dt);
@@ -227,8 +272,8 @@ export function updatePlayer(g, p, dt) {
     p.beamOn = false;
   }
 
-  // 开火（beam 武器不走这里）
-  if (input.mouse.down && p.reloading <= 0 && p.cd <= 0 && wDef.kind !== 'beam') {
+  // 开火（beam 武器不走这里；冲刺中不可开火）
+  if (input.mouse.down && p.reloading <= 0 && p.cd <= 0 && wDef.kind !== 'beam' && p.dashT <= 0) {
     const charged = !wDef.charge || p.chargeT >= wDef.charge;
     if (p.ammo > 0 && charged) {
       fireWeapon(g, p);
@@ -283,12 +328,20 @@ export function updatePlayer(g, p, dt) {
   p.hurtFlash = Math.max(0, p.hurtFlash - dt * 2.4);
 }
 
-export function hurtPlayer(g, dmg) {
+export function hurtPlayer(g, dmg, dirX, dirY) {
   const p = g.player;
   if (p.hp <= 0) return;
+  // 冲刺无敌帧（S1-D2）：冲刺期间不吃伤害
+  if (p.dashInv > 0) return;
   if (random() < p.stats.dodge) {
     g.particles.text(p.x, p.y - 26, '闪避', '#c9d6e5', 14);
     return;
+  }
+  // 受击方向（S1-D3）：记录伤害来源方向，供 HUD 画方向指示
+  if (dirX !== undefined && dirY !== undefined && (dirX || dirY)) {
+    const l = Math.hypot(dirX, dirY) || 1;
+    p.hurtDirX = dirX / l;
+    p.hurtDirY = dirY / l;
   }
   // 护盾先扣：扣完前不掉血
   if (p.shield > 0) {

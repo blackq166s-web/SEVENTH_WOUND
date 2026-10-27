@@ -469,7 +469,7 @@ export class Game {
         // 命中玩家
         const rr = p.r + b.r;
         if (M.dist2(b.x, b.y, p.x, p.y) < rr * rr) {
-          hurtPlayer(this, b.dmg);
+          hurtPlayer(this, b.dmg, b.vx, b.vy);   // 弹道方向 = 受击方向
           this.particles.sparks(b.x, b.y, Math.atan2(b.vy, b.vx) + Math.PI, 4, b.color);
           dead = true;
         }
@@ -1130,12 +1130,14 @@ export class Game {
 
     if (hurtSelf) {
       const dp = M.dist(x, y, this.player.x, this.player.y);
-      if (dp < radius * 0.75) hurtPlayer(this, dmg * 0.3);
+      if (dp < radius * 0.75) {
+        hurtPlayer(this, dmg * 0.3, this.player.x - x, this.player.y - y);
+      }
     }
   }
 
-  hurtPlayer(dmg) {
-    hurtPlayer(this, dmg);
+  hurtPlayer(dmg, dirX, dirY) {
+    hurtPlayer(this, dmg, dirX, dirY);
   }
 
   onPlayerDeath() {
