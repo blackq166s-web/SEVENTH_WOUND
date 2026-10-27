@@ -120,8 +120,7 @@ console.log('生存模式 90s:', r1);
 const r2 = simulate('survival', 18000, { invincible: true });
 console.log('生存模式 300s (不死):', r2);
 
-const r3 = simulate('quest', 12000);
-console.log('关卡模式:', r3);
+// 下潜模式已停用，不再单独压测 quest
 
 // Perk 全量压测：连续升级并把所有可叠能力拿满
 game.start('survival');
@@ -227,11 +226,10 @@ for (const [id, partners] of Object.entries(SYNERGY)) {
 }
 assert(badSyn.length === 0, `协同表引用了不存在的 id：${badSyn.join(',')}`);
 
-// 左臂布条随层数（STORY §2.3）
+// 下潜模式已停用（2026-10-27）：start('quest') 应被强制转成 survival
 game.start('quest');
-assert(game.player.stripes === 1, `首层布条应为 1，实际 ${game.player.stripes}`);
-game.loadQuest(3);
-assert(game.player.stripes === 4, `第四层布条应为 4，实际 ${game.player.stripes}`);
+assert(game.mode === 'survival', `quest 模式应被拒绝并转 survival，实际 ${game.mode}`);
+assert(game.player.stripes === 1, '竞技场布条应为 1');
 game.start('survival');
 assert(game.player.stripes === 1, `竞技场布条应回到 1，实际 ${game.player.stripes}`);
 
@@ -269,12 +267,14 @@ v0.push('丙');
 v0.reset();
 assert(v0.active === false && v0.queue.length === 0, 'reset 应清空独白队列');
 
-// 层间文本卡：拆眉批 + 主标题，带 total 供淡入淡出
-game.start('quest');
+// 层间文本卡：下潜模式已停用，loadQuest 仍可单测（数据表保留）
+game.start('survival');
+game.loadQuest(0);
 assert(game.banner.kicker === '第一章' && game.banner.text === '消化场', `层间卡拆分异常：${game.banner.kicker} / ${game.banner.text}`);
 assert(game.banner.total === 2.0, `层间卡应有 total，实际 ${game.banner.total}`);
 game.loadQuest(5);
 assert(game.banner.kicker === '第六章' && game.banner.text === '守层者之厅', `末层卡异常：${game.banner.kicker} / ${game.banner.text}`);
+game.start('survival');
 
 // 守层者登场：名字条 + 镜头轻推（不改缩放）+ 独白只一次
 game.start('survival');
@@ -287,6 +287,27 @@ for (let i = 0; i < 30; i++) { game.update(STEP); input.endFrame(); }
 assert(game.cam.zoom === zBefore, '登场演出不得改动缩放（否则世界坐标换算会错位）');
 for (let i = 0; i < 120; i++) { game.update(STEP); input.endFrame(); }
 assert(game.intro === null, '登场演出应在 1.6s 后自动结束');
+
+// 守层者二阶段（S16）：血量过半转形态
+game.start('survival');
+game.enemies.length = 0;
+const boss2 = game.spawn('brute', {});
+boss2.born = 0;
+boss2.intro = null;
+game.intro = null;
+const bossMaxHp = boss2.maxHp;
+assert(boss2.phase2 === false, 'Boss 初始应为一阶段');
+const bossSpeedBefore = boss2.speed;
+damageEnemy(game, boss2, bossMaxHp * 0.6, { silent: true, noHitstop: true });
+assert(boss2.phase2 === true, 'Boss 血量过半应转二阶段');
+assert(boss2.speed > bossSpeedBefore, '二阶段 Boss 应加速');
+// 二阶段应周期性召唤小怪 / 弹幕
+game.enemies.length = 1;   // 只剩 boss
+const enemiesBeforeP2 = game.enemies.length;
+boss2.p2Cd = 0.01;
+const { updateEnemy } = await import('../src/game/enemies.js');
+for (let i = 0; i < 3; i++) updateEnemy(game, boss2, STEP);
+assert(game.enemies.length > enemiesBeforeP2 || game.bullets.length > 0, '二阶段应召唤小怪或弹幕');
 
 // 种子 RNG（P4-0）：同 seed 同序列，无 seed 回到 Math.random
 const M = await import('../src/core/math.js');
@@ -317,14 +338,18 @@ for (let i = 0; i < 30; i++) {
 }
 assert(pe.erosion === EROSION_MAX, `侵蚀应封顶 ${EROSION_MAX}，实际 ${pe.erosion}`);
 
-// 侵蚀峰值 + ≥70 的独白与死亡面板数据（P4-2 / P4-3）
+// 侵蚀峰值 + 分档独白（S16：70/80/92 三档）与死亡面板数据（P4-2 / P4-3）
 game.start('survival');
 game.player.erosion = 80;
 game.update(STEP);
 assert(game.maxErosion === 80, `峰值侵蚀应被记录，实际 ${game.maxErosion}`);
-assert(game.voice.seen.has('erosionHigh') === true, '侵蚀 ≥70 应触发"不像人"的独白');
+assert(game.voice.seen.has('erosionDeep') === true, '侵蚀 ≥80 应触发"不像人"的独白（deep 档）');
+game.start('survival');
+game.player.erosion = 95;
+game.update(STEP);
+assert(game.voice.seen.has('erosionLast') === true, '侵蚀 ≥92 应触发最后一档独白');
 const sum = game.summary();
-assert(sum.maxErosion === 80 && sum.erosion === 80, `summary 应带侵蚀数据，实际 ${JSON.stringify({ e: sum.erosion, m: sum.maxErosion })}`);
+assert(sum.maxErosion === 95 && sum.erosion === 95, `summary 应带侵蚀数据，实际 ${JSON.stringify({ e: sum.erosion, m: sum.maxErosion })}`);
 
 // ≥70 敌人移速 +10%（同 seed 下对比 1 秒位移）
 function enemyTravel(erosion) {
@@ -369,8 +394,7 @@ const badPal = [...LAYER_PALETTES, ARENA_PALETTE].filter(
 );
 assert(badPal.length === 0, `每层配色必须有 ground/blood/fog/ambient/glow：${badPal.map((p) => p.id).join(',')}`);
 
-game.start('quest');
-assert(game.palette.id === 'digest', `首层应使用 digest 配色，实际 ${game.palette.id}`);
+// 下潜模式停用，但 paletteForLayer / 各层配色表仍应完整（数据保留）
 game.loadQuest(4);
 assert(game.palette.id === 'marrow', `第五层应使用 marrow 配色，实际 ${game.palette.id}`);
 game.start('survival');
@@ -809,12 +833,9 @@ game.setState('paused');
 assert(offscreenThreats(game, 1280, 720).length === 0, '暂停时不应显示边缘指示器');
 game.setState('playing');
 
-// 关卡推进
+// 关卡推进：下潜模式已停用，quest 逻辑不再触发（保留 clear 面板但不可达）
 game.start('quest');
-game.questQueue.length = 0;
-game.enemies.length = 0;
-game.update(STEP);
-assert(game.state === 'clear', '关卡清空后应进入 clear 状态');
+assert(game.mode === 'survival', 'quest 应被拒绝');
 
 console.log('功能校验:', fnErrors === 0 ? 'PASS' : `${fnErrors} 项失败`);
 

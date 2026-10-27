@@ -158,21 +158,20 @@ export class Game {
   // ================= 生命周期 =================
 
   start(mode) {
+    // 下潜模式已停用（2026-10-27）：只保留竞技场。quest 逻辑保留但不可达，可回退。
+    if (mode === 'quest') mode = 'survival';
     this.mode = mode;
     // 同一 seed 每局从头播同一条序列：重开即复现，不看上一局跑了多久
     if (this.seed) this.setSeed(this.seed);
     this.reset();
     this.state = 'playing';
     this.ui.hide();
-    this.banner = { text: mode === 'quest' ? '第一章 · 苏醒' : '第 1 波', sub: mode === 'quest' ? '消灭所有敌人' : '生存下去', t: 2.6, total: 2.6 };
+    this.banner = { text: '第 1 波', sub: '生存下去', t: 2.6, total: 2.6 };
     // 开局独白：不暂停、不挡输入，只是屏幕底部多两行字
     this.voice.say('start');
-    if (mode === 'quest') this.loadQuest(0);
-    else {
-      this.setPalette(ARENA_PALETTE);
-      // 开场先给一小波敌人，避免开局空场
-      for (let i = 0; i < 5; i++) this.spawn('zombie', { hpMul: 1, dmgMul: 1, speedMul: 1 });
-    }
+    this.setPalette(ARENA_PALETTE);
+    // 开场先给一小波敌人，避免开局空场
+    for (let i = 0; i < 5; i++) this.spawn('zombie', { hpMul: 1, dmgMul: 1, speedMul: 1 });
   }
 
   reset() {
@@ -341,7 +340,10 @@ export class Game {
     } else {
       this.heartTimer = 0;
     }
-    if (er >= 70) this.voice.say('erosionHigh');
+    // 侵蚀值分档触发独白（S16）：越深越不像人
+    if (er >= 92) this.voice.say('erosionLast');
+    else if (er >= 80) this.voice.say('erosionDeep');
+    else if (er >= 70) this.voice.say('erosionHigh');
 
     // 开局保底（S6-C）：22 秒内在附近必掉一把，不依赖击杀。
     // 叙事上这就是"捡到的第一把枪"，玩法上保证前 30 秒一定能换枪。
@@ -1457,11 +1459,23 @@ export class Game {
         const x = e.x - bw / 2, y = e.y - e.r - 18;
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(x, y, bw, bh);
-        ctx.fillStyle = '#ff3b4d';
+        ctx.fillStyle = e.phase2 ? '#ff6a3c' : '#ff3b4d';   // 二阶段橙红
         ctx.fillRect(x, y, bw * Math.max(0, e.hp / e.maxHp), bh);
         ctx.strokeStyle = 'rgba(255,255,255,0.35)';
         ctx.lineWidth = 1;
         ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh - 1);
+      }
+
+      // 二阶段视觉：Boss 身上泛红光晕（S16）
+      if (e.phase2) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const pulse = 0.18 + Math.sin(t * 6) * 0.08;
+        ctx.fillStyle = `rgba(255,60,40,${pulse})`;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r * 1.3, 0, M.TAU);
+        ctx.fill();
+        ctx.restore();
       }
     }
   }

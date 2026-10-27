@@ -81,6 +81,8 @@ export function spawnEnemy(g, type, x, y, mods = {}) {
     slowMul: 1,       // 减速倍率（越小越慢）
     phase: rand(0, TAU),
     born: 0.45,
+    phase2: false,    // 二阶段（S16）：Boss 血量过半转形态
+    p2Cd: 0,          // 二阶段召唤/弹幕冷却
     sprites: g.sprites[t.spriteSet],
     sprite: g.sprites[t.spriteSet][0]
   };
@@ -169,6 +171,36 @@ export function updateEnemy(g, e, dt) {
   e.x = clamp(e.x, e.r, g.W - e.r);
   e.y = clamp(e.y, e.r, g.H - e.r);
 
+  // 二阶段行为（S16）：Boss 过半后周期性召唤小怪 + 环形弹幕
+  if (e.phase2 && e.born <= 0) {
+    e.p2Cd -= dt;
+    if (e.p2Cd <= 0) {
+      e.p2Cd = 3.2;   // 每 3.2s 一轮
+      // 环形弹幕（12 发橙红，向外扩散）
+      const shots = 12;
+      for (let i = 0; i < shots; i++) {
+        const a = (i / shots) * TAU + e.phase;
+        g.addEnemyBullet({
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * 260,
+          vy: Math.sin(a) * 260,
+          r: 5, dmg: 8, life: 3.0, color: '#ff5a3c'
+        });
+      }
+      // 召唤两只小怪（疾行者，快速骚扰）
+      for (let i = 0; i < 2; i++) {
+        const a = rand(0, TAU);
+        const nx2 = e.x + Math.cos(a) * 60;
+        const ny2 = e.y + Math.sin(a) * 60;
+        const r = g.spawn('runner', {});
+        r.x = clamp(nx2, r.r, g.W - r.r);
+        r.y = clamp(ny2, r.r, g.H - r.r);
+        r.born = 0.3;
+      }
+      g.audio.shoot('plasma');
+    }
+  }
+
   // 灼烧/中毒
   if (e.burn > 0) {
     e.burn -= dt;
@@ -204,6 +236,20 @@ export function damageEnemy(g, e, dmg, opts = {}) {
   // Boss 受击顿帧（S1-D3）：重击才有顿帧，≤60ms，普通小伤害不打断节奏
   if (e.def.isBoss && !opts.noHitstop && dmg >= 40) {
     g.hitstop = Math.max(g.hitstop || 0, Math.min(0.06, 0.02 + dmg * 0.0004));
+  }
+
+  // 二阶段触发（S16）：Boss 血量首次过半 → 转形态
+  if (e.def.isBoss && !e.phase2 && e.hp <= e.maxHp * 0.5) {
+    e.phase2 = true;
+    e.p2Cd = 0.6;
+    e.speed = e.def.speed * 1.5;   // 加速
+    g.cam.kick(14);
+    g.hitstop = 0.12;
+    g.audio.explosion(1.2);
+    g.particles.ring(e.x, e.y, 90, 'rgba(255,60,50,0.9)', 0.6);
+    g.particles.blood(e.x, e.y, 0, 26, '#8f1220', 1);
+    g.banner = { text: '它记得开枪了', sub: '', t: 1.8, total: 1.8 };
+    g.voice.say('erosionDeep');
   }
 
   if (!opts.silent) {

@@ -342,3 +342,26 @@
 截图：`v-dash.png`（冲刺+冷却指示）、`v-hurtdir.png`（受击方向三角）。
 
 **踩坑**：①冲刺位移和普通移动必须用同一 `if/else` 分支，否则 y 位移被二次计算；②冷却指示器不能放 `h-70`（和血条重叠），移到血条左上方 `h-112`；③`hurtFlash` 每帧衰减 2.4，截图验证要立即拍别 sleep。
+
+---
+
+## 15. S16 · 停用下潜 + 侵蚀台词库 + 守层者二阶段（2026-10-27，v0.4.8）
+
+**① 停用下潜模式**（用户临时决策）：只保留竞技场。
+- 菜单移除「下潜·六层回廊」按钮；`start('quest')` 强制转 `survival`
+- quest 逻辑（loadQuest / updateQuestSpawner / nextLevel / clear 面板 / quests.js 数据表）保留但不可达，可回退
+- smoke 里 4 段 quest 断言改为「验证 quest 被拒绝」，simulate quest 压测移除
+
+**② 侵蚀台词库**（叙事向）：
+- 侵蚀分档触发独白：≥70 `erosionHigh`（原有）/ ≥80 `erosionDeep`（"第七个读完的人……是我吗？"）/ ≥92 `erosionLast`（"别念了。"）
+- 越深越破碎、越不像人
+
+**③ 守层者二阶段**（Boss 血线转形态）：
+- 血量首次降到 50% → 转二阶段：加速 ×1.5（54→81）、镜头 kick、顿帧、血雾
+- 二阶段行为：每 3.2s 一轮 = 12 发环形橙红弹幕 + 召唤 2 只疾行者
+- 视觉：Boss 红光晕脉冲 + 血条转橙红 + 横幅「它记得开枪了」
+- `enemies.js` 加 `phase2` / `p2Cd` 字段；触发在 `damageEnemy`，行为在 `updateEnemy`
+
+**验证**：`smoke` PASS（quest 拒绝 + 侵蚀分档 + 二阶段加速/召唤 6 条）· `BOSS2_OK`（加速 54→81 / 召唤 2 小怪 + 12 弹幕）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.8 / 589.6 KB）。
+
+截图：`v-boss-phase2.png`（红光晕 + 橙红血条）、`v-boss-phase2-spawn.png`（召唤+弹幕）。

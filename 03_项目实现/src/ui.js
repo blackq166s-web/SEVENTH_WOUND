@@ -43,7 +43,6 @@ export class UI {
     };
 
     on('btnSurvival', () => g.start('survival'));
-    on('btnQuest', () => g.start('quest'));
     on('btnHelp', () => this.show('help'));
     on('btnCodex', () => this.showCodex('enemy'));
     on('btnCodexBack', () => this.show('menu'));
