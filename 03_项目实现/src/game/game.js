@@ -26,8 +26,8 @@ const TIER_COLORS = {
   4: { core: 'rgba(255,77,94,0.78)', beam: 'rgba(255,77,94,0.38)' }
 };
 
-// 左臂布条颜色 = 该层主色（STORY §10 配色分区），最多 4 条
-const STRIPE_COLORS = ['#8f2a1c', '#a51622', '#4c7a26', '#6b2b93'];
+// 左臂布条已在 S23 移除绘制（角色身上 2px 短线会被误读成"方向指示点"）。
+// p.stripes 数据保留（层数语义），只是不再画在角色身上。
 
 // localStorage 在 file:// 或隐私模式下可能直接抛异常（单文件发布版就是 file://）。
 // 存档只是"最高分"，丢了不影响玩，所以一律吞掉异常。
@@ -1586,33 +1586,8 @@ export class Game {
     ctx.drawImage(frame.canvas, -frame.size / 2, -frame.size / 2, frame.size, frame.size);
     ctx.restore();
 
-    // 左臂布条：每下一层多一条，颜色取该层主色（STORY §2.3）
-    const stripes = Math.min(p.stripes || 0, 4);
-    if (stripes > 0) {
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.body);
-      ctx.lineWidth = 1.2;
-      ctx.lineCap = 'round';
-      ctx.globalAlpha = 0.85;
-      // 左臂在新玩家图（S8 PNG）上的位置：头左侧、身体上方，
-      // 72px 画布内布条从肩后 (-9,-8) 缠到前臂 (-4,-11)，等距 4 条。
-      const ax = -9;
-      const ay = -8;
-      const bx = -4;
-      const by = -11;
-      for (let i = 0; i < stripes; i++) {
-        ctx.strokeStyle = STRIPE_COLORS[i];
-        const k = 0.15 + i * 0.28;
-        const px = ax + (bx - ax) * k;
-        const py = ay + (by - ay) * k;
-        ctx.beginPath();
-        ctx.moveTo(px - 1, py - 1.6);
-        ctx.lineTo(px + 1, py + 1.6);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
+    // 左臂布条（S23：已移除绘制）——血条数量/层数信息由 HUD 与层间卡承担，
+    // 角色身上那几条 2px 短线在俯视角下只会被看成"指示方向的小点"，纯属干扰。
 
     // 武器（S22：不再画角色身上的枪管——方向由鼠标准星指示，手上挂个方块反而像多余的指示点。
     // 只保留射击反馈：蓄力光球 / 枪口火焰，贴在角色朝向前方边缘。）
