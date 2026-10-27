@@ -1103,27 +1103,31 @@ function drawGunIconBody(ctx, S, id, color) {
  * 取一把枪的矢量图标（侧视剪影，缓存复用）。
  * 返回 { canvas, size }；HUD / 拾取横幅 / 图鉴通用。
  */
-export function getGunIcon(id) {
-  if (GUN_ICONS.has(id)) return GUN_ICONS.get(id);
+export function getGunIcon(id, opts = {}) {
+  const bare = !!(opts && opts.bare);       // bare：纯剪影，无底板无描边（HUD 用）
+  const cacheKey = bare ? `${id}:bare` : id;
+  if (GUN_ICONS.has(cacheKey)) return GUN_ICONS.get(cacheKey);
   const BASE = 44;    // 逻辑坐标系：下面的画法都按 44 写
-  const S = 132;      // 实际画布分辨率：3 倍超采样，放大到 104px 显示也不糊
+  const S = 132;      // 实际画布分辨率：3 倍超采样，放大显示也不糊
   const c = document.createElement('canvas');
   c.width = S;
   c.height = S;
   const ctx = c.getContext('2d');
   ctx.scale(S / BASE, S / BASE);   // 坐标系仍是 44，分辨率提高 3 倍
   const color = (WEAPONS[id] && WEAPONS[id].color) || '#cfd8e3';
-  // 黑底 + 主题色描边（S21）：与 PNG 图标版统一，暗 UI 上更醒目
-  ctx.fillStyle = 'rgba(12,15,20,0.92)';
-  ctx.beginPath();
-  ctx.roundRect(2, 2, BASE - 4, BASE - 4, 8);
-  ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.6;
-  ctx.stroke();
+  if (!bare) {
+    // 黑底 + 主题色描边（面板卡片用）
+    ctx.fillStyle = 'rgba(12,15,20,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(2, 2, BASE - 4, BASE - 4, 8);
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  }
   drawGunIconBody(ctx, BASE, id, color);
-  const entry = { canvas: c, size: S };
-  GUN_ICONS.set(id, entry);
+  const entry = { canvas: c, size: S, bare };
+  GUN_ICONS.set(cacheKey, entry);
   return entry;
 }
 
@@ -1537,7 +1541,7 @@ function weaponIconUrl(key) {
  * 关键：按 alpha 包围盒裁剪后再缩放——枪图是横条状（宽 100×高 30），
  * 按正方形缩放会导致画面里只剩中间一条，显得又小又糊。
  */
-function fitWeaponIcon(img, canvas, color) {
+function fitWeaponIcon(img, canvas, color, bare = false) {
   const ctx = canvas.getContext('2d');
   const S = canvas.width;
   // 关键：getGunIcon 里做过 ctx.scale(3,3) 超采样，transform 会留在同一个 context 上，
@@ -1545,14 +1549,16 @@ function fitWeaponIcon(img, canvas, color) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, S, S);
 
-  // 1) 主画布：黑色圆角底板 + 主题色细描边
-  ctx.fillStyle = 'rgba(12,15,20,0.92)';
-  ctx.beginPath();
-  ctx.roundRect(2, 2, S - 4, S - 4, 8);
-  ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.6;
-  ctx.stroke();
+  // 1) 非 bare：黑色圆角底板 + 主题色细描边
+  if (!bare) {
+    ctx.fillStyle = 'rgba(12,15,20,0.92)';
+    ctx.beginPath();
+    ctx.roundRect(2, 2, S - 4, S - 4, 8);
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  }
 
   // 2) 求 PNG 的实际内容包围盒（去掉四周留白）
   let sx = 0, sy = 0, sw = img.width, sh = img.height;
@@ -1584,7 +1590,7 @@ function fitWeaponIcon(img, canvas, color) {
   tmp.width = S;
   tmp.height = S;
   const tctx = tmp.getContext('2d');
-  const pad = S * 0.16;                     // 四周留白
+  const pad = S * (bare ? 0.06 : 0.16);     // 纯剪影铺得更满，带底板留白多一点
   const box = S - pad * 2;
   const s = Math.min(box / sw, box / sh);   // 等比适配内框
   const w = sw * s;
@@ -1611,9 +1617,12 @@ export function loadWeaponIcons() {
         new Promise((resolve) => {
           const img = new Image();
           img.onload = () => {
-            const entry = getGunIcon(key);   // 确保程序化占位已生成
             const color = (WEAPONS[key] && WEAPONS[key].color) || '#cfd8e3';
-            fitWeaponIcon(img, entry.canvas, color);
+            // 两套缓存都要覆盖：带底板（面板卡片）+ 纯剪影（HUD）
+            const entry = getGunIcon(key);
+            fitWeaponIcon(img, entry.canvas, color, false);
+            const bareEntry = getGunIcon(key, { bare: true });
+            fitWeaponIcon(img, bareEntry.canvas, color, true);
             loaded.push(key);
             resolve(key);
           };

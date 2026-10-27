@@ -104,9 +104,10 @@ export function drawHud(ctx, g, w, h) {
   const lockTag = p.weaponLocked ? ' 🔒' : '';
   const mainName = `${wDef.name}${lockTag}`;
   const mainW = ctx.measureText(mainName).width;
-  const mainIcon = getGunIcon(p.weapon);
+  const mainIcon = getGunIcon(p.weapon, { bare: true });   // 纯剪影：不加底板/边框
+  const icoSize = 46;                                       // 精简展示，别抢弹药数字的视线
   const iconY = h - 84;
-  ctx.drawImage(mainIcon.canvas, rx - mainW - mainIcon.size + 6, iconY - mainIcon.size / 2, mainIcon.size, mainIcon.size);
+  ctx.drawImage(mainIcon.canvas, rx - mainW - icoSize - 3, iconY - icoSize / 2, icoSize, icoSize);
   ctx.fillText(mainName, rx, iconY);
 
   ctx.font = `800 40px ${FONT}`;
@@ -123,8 +124,9 @@ export function drawHud(ctx, g, w, h) {
     ctx.fillStyle = 'rgba(255,255,255,0.42)';
     const secText = `Q 切换 → ${WEAPONS[p.secondary].name}`;
     const secW = ctx.measureText(secText).width;
-    const secIcon = getGunIcon(p.secondary);
-    ctx.drawImage(secIcon.canvas, rx - secW - secIcon.size + 4, h - 26 - secIcon.size / 2, secIcon.size, secIcon.size);
+    const secIcon = getGunIcon(p.secondary, { bare: true });
+    const secIco = 26;
+    ctx.drawImage(secIcon.canvas, rx - secW - secIco - 3, h - 26 - secIco / 2, secIco, secIco);
     ctx.fillText(secText, rx, h - 26);
   }
 
@@ -227,8 +229,9 @@ export function drawHud(ctx, g, w, h) {
     ctx.font = `700 11px ${FONT}`;
     const tagW = 46;
     const modeW = ctx.measureText(modeText).width;
-    const toastIcon = getGunIcon(tst.id);
-    const wBox = Math.min(w - 60, toastIcon.size + nameW + tagW + modeW + 92);
+    const toastIcon = getGunIcon(tst.id, { bare: true });
+    const toastIco = 38;
+    const wBox = Math.min(w - 60, toastIco + nameW + tagW + modeW + 92);
     const yb = 92;
     const x0 = w / 2 - wBox / 2;
 
@@ -261,17 +264,17 @@ export function drawHud(ctx, g, w, h) {
     ctx.fillText('拾 取', x0 + 16, yb);
 
     // 枪械矢量图标
-    ctx.drawImage(toastIcon.canvas, x0 + 16 + tagW, yb - toastIcon.size / 2, toastIcon.size, toastIcon.size);
+    ctx.drawImage(toastIcon.canvas, x0 + 16 + tagW, yb - toastIco / 2, toastIco, toastIco);
 
     // 武器名
     ctx.font = `900 22px ${FONT}`;
     ctx.fillStyle = '#fff';
-    ctx.fillText(nameText, x0 + 18 + tagW + toastIcon.size, yb);
+    ctx.fillText(nameText, x0 + 18 + tagW + toastIco, yb);
 
     // 结果
     ctx.font = `700 12px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.fillText(modeText, x0 + 16 + tagW + toastIcon.size + nameW + 12, yb);
+    ctx.fillText(modeText, x0 + 16 + tagW + toastIco + nameW + 12, yb);
     ctx.restore();
   }
 
