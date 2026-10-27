@@ -469,3 +469,24 @@
 **验证**：`smoke` PASS（新增：17 把 s2 完整性 / 同款第 2 把觉醒 / 已觉醒不重复 / 层数累加 / 觉醒双发 / 激光贯穿 3 敌 / 激光叠层更痛）· `WEAPON_OK`（左现右新 / 射程 / 二阶段标签 / 贯穿 3 敌）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.4 / **695.7 KB**）。
 
 截图：`v-weapon-panel.png`（黑底主色图标 + 射程 + 二阶段提示）、`v-laser-pierce.png`（贯穿全屏光束）。
+
+---
+
+## 21. S22 · 去掉主角手上的枪（2026-10-27，v0.5.5）
+
+用户反馈：主角身上那个"小长方形指示方向的点"要完全去掉，方向靠鼠标准星就够。
+
+**排查**：画面上有两个"枪"叠加——
+1. `drawPlayer` 里代码画的深色枪管（`#151d26` 圆角矩形）
+2. **`player.png` 精灵自带的枪**（规范原文写的是"ONE arm extending forward holding a small pistol"）
+
+**已做**：
+- 删掉代码枪管；蓄力光球 / 枪口火焰改挂到 `muzzleX = p.r + 5`（角色朝向前方边缘，不再依赖枪管长度）
+- 更新 `docs/角色精灵生成规范.md` §3.1：明确「主角不得绘制任何武器」
+- 新增 `docs/主角精灵重出请求.md`：单张 `player.png` 的完整重出 prompt 与约束
+
+**待用户执行**：把重出请求发给绘图 Agent，覆盖 `assets/sprites/player.png` 后重新打包。
+
+**擦枪为何不可行**：枪与角色描边同为近黑色（亮度 <40 的像素 3148 个，横跨整个角色），程序擦除会连描边一起削掉。
+
+**验证**：`smoke` PASS · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.5 / 695.6 KB）。

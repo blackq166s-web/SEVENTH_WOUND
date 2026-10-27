@@ -1614,20 +1614,17 @@ export class Game {
       ctx.restore();
     }
 
-    // 武器
+    // 武器（S22：不再画角色身上的枪管——方向由鼠标准星指示，手上挂个方块反而像多余的指示点。
+    // 只保留射击反馈：蓄力光球 / 枪口火焰，贴在角色朝向前方边缘。）
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.aim);
-    const len = p.weapon === 'rocket' ? 26 : p.weapon === 'gauss' ? 28 : p.weapon === 'minigun' ? 24 : 21;
-    ctx.fillStyle = '#151d26';
-    ctx.beginPath();
-    ctx.roundRect(6, -3.6, len, 7.2, 2);
-    ctx.fill();
+    const muzzleX = p.r + 5;   // 枪口效果位置：角色边缘外一点
 
     // 蓄力聚能（轨道炮）：枪口一个越来越亮的球，蓄满后一圈白边
     if (wDef.charge && p.chargeT > 0) {
       const k = Math.min(1, p.chargeT / wDef.charge);
-      const mx = 6 + len + 4;
+      const mx = muzzleX + 4;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       const cg = ctx.createRadialGradient(mx, 0, 0, mx, 0, 6 + k * 14);
@@ -1650,7 +1647,7 @@ export class Game {
 
     // 枪口火焰
     if (p.muzzle > 0) {
-      const mx = 6 + len + 3;
+      const mx = muzzleX + 3;
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       const g = ctx.createRadialGradient(mx, 0, 0, mx, 0, 18);
