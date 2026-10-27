@@ -1,5 +1,5 @@
 import { clamp, damp, angleLerp, TAU, rand, random } from '../core/math.js';
-import { WEAPONS, fireWeapon, magSize, reloadDuration } from './weapons.js';
+import { WEAPONS, fireWeapon, magSize, reloadDuration, stage2Of } from './weapons.js';
 
 export function createPlayer(x, y) {
   return {
@@ -27,6 +27,9 @@ export function createPlayer(x, y) {
     secondaryAmmo: 0,
     secondaryUnlocked: false,
     perkCounts: {},
+    // 武器二阶段（S21）：weaponStacks 记每把武器捡到次数，weaponStage2 记是否已觉醒
+    weaponStacks: { pistol: 1 },   // 开局自带手枪算第 1 把
+    weaponStage2: {},
     hurtFlash: 0,
     muzzle: 0,
     burstLeft: 0,    // 连发剩余发数（三连点射）
@@ -35,8 +38,10 @@ export function createPlayer(x, y) {
     weaponLocked: false,  // 锁定当前武器：捡到更高等级也不自动换（按 L 切换）
     shield: 0,        // 护盾值（消耗品）：受伤先扣盾，扣完才扣血
     boostT: 0,        // 加速剩余时间（秒）
-    beamOn: false,    // 持续激光（S9-C）：是否在照射
+    beamOn: false,    // 激光（S21）：保留字段，单发模式下恒为 false
     beamAngle: 0,     // 激光方向
+    beamLife: 0,      // 光束视觉残留计时（单发后衰减）
+    beamWidth: 4,     // 光束粗细（叠层变粗）
     dashT: 0,         // 冲刺（S1-D2）：剩余位移时间
     dashCd: 0,        // 冲刺冷却
     dashInv: 0,       // 冲刺无敌帧剩余
@@ -136,6 +141,26 @@ export function applyWeaponChoice(g, p, id, action) {
 /** 同一把枪：补满弹匣（不弹面板） */
 export function refillWeapon(p, id) {
   p.ammo = magSize(id, p.stats);
+}
+
+/**
+ * 记录一次武器获取（S21）。重复捡到同款第 2 把 → 该武器觉醒二阶段。
+ * @returns {boolean} 是否"刚刚"觉醒（用于播横幅/音效）
+ */
+export function grantWeaponStack(p, id) {
+  if (!p.weaponStacks) p.weaponStacks = {};
+  if (!p.weaponStage2) p.weaponStage2 = {};
+  p.weaponStacks[id] = (p.weaponStacks[id] || 0) + 1;
+  if (p.weaponStacks[id] >= 2 && !p.weaponStage2[id]) {
+    p.weaponStage2[id] = true;
+    return true;
+  }
+  return false;
+}
+
+/** 某把武器已捡到几把（UI 显示用） */
+export function weaponStackCount(p, id) {
+  return (p.weaponStacks && p.weaponStacks[id]) || 0;
 }
 
 /** 换枪时清掉连发残留：否则三连的第二、三发会从新枪里打出来 */
@@ -244,29 +269,30 @@ export function updatePlayer(g, p, dt) {
     if (p.ammo <= 0) p.burstLeft = 0;
   }
 
-  // 蓄力（轨道炮）：按住蓄满才放；松开就泄掉
+  // 蓄力（轨道炮）：按住蓄满才放；松开就泄掉。二阶段蓄力时间缩短
+  const s2w = stage2Of(p, p.weapon);
+  const chargeTime = wDef.charge ? wDef.charge * (s2w.chargeMul || 1) : 0;
   if (wDef.charge) {
-    if (input.mouse.down && p.reloading <= 0) p.chargeT = Math.min(wDef.charge, p.chargeT + dt);
+    if (input.mouse.down && p.reloading <= 0) p.chargeT = Math.min(chargeTime, p.chargeT + dt);
     else p.chargeT = Math.max(0, p.chargeT - dt * 4);
   } else if (p.chargeT) {
     p.chargeT = 0;
   }
 
-  // 持续激光（S9-C beam）：按住持续照射，每帧按 drain 耗弹；松手或弹尽即停
-  // 冲刺中不照射（S1-D2）
+  // 激光（S21 重做）：单发贯穿全屏。按一次打一道光束，按 rate 冷却；不再持续耗弹
+  if (p.beamLife > 0) p.beamLife = Math.max(0, p.beamLife - dt);
   if (wDef.kind === 'beam') {
-    if (input.mouse.down && p.reloading <= 0 && p.ammo > 0 && p.dashT <= 0) {
-      p.beamOn = true;
+    p.beamOn = false;
+    if (input.mouse.down && p.reloading <= 0 && p.cd <= 0 && p.ammo > 0 && p.dashT <= 0) {
       p.beamAngle = p.aim;
-      p.ammo = Math.max(0, p.ammo - (wDef.drain || 12) * dt);
+      p.ammo--;
+      p.cd = wDef.rate || 0.42;
       p.muzzle = 0.05;
-      g.audio.beam();   // 激光持续嗡鸣（audio 里节流，不会每帧都尖响）
-    } else {
-      p.beamOn = false;
-      if (p.ammo <= 0 && input.mouse.down && p.reloading <= 0) {
-        g.audio.empty();
-        startReload(g, p);
-      }
+      g.fireLaser(p);
+      g.audio.shoot('gauss');
+    } else if (p.ammo <= 0 && input.mouse.down && p.reloading <= 0) {
+      g.audio.empty();
+      startReload(g, p);
     }
   } else {
     p.beamOn = false;
@@ -274,14 +300,17 @@ export function updatePlayer(g, p, dt) {
 
   // 开火（beam 武器不走这里；冲刺中不可开火）
   if (input.mouse.down && p.reloading <= 0 && p.cd <= 0 && wDef.kind !== 'beam' && p.dashT <= 0) {
-    const charged = !wDef.charge || p.chargeT >= wDef.charge;
+    const charged = !wDef.charge || p.chargeT >= chargeTime;
     if (p.ammo > 0 && charged) {
       fireWeapon(g, p);
-      p.cd = wDef.rate;
+      // 二阶段射速加成（rateMul < 1 更快）
+      p.cd = wDef.rate * (s2w.rateMul || 1);
       p.muzzle = wDef.charge ? 0.1 : 0.06;
       if (wDef.charge) p.chargeT = 0;
-      if (wDef.burst > 1) {
-        p.burstLeft = wDef.burst - 1;
+      // 二阶段：连发数加成（教诲三连 → 五连）
+      const burstN = (wDef.burst || 0) + (s2w.burstAdd || 0);
+      if (burstN > 1) {
+        p.burstLeft = burstN - 1;
         p.burstTimer = wDef.burstGap || 0.06;
       }
       // 双持：副武器同时打一发。临时换枪/换弹药，打完换回来，

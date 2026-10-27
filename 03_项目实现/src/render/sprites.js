@@ -1105,19 +1105,23 @@ function drawGunIconBody(ctx, S, id, color) {
  */
 export function getGunIcon(id) {
   if (GUN_ICONS.has(id)) return GUN_ICONS.get(id);
-  const S = 44;
+  const BASE = 44;    // 逻辑坐标系：下面的画法都按 44 写
+  const S = 132;      // 实际画布分辨率：3 倍超采样，放大到 104px 显示也不糊
   const c = document.createElement('canvas');
   c.width = S;
   c.height = S;
   const ctx = c.getContext('2d');
+  ctx.scale(S / BASE, S / BASE);   // 坐标系仍是 44，分辨率提高 3 倍
   const color = (WEAPONS[id] && WEAPONS[id].color) || '#cfd8e3';
-  // 微光底：让图标在暗背景上浮出来
-  const g = ctx.createRadialGradient(S / 2, S / 2, 2, S / 2, S / 2, S / 2);
-  g.addColorStop(0, 'rgba(255,255,255,0.10)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, S, S);
-  drawGunIconBody(ctx, S, id, color);
+  // 黑底 + 主题色描边（S21）：与 PNG 图标版统一，暗 UI 上更醒目
+  ctx.fillStyle = 'rgba(12,15,20,0.92)';
+  ctx.beginPath();
+  ctx.roundRect(2, 2, BASE - 4, BASE - 4, 8);
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  drawGunIconBody(ctx, BASE, id, color);
   const entry = { canvas: c, size: S };
   GUN_ICONS.set(id, entry);
   return entry;
@@ -1458,14 +1462,16 @@ function drawPerkIconBody(ctx, S, id, color) {
  */
 export function getPerkIcon(id) {
   if (PERK_ICON_CACHE.has(id)) return PERK_ICON_CACHE.get(id);
-  const S = 44;
+  const BASE = 44;
+  const S = 132;   // 3 倍超采样：放大到 68px 显示仍清晰
   const c = document.createElement('canvas');
   c.width = S;
   c.height = S;
   const ctx = c.getContext('2d');
+  ctx.scale(S / BASE, S / BASE);
   const perk = PERKS.find((p) => p.id === id);
   const color = (perk && perk.color) || '#7ce7ff';
-  drawPerkIconBody(ctx, S, id, color);
+  drawPerkIconBody(ctx, BASE, id, color);
   const entry = { canvas: c, size: S };
   PERK_ICON_CACHE.set(id, entry);
   return entry;
@@ -1484,6 +1490,8 @@ function perkIconUrl(key) {
 /** 把 PNG 图标按 alpha 包围盒缩放居中画进画布（透明底，无底板） */
 function fitPerkIcon(img, canvas) {
   const ctx = canvas.getContext('2d');
+  // 同上：重置超采样留下的 transform
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const s = (canvas.width * 0.82) / Math.max(img.width, img.height);
   const w = img.width * s;
@@ -1522,22 +1530,72 @@ function weaponIconUrl(key) {
   return `assets/weapon-icons/${key}.png`;
 }
 
-/** 武器图标专用：浅色圆角底板 + 深色剪影缩放居中（剪影是深色，暗 HUD 上需要浅底才可见） */
-function fitWeaponIcon(img, canvas) {
+/**
+ * 武器图标：黑色圆角底板 + 剪影染成武器主色。
+ * 剪影 PNG 是深色线稿，直接画会隐身；在**临时画布**上用 source-in 染色，
+ * 再叠到黑底上（否则 source-in 会把整块黑底一起染成实心块）。
+ * 关键：按 alpha 包围盒裁剪后再缩放——枪图是横条状（宽 100×高 30），
+ * 按正方形缩放会导致画面里只剩中间一条，显得又小又糊。
+ */
+function fitWeaponIcon(img, canvas, color) {
   const ctx = canvas.getContext('2d');
   const S = canvas.width;
+  // 关键：getGunIcon 里做过 ctx.scale(3,3) 超采样，transform 会留在同一个 context 上，
+  // 这里必须重置，否则本函数的所有绘制会被再放大 3 倍（只剩左上角可见）。
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, S, S);
-  ctx.fillStyle = 'rgba(214,224,234,0.92)';
+
+  // 1) 主画布：黑色圆角底板 + 主题色细描边
+  ctx.fillStyle = 'rgba(12,15,20,0.92)';
   ctx.beginPath();
   ctx.roundRect(2, 2, S - 4, S - 4, 8);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(10,14,20,0.55)';
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.6;
   ctx.stroke();
-  const s = (S * 0.76) / Math.max(img.width, img.height);
-  const w = img.width * s;
-  const h = img.height * s;
-  ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+
+  // 2) 求 PNG 的实际内容包围盒（去掉四周留白）
+  let sx = 0, sy = 0, sw = img.width, sh = img.height;
+  try {
+    const probe = document.createElement('canvas');
+    probe.width = img.width;
+    probe.height = img.height;
+    const pctx = probe.getContext('2d');
+    pctx.drawImage(img, 0, 0);
+    const d = pctx.getImageData(0, 0, img.width, img.height).data;
+    let minX = img.width, minY = img.height, maxX = -1, maxY = -1;
+    for (let y = 0; y < img.height; y++) {
+      for (let x = 0; x < img.width; x++) {
+        if (d[(y * img.width + x) * 4 + 3] > 12) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX > minX && maxY > minY) {
+      sx = minX; sy = minY; sw = maxX - minX + 1; sh = maxY - minY + 1;
+    }
+  } catch (err) { /* 跨域/桩环境：退回整图 */ }
+
+  // 3) 临时画布：裁剪后的剪影按内框等比铺满 → source-in 染色
+  const tmp = document.createElement('canvas');
+  tmp.width = S;
+  tmp.height = S;
+  const tctx = tmp.getContext('2d');
+  const pad = S * 0.16;                     // 四周留白
+  const box = S - pad * 2;
+  const s = Math.min(box / sw, box / sh);   // 等比适配内框
+  const w = sw * s;
+  const h = sh * s;
+  tctx.drawImage(img, sx, sy, sw, sh, (S - w) / 2, (S - h) / 2, w, h);
+  tctx.globalCompositeOperation = 'source-in';
+  tctx.fillStyle = color;
+  tctx.fillRect(0, 0, S, S);
+
+  // 4) 叠回黑底
+  ctx.drawImage(tmp, 0, 0);
 }
 
 /**
@@ -1554,7 +1612,8 @@ export function loadWeaponIcons() {
           const img = new Image();
           img.onload = () => {
             const entry = getGunIcon(key);   // 确保程序化占位已生成
-            fitWeaponIcon(img, entry.canvas);
+            const color = (WEAPONS[key] && WEAPONS[key].color) || '#cfd8e3';
+            fitWeaponIcon(img, entry.canvas, color);
             loaded.push(key);
             resolve(key);
           };

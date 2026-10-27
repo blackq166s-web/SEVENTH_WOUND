@@ -2,8 +2,8 @@ import * as M from '../core/math.js';
 import { Camera } from '../core/camera.js';
 import { Decals } from './decals.js';
 import { Particles } from './particles.js';
-import { createPlayer, updatePlayer, hurtPlayer, applyWeaponChoice, refillWeapon, healPlayer } from './player.js';
-import { WEAPONS, magSize, randomWeaponDrop } from './weapons.js';
+import { createPlayer, updatePlayer, hurtPlayer, applyWeaponChoice, refillWeapon, healPlayer, grantWeaponStack, weaponStackCount } from './player.js';
+import { WEAPONS, magSize, randomWeaponDrop, stage2Of, isStage2 } from './weapons.js';
 import { spawnEnemy, updateEnemy, damageEnemy, ENEMY_TYPES } from './enemies.js';
 import { rollPerks, applyPerk } from './perks.js';
 import { drawHud } from './hud.js';
@@ -366,7 +366,6 @@ export class Game {
     this.enemies = this.enemies.filter((e) => !e.dead);
 
     this.updateBullets(dt);
-    this.updateBeam(dt);
     this.updatePickups(dt);
     this.updateTraps(dt);
 
@@ -513,6 +512,27 @@ export class Game {
             e.slowMul = Math.min(e.slowMul || 1, 0.45);
           }
 
+          // ---- 二阶段附加效果（S21） ----
+          // 吸血（碎骨·链锯）：按伤害比例回血
+          if (b.lifesteal > 0 && p.hp > 0) {
+            healPlayer(p, b.dmg * b.lifesteal);
+            if (M.random() < 0.3) this.particles.text(p.x, p.y - 24, `+${Math.round(b.dmg * b.lifesteal)}`, '#5dff9b', 11);
+          }
+          // 直接冻结（裂层·冰冻）：概率把敌人冻死原地
+          if (b.freezeChance > 0 && M.random() < b.freezeChance) {
+            e.slow = Math.max(e.slow, 1.6);
+            e.slowMul = Math.min(e.slowMul || 1, 0.06);
+            this.particles.ring(e.x, e.y, e.r + 10, 'rgba(168,240,255,0.9)', 0.35);
+          }
+          // 火墙（焚稿·火焰喷射）：命中处留一小片燃烧地面
+          if (b.burnGround && M.random() < 0.5) {
+            this.frostPools.push({ x: e.x, y: e.y, r: 18, life: 1.6, kind: 'fire', dps: b.dmg * 0.4 });
+          }
+          // 毒云（酸囊·腐蚀喷洒）：命中处留毒雾
+          if (b.poisonCloud && M.random() < 0.4) {
+            this.frostPools.push({ x: e.x, y: e.y, r: 22, life: 2.2, kind: 'poison', dps: b.dmg * 0.5 });
+          }
+
           // 跳弹（跳弹刻印）：命中后把子弹弹向最近的另一个敌人，伤害衰减 25%
           if (b.bounceLeft > 0) {
             let target = null;
@@ -600,37 +620,55 @@ export class Game {
   }
 
   /**
-   * 持续激光（S9-C beam）：对光束路径上的敌人每帧施加持续伤害。
-   * 用射线投影法判定（点在射线上的投影 + 垂直距离 < 敌人半径）。
+   * 激光（S21 重做）：单发贯穿全屏。
+   * 按一次鼠标 → 打出一道贯穿整个屏幕的光束，路径上所有敌人各吃一次伤害。
+   * 重复捡到激光（二阶段）→ 每多一把，光束更粗、伤害更高、可叠 multi-beam。
    */
-  updateBeam(dt) {
-    const p = this.player;
-    if (!p.beamOn) return;
+  fireLaser(p) {
     const w = WEAPONS[p.weapon];
-    const range = w.range || 400;
-    const dx = Math.cos(p.beamAngle);
-    const dy = Math.sin(p.beamAngle);
-    const dps = (w.dmg || 50) * p.stats.dmgMul;
-    const dmg = dps * dt;
+    const stacks = weaponStackCount(p, 'laser');
+    const awake = isStage2(p, 'laser');
+    // 叠层：第 1 把 = 1 层；二阶段后每多一把 +1 层
+    const layers = awake ? Math.max(1, stacks) : 1;
+    const width = (w.size || 4) * (1 + (layers - 1) * 0.6);   // 变粗
+    const dmgMul = 1 + (layers - 1) * 0.4;                     // 伤害提升
+    const dmg = (w.dmg || 100) * p.stats.dmgMul * dmgMul;
 
+    const ang = p.beamAngle;
+    const dx = Math.cos(ang);
+    const dy = Math.sin(ang);
+    const FAR = 4000;   // 全屏贯穿
+
+    let hits = 0;
     for (const e of this.enemies) {
       if (e.dead) continue;
       const rx = e.x - p.x;
       const ry = e.y - p.y;
       const proj = rx * dx + ry * dy;
-      if (proj < 0 || proj > range) continue;
+      if (proj < 0 || proj > FAR) continue;
       const perp = Math.abs(rx * dy - ry * dx);
-      if (perp > (e.hitR || e.r) + 3) continue;
+      if (perp > (e.hitR || e.r) + width) continue;
 
-      damageEnemy(this, e, dmg, { silent: true, source: 'beam' });
+      damageEnemy(this, e, dmg, {
+        source: 'laser',
+        color: w.color,
+        knockback: { x: dx, y: dy }
+      });
       this.stats.damage += dmg;
-      // 命中点火花（沿光束，稀疏）
-      if (M.random() < dt * 18) {
-        const hx = p.x + dx * proj;
-        const hy = p.y + dy * proj;
-        this.particles.sparks(hx, hy, p.beamAngle + Math.PI / 2, 2, '#ff8a9c');
-      }
+      hits++;
+      // 命中点火花
+      const hx = p.x + dx * proj;
+      const hy = p.y + dy * proj;
+      this.particles.sparks(hx, hy, ang + Math.PI / 2, 3, w.color);
     }
+
+    // 光束残留（视觉）：记录一次闪光，由 drawBeam 按 beamLife 衰减
+    p.beamLife = 0.28;
+    p.beamWidth = width;
+    this.particles.flash(p.x + dx * 30, p.y + dy * 30, 30, 'rgba(255,140,160,0.7)');
+    this.cam.kick(hits > 0 ? 3.2 : 2.0);
+    if (hits > 0) this.hitstop = Math.max(this.hitstop || 0, 0.04);
+    return hits;
   }
 
   updatePickups(dt) {
@@ -725,6 +763,8 @@ export class Game {
     // 同一把枪：直接补弹，不弹面板（避免打断节奏）
     if (p.weapon === id) {
       refillWeapon(p, id);
+      // 重复捡到同款（S21）：第 2 把觉醒二阶段
+      if (grantWeaponStack(p, id)) this.onWeaponStage2(id);
       this.onWeaponPickup(id, 'ammo');
       this.particles.ring(p.x, p.y, 34, 'rgba(255,180,60,0.9)', 0.5);
       return;
@@ -734,6 +774,23 @@ export class Game {
     this.ui.showWeaponChoice(id);
   }
 
+  /** 武器二阶段觉醒演出（S21） */
+  onWeaponStage2(id) {
+    const w = WEAPONS[id];
+    const p = this.player;
+    this.cam.kick(9);
+    this.hitstop = Math.max(this.hitstop || 0, 0.08);
+    this.audio.explosion(0.9);
+    this.particles.ring(p.x, p.y, 70, `rgba(255,210,120,0.95)`, 0.6);
+    this.particles.sparks(p.x, p.y, -Math.PI / 2, 14, w.color);
+    this.banner = {
+      text: `${w.name.split(' · ')[0]} · 觉醒`,
+      sub: (w.s2 && w.s2.s2desc) || '二阶段',
+      t: 2.0, total: 2.0
+    };
+    this.particles.text(p.x, p.y - 34, '武器觉醒', '#ffd166', 17);
+  }
+
   /** 玩家在武器选择面板做出的决定（1=装备 2=副武器 3=放弃） */
   chooseWeapon(action) {
     const id = this.pendingWeapon;
@@ -741,6 +798,10 @@ export class Game {
     const p = this.player;
     const mode = applyWeaponChoice(this, p, id, action);
     this.pendingWeapon = null;
+    // 装备 / 放副武器才算"获得"；放弃不计入二阶段
+    if (mode === 'equip' || mode === 'secondary') {
+      if (grantWeaponStack(p, id)) this.onWeaponStage2(id);
+    }
     this.onWeaponPickup(id, mode);
     this.particles.ring(p.x, p.y, 34, 'rgba(255,180,60,0.9)', 0.5);
     this.ui.hide();
@@ -1061,12 +1122,18 @@ export class Game {
       const fr = this.frostPools[i];
       fr.life -= dt;
       if (fr.life <= 0) { this.frostPools.splice(i, 1); continue; }
+      // 火墙 / 毒云（S21 二阶段）：持续掉血
+      const isDot = fr.kind === 'fire' || fr.kind === 'poison';
       for (const e of this.enemies) {
         if (e.dead) continue;
         const rr = fr.r + e.r;
         if (M.dist2(fr.x, fr.y, e.x, e.y) > rr * rr) continue;
-        e.slow = Math.max(e.slow, 0.35);
-        e.slowMul = Math.min(e.slowMul || 1, 0.6);
+        if (isDot) {
+          damageEnemy(this, e, fr.dps * dt, { silent: true, source: fr.kind, noKnockback: true });
+        } else {
+          e.slow = Math.max(e.slow, 0.35);
+          e.slowMul = Math.min(e.slowMul || 1, 0.6);
+        }
       }
     }
   }
@@ -1604,37 +1671,40 @@ export class Game {
    *  它只受伤害倍率 dmgMul 影响。保持直线稳定，避免"追踪激光"的违和感。 */
   drawBeam(ctx) {
     const p = this.player;
-    if (!p.beamOn) return;
+    if (!p.beamLife || p.beamLife <= 0) return;
     const w = WEAPONS[p.weapon];
-    const range = w.range || 400;
-    const ex = p.x + Math.cos(p.beamAngle) * range;
-    const ey = p.y + Math.sin(p.beamAngle) * range;
-    const flick = 0.97 + Math.sin(this.time * 22) * 0.02;   // 柔和的能量脉动，不是抖动
+    const FAR = 4000;   // 贯穿全屏
+    const ex = p.x + Math.cos(p.beamAngle) * FAR;
+    const ey = p.y + Math.sin(p.beamAngle) * FAR;
+    // 残留衰减：越接近结束越淡
+    const k = Math.min(1, p.beamLife / 0.28);
+    const wide = (p.beamWidth || 4) * 2.6;   // 叠层越粗光环越宽
 
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.lineCap = 'round';
     // 外层光晕
     ctx.strokeStyle = w.color || '#ff6b81';
-    ctx.globalAlpha = 0.22;
-    ctx.lineWidth = 14 * flick;
+    ctx.globalAlpha = 0.2 * k;
+    ctx.lineWidth = wide * 3.2;
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
     ctx.lineTo(ex, ey);
     ctx.stroke();
     // 中层
-    ctx.globalAlpha = 0.6;
-    ctx.lineWidth = 6 * flick;
+    ctx.globalAlpha = 0.55 * k;
+    ctx.lineWidth = wide;
     ctx.stroke();
     // 内层白芯
-    ctx.globalAlpha = 0.95;
+    ctx.globalAlpha = 0.95 * k;
     ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2.4;
+    ctx.lineWidth = Math.max(1.6, wide * 0.35);
     ctx.stroke();
     // 枪口光球
+    ctx.globalAlpha = k;
     ctx.fillStyle = w.color;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 7, 0, M.TAU);
+    ctx.arc(p.x, p.y, 6 + (p.beamWidth || 4), 0, M.TAU);
     ctx.fill();
     ctx.restore();
   }

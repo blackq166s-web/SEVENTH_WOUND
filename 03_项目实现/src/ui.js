@@ -1,6 +1,7 @@
 import { DEATH_LINE } from './game/voice.js';
 import { synergyWith, RARITY_LABEL, PERKS } from './game/perks.js';
-import { WEAPONS, magSize } from './game/weapons.js';
+import { WEAPONS, magSize, isStage2 } from './game/weapons.js';
+import { weaponStackCount } from './game/player.js';
 import { ENEMY_TYPES } from './game/enemies.js';
 import { getGunIcon, getSpriteDataUrl, getPerkIcon } from './render/sprites.js';
 
@@ -153,15 +154,18 @@ export class UI {
       const icon = getGunIcon(id);
       let url = '';
       try { url = icon.canvas.toDataURL('image/png'); } catch (err) { /* 桩环境 */ }
+      // 射程（S21）：子弹存活时间 × 速度；激光贯穿全屏
+      const range = w.kind === 'beam' ? '全屏贯穿' : `${Math.round((w.life || 1) * (w.speed || 900))}px`;
       const cell = document.createElement('div');
       cell.className = 'codex-cell';
       cell.style.setProperty('--accent', w.color || '#fff');
       cell.innerHTML = `
         ${url ? `<img class="c-icon" src="${url}" alt="" />` : `<span class="c-icon badge">${w.name[0]}</span>`}
         <span class="c-name">${w.name}</span>
-        <span class="c-line">第 ${w.tier} 阶</span>
+        <span class="c-line">第 ${w.tier} 阶 · 射程 ${range}</span>
         <span class="c-threat">${w.desc || ''}</span>
         <span class="c-lore">伤害 ${w.dmg} · 弹匣 ${w.mag}</span>
+        <span class="c-lore" style="color:rgba(255,209,102,0.75)">二阶段：${w.s2 ? w.s2.s2desc : '—'}</span>
       `;
       this.codexGrid.appendChild(cell);
     }
@@ -240,11 +244,26 @@ export class UI {
     const nw = WEAPONS[id];
     const cw = WEAPONS[p.weapon];
 
-    const card = (w, key, wid, extra, accent) => {
+    // 射程（S21）：子弹存活时间 × 飞行速度；激光为贯穿全屏
+    const rangeOf = (w) => {
+      if (w.kind === 'beam') return '全屏贯穿';
+      const px = (w.life || 1) * (w.speed || 900);
+      return `${Math.round(px)}px`;
+    };
+    // 二阶段状态（S21）
+    const stageOf = (wid) => {
+      const stacks = weaponStackCount(p, wid);
+      if (isStage2(p, wid)) return { text: `二阶段 · ${WEAPONS[wid].s2.s2desc}`, cls: 's2' };
+      if (stacks >= 1) return { text: `再捡 1 把觉醒二阶段`, cls: 's2hint' };
+      return null;
+    };
+
+    const card = (w, key, wid, accent) => {
       const icon = getGunIcon(wid);
       let iconUrl = '';
       try { iconUrl = icon.canvas.toDataURL('image/png'); } catch (err) { /* 桩环境无 toDataURL，跳过图标 */ }
       const iconHtml = iconUrl ? `<img class="wicon" src="${iconUrl}" alt="" />` : '';
+      const s2 = stageOf(wid);
       return `
       <div class="wcard" style="--accent:${accent || w.color || '#fff'}">
         <span class="key">${key}</span>
@@ -252,13 +271,14 @@ export class UI {
         <span class="wname">${w.name}</span>
         <span class="wdesc">${w.desc || ''}</span>
         <span class="wstat">伤害 ${w.dmg} · 射速 ${(1 / (w.rate || 0.1)).toFixed(1)}/s · 弹匣 ${w.mag}</span>
-        ${extra || ''}
+        <span class="wstat">射程 ${rangeOf(w)}</span>
+        ${s2 ? `<span class="wstage ${s2.cls}">${s2.text}</span>` : ''}
       </div>`;
     };
 
     const hasSecondary = p.secondaryUnlocked && !p.secondary;
-    this.weaponNew.innerHTML = card(nw, '新', id, '', nw.color);
-    this.weaponCur.innerHTML = card(cw, '现', p.weapon, '', cw.color);
+    this.weaponNew.innerHTML = card(nw, '新', id, nw.color);
+    this.weaponCur.innerHTML = card(cw, '现', p.weapon, cw.color);
     this.weaponChoiceHint.textContent = hasSecondary
       ? '按 1 装备 · 2 放副武器 · 3 放弃'
       : '按 1 装备 · 3 放弃（副武器槽未解锁）';

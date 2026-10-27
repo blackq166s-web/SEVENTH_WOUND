@@ -419,11 +419,35 @@ const { WEAPONS, WEAPON_IDS } = await import('../src/game/weapons.js');
 assert(WEAPON_IDS.length === 17, `应有 17 把武器，实际 ${WEAPON_IDS.length}`);
 const badW = WEAPON_IDS.filter((id) => {
   const w = WEAPONS[id];
-  // beam 武器没有 rate/（dmg 是每秒伤害），单独豁免
-  if (w.kind === 'beam') return !w.name || !w.tier || !w.dmg || !w.mag || !w.reload || !w.range;
+  // S21：激光改为单发贯穿全屏，不再有 range/drain，字段与普通武器一致
   return !w.name || !w.tier || !w.dmg || !w.rate || !w.mag || !w.reload;
 });
 assert(badW.length === 0, `武器字段缺失：${badW.join(',')}`);
+
+// 二阶段数据完整性（S21）：每把武器都要有 s2 与 s2desc
+const badS2 = WEAPON_IDS.filter((id) => !WEAPONS[id].s2 || !WEAPONS[id].s2.s2desc);
+assert(badS2.length === 0, `二阶段缺失：${badS2.join(',')}`);
+
+// 武器二阶段（S21）：重复捡到同款第 2 把 → 觉醒
+game.start('survival');
+const { grantWeaponStack, weaponStackCount } = await import('../src/game/player.js');
+const wp = game.player;
+wp.weaponStacks = { pistol: 1 };
+wp.weaponStage2 = {};
+assert(weaponStackCount(wp, 'pistol') === 1, '开局手枪应记为 1 把');
+assert(grantWeaponStack(wp, 'pistol') === true, '第 2 把同款应触发觉醒');
+assert(wp.weaponStage2.pistol === true, '觉醒后 weaponStage2 应置位');
+assert(grantWeaponStack(wp, 'pistol') === false, '已觉醒后再捡不应重复触发');
+assert(weaponStackCount(wp, 'pistol') === 3, '层数应累加到 3');
+// 觉醒后手枪双发：pellets 翻倍
+wp.weapon = 'pistol';
+wp.ammo = 12;
+game.bullets.length = 0;
+game.player.cd = 0;
+game.fireWeapon ? null : null;
+const { fireWeapon } = await import('../src/game/weapons.js');
+const nShot = fireWeapon(game, wp);
+assert(nShot >= 2, `觉醒手枪应双发，实际 ${nShot}`);
 const wNames = new Set(WEAPON_IDS.map((id) => WEAPONS[id].name));
 assert(wNames.size === WEAPON_IDS.length, '武器名不能重复');
 const KINDS = new Set(['bullet', 'plasma', 'flame', 'gauss', 'rocket', 'acid', 'saw', 'cryo', 'rail', 'chain', 'beam']);
@@ -632,22 +656,52 @@ game.player.hp = game.player.maxHp;
 game.hurtPlayer(5, 1, 0);   // 从右方来
 assert(game.player.hurtDirX > 0, '受击方向应记录（从右来 x>0）');
 
-// 持续激光（S9-C beam）：对光束路径上的敌人持续伤害
+// 激光（S21 重做）：单发贯穿全屏，路径上所有敌人各吃一次伤害
 game.start('survival');
 game.enemies.length = 0;
 game.player.weapon = 'laser';
 game.player.secondaryUnlocked = false;
 game.player.secondary = null;
-const beamTarget = game.spawn('zombie', {});
-beamTarget.x = game.player.x + 150;
-beamTarget.y = game.player.y;
-beamTarget.born = 0;
-game.player.beamOn = true;
-game.player.beamAngle = 0;   // 朝右，正对 target
-const hpBeforeBeam = beamTarget.hp;
-for (let i = 0; i < 30; i++) game.updateBeam(STEP);
-assert(beamTarget.hp < hpBeforeBeam, `激光应持续伤害，实际 ${hpBeforeBeam} → ${beamTarget.hp}`);
-game.player.beamOn = false;
+game.player.weaponStacks = { laser: 1 };
+game.player.weaponStage2 = {};
+game.player.ammo = 40;
+game.player.cd = 0;
+// 一条直线上的三个敌人（近 / 中 / 远，验证"贯穿全屏"）
+const laserTargets = [];
+for (const dx of [120, 400, 900]) {
+  const e = game.spawn('zombie', {});
+  e.x = game.player.x + dx;
+  e.y = game.player.y;
+  e.born = 0;
+  e.hp = 999;   // 避免被打死，好比较血量
+  e.maxHp = 999;
+  laserTargets.push({ e, hp: e.hp });
+}
+game.player.aim = 0;   // 朝右
+const ammoBeforeLaser = game.player.ammo;
+game.player.beamAngle = 0;
+const laserHits = game.fireLaser(game.player);
+assert(laserHits === 3, `激光应贯穿命中 3 个敌人（含远处 900px），实际 ${laserHits}`);
+assert(laserTargets.every((t) => t.e.hp < t.hp), '路径上每个敌人都应吃到伤害');
+assert(game.player.beamLife > 0, '激光应留下视觉残留');
+
+// 激光叠层（二阶段）：捡到第 2 把 → 更粗更痛
+game.start('survival');
+game.player.weapon = 'laser';
+game.player.weaponStacks = { laser: 1 };
+game.player.weaponStage2 = {};
+const laserBig = game.spawn('zombie', {});
+laserBig.x = game.player.x + 300; laserBig.y = game.player.y; laserBig.born = 0;
+laserBig.hp = 9999; laserBig.maxHp = 9999;
+game.player.beamAngle = 0;
+const dmg1 = 9999;
+game.fireLaser(game.player);
+const afterFirst = laserBig.hp;
+// 觉醒二阶段后再打一次
+grantWeaponStack(game.player, 'laser');
+game.fireLaser(game.player);
+const afterSecond = laserBig.hp;
+assert(afterSecond < afterFirst, `二阶段激光应更痛：${afterFirst} → ${afterSecond}`);
 
 // 电弧（S9-C chain）：命中后连锁到附近敌人
 game.start('survival');

@@ -275,6 +275,27 @@
     letter-spacing: 0.03em;
   }
 
+  /* 二阶段状态（S21）：已觉醒金色，未觉醒灰提示 */
+  .wcard .wstage {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 10px;
+    border-radius: 999px;
+  }
+
+  .wcard .wstage.s2 {
+    color: #ffd166;
+    background: rgba(255, 209, 102, 0.14);
+    border: 1px solid rgba(255, 209, 102, 0.45);
+  }
+
+  .wcard .wstage.s2hint {
+    color: rgba(255, 255, 255, 0.42);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
   .card {
     --accent: #ff4d5e;
     position: relative;
@@ -656,9 +677,9 @@
   <section class="panel hidden" id="p-weapon">
     <h2>捡到了武器</h2>
     <div class="wcompare">
-      <div id="weaponNew"></div>
-      <div class="wvs">VS</div>
       <div id="weaponCur"></div>
+      <div class="wvs">VS</div>
+      <div id="weaponNew"></div>
     </div>
     <p id="weaponChoiceHint" class="hint"></p>
     <div class="btns">
@@ -721,7 +742,7 @@
       <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>升级时选择能力</span></li>
     </ul>
     <p class="hint">击杀敌人掉落魔素结晶，升级后可从三个刻印中选一个。<br />绿色十字是治疗包，金色箱子是武器补给。<br />按 L 锁定武器后，捡到更高等级的枪也不会自动换。</p>
-    <p class="hint ver" id="verLine">v0.5.3</p>
+    <p class="hint ver" id="verLine">v0.5.4</p>
     <button id="btnBack" class="btn">返回</button>
   </section>
 </div>
