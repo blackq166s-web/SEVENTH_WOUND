@@ -1553,10 +1553,6 @@ export class Game {
     ctx.beginPath();
     ctx.roundRect(6, -3.6, len, 7.2, 2);
     ctx.fill();
-    ctx.fillStyle = wDef.color || '#ffd166';
-    ctx.beginPath();
-    ctx.roundRect(6 + len * 0.55, -1.6, len * 0.42, 3.2, 1.5);
-    ctx.fill();
 
     // 蓄力聚能（轨道炮）：枪口一个越来越亮的球，蓄满后一圈白边
     if (wDef.charge && p.chargeT > 0) {
