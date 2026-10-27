@@ -10,7 +10,7 @@ import { drawHud } from './hud.js';
 import { Voice, drawVoice } from './voice.js';
 import { drawThreatIndicators } from './threats.js';
 import { QUESTS, buildQuestQueue } from './quests.js';
-import { getSprites, loadPngSprites, loadWeaponIcons, makeGroundTile, makeGroundMacro, GROUND_MACRO_SCALE } from '../render/sprites.js';
+import { getSprites, loadPngSprites, loadWeaponIcons, loadPerkIcons, makeGroundTile, makeGroundMacro, GROUND_MACRO_SCALE } from '../render/sprites.js';
 import { paletteForLayer, ARENA_PALETTE, mixHex } from '../render/palettes.js';
 import { drawAmbient } from './ambient.js';
 import { fxRandom, fxRand } from '../core/fx.js';
@@ -69,6 +69,9 @@ export class Game {
     // 武器图标 PNG（S12）：同策略，覆盖程序化矢量图标
     this.weaponIconsLoaded = [];
     loadWeaponIcons().then((keys) => { this.weaponIconsLoaded = keys; });
+    // 刻印图标 PNG（S20）：同策略，覆盖程序化几何图标
+    this.perkIconsLoaded = [];
+    loadPerkIcons().then((keys) => { this.perkIconsLoaded = keys; });
     // 分层视觉：地面瓦片 / 雾色 / 血迹 / 浮尘全部按层取（render/palettes.js）
     this.palette = ARENA_PALETTE;
     this.ground = null;

@@ -167,9 +167,32 @@ const wIconBoot = wIconEntries.length
   ? `window.__WEAPON_ICON_ASSETS__ = {\n${wIconEntries.join(',\n')}\n};`
   : '';
 
+// ---------- 3.7 刻印图标 PNG 内联（S20） ----------
+const PERK_ICON_KEYS = [
+  'bloody_mess', 'fastloader', 'ammomaniac', 'thick_skin', 'regeneration',
+  'doctor', 'ninja', 'long_ranged', 'bonus_magnet', 'angry_bullets',
+  'pyromaniac', 'toxic', 'dodging', 'critical', 'scatter',
+  'piercing', 'death_clock', 'time_warp', 'uber', 'alternate',
+  'ricochet', 'chain', 'minefield', 'frosttrail', 'dualwield'
+];
+const PERK_ICON_DIR = join(ROOT, 'assets', 'perk-icons');
+const pIconEntries = [];
+for (const key of PERK_ICON_KEYS) {
+  const f = join(PERK_ICON_DIR, `${key}.png`);
+  if (!existsSync(f)) {
+    console.warn(`  警告：缺少刻印图标 ${key}.png，该刻印将回落到几何图标`);
+    continue;
+  }
+  const b64 = readFileSync(f).toString('base64');
+  pIconEntries.push(`  ${JSON.stringify(key)}: 'data:image/png;base64,${b64}'`);
+}
+const pIconBoot = pIconEntries.length
+  ? `window.__PERK_ICON_ASSETS__ = {\n${pIconEntries.join(',\n')}\n};`
+  : '';
+
 const outHtml = rawHtml.replace(
   SCRIPT_TAG,
-  ['<script>', assetBoot, wIconBoot, '(function () {', bundle, '})();', '</script>'].join('\n')
+  ['<script>', assetBoot, wIconBoot, pIconBoot, '(function () {', bundle, '})();', '</script>'].join('\n')
 );
 
 // 自检：单文件里不该再有任何外链模块或相对资源
@@ -223,5 +246,6 @@ console.log(`模块      : ${order.length} 个（${order.join(', ')}）`);
 console.log(`源码体积  : ${kb(totalSrc)}`);
 console.log(`精灵内联  : ${assetEntries.length}/7 张 PNG（base64）`);
 console.log(`图标内联  : ${wIconEntries.length}/17 张武器 PNG（base64）`);
+console.log(`刻印内联  : ${pIconEntries.length}/25 张刻印 PNG（base64）`);
 console.log(`产物      : release/${outName}（${kb(outHtml.length)}）+ release/运行说明.txt`);
 console.log('PACK_OK 单文件无外部依赖，可直接双击打开');

@@ -1,0 +1,577 @@
+﻿[
+    {
+        "file":  "bloody_mess.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       20,
+                       88,
+                       87
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ff4d5e",
+        "singleFill":  true,
+        "sha256":  "f535674ec0fbf4869585da5b0ed413b105c512e43438f8a67b7437e3e8e18c95"
+    },
+    {
+        "file":  "fastloader.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       23,
+                       88,
+                       81
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#7ce7ff",
+        "singleFill":  true,
+        "sha256":  "2d3a0128285ec22a13f85f034326ff51aa2ce0a48345308c66e5a7075f902bdc"
+    },
+    {
+        "file":  "ammomaniac.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       22,
+                       88,
+                       84
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ffd166",
+        "singleFill":  true,
+        "sha256":  "926ec2eeea3dd79e8c8c7d0ee7400fe9968bc65e383e59c13323e14a00066d7d"
+    },
+    {
+        "file":  "thick_skin.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       26,
+                       20,
+                       76,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#9fb4c9",
+        "singleFill":  true,
+        "sha256":  "99eb45cdea08c9476558e65d6210d6f5dd540a2dacd16f5a3cb21799dde44dbb"
+    },
+    {
+        "file":  "regeneration.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       20,
+                       88,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#5dff9b",
+        "singleFill":  true,
+        "sha256":  "974465cd2f007c1ac8e1d83972557c85c387468b1b98f9e55a441dd04ebb6b2d"
+    },
+    {
+        "file":  "doctor.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       20,
+                       88,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#5dff9b",
+        "singleFill":  true,
+        "sha256":  "6b81ddfc7c8441a524d463ed44ab7fd01c755982f93493901f4e0849914c514c"
+    },
+    {
+        "file":  "ninja.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       38,
+                       88,
+                       51
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#b8ffef",
+        "singleFill":  true,
+        "sha256":  "df09c7a976ef602d66ea42c6c87e35066d6b7269a9765a928a5817bc5572ba6a"
+    },
+    {
+        "file":  "long_ranged.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       20,
+                       87,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ffd166",
+        "singleFill":  true,
+        "sha256":  "e02a45ce94914d08c7859455f77be41c5aca530cc56590f37b8d5dee9c100523"
+    },
+    {
+        "file":  "bonus_magnet.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       23,
+                       20,
+                       82,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#7ce7ff",
+        "singleFill":  true,
+        "sha256":  "db1ffd40f618935c60ca74b5d41cefabdf5ab4fd6359f4a85a3357cf36008529"
+    },
+    {
+        "file":  "angry_bullets.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       20,
+                       88,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ff9f43",
+        "singleFill":  true,
+        "sha256":  "860c0de9dcfeac5c2febdf899321f6582f37d943bf73a3228be04fadb297ed4a"
+    },
+    {
+        "file":  "pyromaniac.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       32,
+                       20,
+                       64,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ff7a3c",
+        "singleFill":  true,
+        "sha256":  "88f8b27c10edaa38c031b16f63eba3066e12a32e038bba53b518e8efe8d132a3"
+    },
+    {
+        "file":  "toxic.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       31,
+                       20,
+                       65,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#9dff2b",
+        "singleFill":  true,
+        "sha256":  "7c40e1b71077513471e8278f8943fd449f63de71b480ac26630a777b60d2be94"
+    },
+    {
+        "file":  "dodging.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       32,
+                       88,
+                       63
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#c9d6e5",
+        "singleFill":  true,
+        "sha256":  "300b3cbbbe86e32aaaf0c0f7d3989a98af9a6700c52e2f845dc99dc66fdb5636"
+    },
+    {
+        "file":  "critical.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       20,
+                       88,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ffd166",
+        "singleFill":  true,
+        "sha256":  "ed2f23024a7746eff9146c6f6b94306d215c813ced1111171259ee82486a139d"
+    },
+    {
+        "file":  "scatter.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       31,
+                       88,
+                       66
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ff9f43",
+        "singleFill":  true,
+        "sha256":  "43b7cef351ab5b4c31795bb92216c3c257e68693f67c22109224c7f8d6e94ae7"
+    },
+    {
+        "file":  "piercing.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       38,
+                       88,
+                       52
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#7ce7ff",
+        "singleFill":  true,
+        "sha256":  "3ab4e0b144fe98f23bfd404f8b19ba481e3b59707b3b699d1004e9e41fc043c3"
+    },
+    {
+        "file":  "death_clock.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       21,
+                       88,
+                       86
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ff4d5e",
+        "singleFill":  true,
+        "sha256":  "24621fd52ea57ed11b70b00ebabed8ebb3af15279fee408db7106b958b2176d7"
+    },
+    {
+        "file":  "time_warp.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       27,
+                       20,
+                       74,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#9fb4c9",
+        "singleFill":  true,
+        "sha256":  "e7b60255b4bd0ad73902da93f9d72470793937ad4996d3419d689775797c90c1"
+    },
+    {
+        "file":  "uber.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       26,
+                       20,
+                       76,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ff4d5e",
+        "singleFill":  true,
+        "sha256":  "ea904e6816ce8a2a05d69d474541bb50a3a4200fdd9e22ae44eb8a672c09b5aa"
+    },
+    {
+        "file":  "alternate.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       35,
+                       88,
+                       57
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ffd166",
+        "singleFill":  true,
+        "sha256":  "3a6ecca9234591f8edc0614a0ec83f7000fff63d959d0e46ce63c81b763d850b"
+    },
+    {
+        "file":  "ricochet.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       35,
+                       88,
+                       58
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#7ce7ff",
+        "singleFill":  true,
+        "sha256":  "cf931ae249ef6a8085ee682a32b9f810ab79729b12d21c0e5ed83a6fb85fe61f"
+    },
+    {
+        "file":  "chain.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       20,
+                       87,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#a8f0ff",
+        "singleFill":  true,
+        "sha256":  "d13a545677af58c75b9cf96899733d58ec9c9dcee2dc675c94409b1c42cd3a63"
+    },
+    {
+        "file":  "minefield.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       20,
+                       87,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ffd166",
+        "singleFill":  true,
+        "sha256":  "5ec5f9fcf88657df4cc4a4ebd0dac308758e48626d245e3e425c0e778ba87ae2"
+    },
+    {
+        "file":  "frosttrail.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       24,
+                       20,
+                       79,
+                       88
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#a8f0ff",
+        "singleFill":  true,
+        "sha256":  "939278b4dc518769eaf3c89ec112d95bbcc2e9c1a995ad60c58daa5292907652"
+    },
+    {
+        "file":  "dualwield.png",
+        "width":  128,
+        "height":  128,
+        "pixelFormat":  "Format32bppArgb",
+        "cornerAlpha":  [
+                            0,
+                            0,
+                            0,
+                            0
+                        ],
+        "borderMaxAlpha":  0,
+        "bounds":  [
+                       20,
+                       24,
+                       88,
+                       79
+                   ],
+        "longestExtent":  0.6875,
+        "fillRGB":  "#ff9f43",
+        "singleFill":  true,
+        "sha256":  "616eef2d88b1d16e755661eadfaeb261c4928c01eb7217d8f95d0c776593fbe6"
+    }
+]

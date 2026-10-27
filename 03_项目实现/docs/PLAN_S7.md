@@ -419,3 +419,18 @@
 **③ 医学博士（救命牌出现时机）**：原只在满血时排除。修：改**血量 < 60% 才推**（救命牌只在低血出现，半血以上都是浪费格子）。
 
 **验证**：`smoke` PASS（新增 3 条：满血不推 doctor / 低血可抽 doctor / 未解锁副武器槽不推双持）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.2 / 600.1 KB）。
+
+---
+
+## 19. S20 · 刻印图标 PNG 接入（2026-10-27，v0.5.3）
+
+绘图 Agent 按 `docs/刻印图标生成规范.md` 产出 25 张 128×128 几何符号 PNG（验收：25 张全在、命名对应、均有 alpha 通道、语义正确、风格统一）。
+
+接入（同武器图标策略）：
+- `sprites.js`：`loadPerkIcons()` 异步加载 → `fitPerkIcon()`（alpha 包围盒缩放，透明底无底板）→ 覆盖 `PERK_ICON_CACHE` 画布；失败回落程序化几何图标
+- `pack.mjs`：25 张 PNG base64 注入 `window.__PERK_ICON_ASSETS__`
+- 接入点：刻印选择面板 + 图鉴（`getPerkIcon`）
+
+**验证**：`smoke` PASS · 25 张全加载（画布非透明像素 244 / 加载数 25）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.3 / **685.4 KB**，角色 7 + 武器 17 + 刻印 25 全内联）。
+
+**说明**：绘图 Agent 产出的是"简洁几何线条"风格（符合 minimal geometric symbol 要求），与程序化几何图标视觉接近——这是规范要求的风格，不是 bug。

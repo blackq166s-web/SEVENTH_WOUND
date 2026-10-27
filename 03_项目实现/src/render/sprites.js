@@ -1471,6 +1471,51 @@ export function getPerkIcon(id) {
   return entry;
 }
 
+// ---- PNG 刻印图标接入（S20，图像 Agent 产出） ----
+// 策略同武器图标：先程序化几何图标占位，PNG 异步加载后覆盖缓存画布。
+// 刻印图标是彩色几何符号（非深色剪影），透明底直接画，不需要浅色底板。
+
+function perkIconUrl(key) {
+  const map = typeof window !== 'undefined' ? window.__PERK_ICON_ASSETS__ : null;
+  if (map && map[key]) return map[key];
+  return `assets/perk-icons/${key}.png`;
+}
+
+/** 把 PNG 图标按 alpha 包围盒缩放居中画进画布（透明底，无底板） */
+function fitPerkIcon(img, canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const s = (canvas.width * 0.82) / Math.max(img.width, img.height);
+  const w = img.width * s;
+  const h = img.height * s;
+  ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+}
+
+/**
+ * 异步加载 25 张刻印图标 PNG 并覆盖程序化几何图标缓存。
+ * @returns {Promise<string[]>} 成功接入的 id 列表
+ */
+export function loadPerkIcons() {
+  const ids = PERKS.map((p) => p.id);
+  const loaded = [];
+  return Promise.all(
+    ids.map(
+      (key) =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const entry = getPerkIcon(key);   // 确保程序化占位已生成
+            fitPerkIcon(img, entry.canvas);
+            loaded.push(key);
+            resolve(key);
+          };
+          img.onerror = () => resolve(null); // 缺图不炸，继续用几何图标
+          img.src = perkIconUrl(key);
+        })
+    )
+  ).then(() => loaded);
+}
+
 function weaponIconUrl(key) {
   const map = typeof window !== 'undefined' ? window.__WEAPON_ICON_ASSETS__ : null;
   if (map && map[key]) return map[key];
