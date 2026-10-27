@@ -9,32 +9,44 @@ export const ENEMY_TYPES = {
   zombie: {
     name: '腐化者', hp: 24, speed: 70, dmg: 8, r: 13, hitR: 20, xp: 1, score: 10,
     spriteSet: 'zombie', spriteScale: 1, blood: '#a51622', mass: 1,
-    behavior: 'chase', attackCd: 0.8
+    behavior: 'chase', attackCd: 0.8,
+    lore: '消化到一半的挑战者。他们曾经也拿着枪往下打，现在只剩下僵硬、成群、不怕死的本能。',
+    threat: '成群扑脸 · 走位清场'
   },
   runner: {
     name: '疾行者', hp: 16, speed: 150, dmg: 6, r: 11, hitR: 19, xp: 1, score: 14,
     spriteSet: 'runner', spriteScale: 1, blood: '#8f2a1c', mass: 0.8,
-    behavior: 'chase', attackCd: 0.65
+    behavior: 'chase', attackCd: 0.65,
+    lore: '地渊表层的清道夫，四肢反折、直线冲刺。它不会绕路，只会被推着走，停不下来。',
+    threat: '高速直线冲 · 拉开距离'
   },
   spider: {
     name: '织网者', hp: 13, speed: 158, dmg: 5, r: 9, hitR: 18, xp: 1, score: 16,
     spriteSet: 'spider', spriteScale: 1, blood: '#3f6b2a', mass: 0.6, shell: true,
-    behavior: 'erratic', attackCd: 0.6
+    behavior: 'erratic', attackCd: 0.6,
+    lore: '地渊的神经末梢，整层都在用它感知你。蛇形突进、贴脸绕后，别被围住。',
+    threat: '蛇形突进 · 别被围'
   },
   lizard: {
     name: '哨眼', hp: 38, speed: 82, dmg: 7, r: 13, hitR: 24, xp: 2, score: 28,
     spriteSet: 'lizard', spriteScale: 1, blood: '#4c7a26', mass: 1, shell: true,
-    behavior: 'ranged', attackCd: 0.8, keepDist: 250, shootCd: 1.9, projSpeed: 480, projDmg: 9
+    behavior: 'ranged', attackCd: 0.8, keepDist: 250, shootCd: 1.9, projSpeed: 480, projDmg: 9,
+    lore: '免疫系统的传感器。它保持距离、开火、后退，从不主动接近——直到你闯进它的射程。',
+    threat: '远程压制 · 逼进去或换角度'
   },
   alien: {
     name: '融生体', hp: 100, speed: 66, dmg: 14, r: 17, hitR: 26, xp: 4, score: 55,
     spriteSet: 'alien', spriteScale: 1, blood: '#6b2b93', mass: 2.2,
-    behavior: 'chase', attackCd: 0.85
+    behavior: 'chase', attackCd: 0.85,
+    lore: '多层残响糊成一团，已经认不出形状。慢、厚、压迫，是消化最深处的东西。',
+    threat: '慢但极厚 · 重火力招呼'
   },
   brute: {
     name: '守层者', hp: 850, speed: 54, dmg: 26, r: 27, hitR: 36, xp: 16, score: 400,
     spriteSet: 'brute', spriteScale: 1, blood: '#8f1220', mass: 6, shell: true,
-    behavior: 'chase', attackCd: 1.0, isBoss: true
+    behavior: 'chase', attackCd: 1.0, isBoss: true,
+    lore: '一层沉积的残响压成的守门人，也是上一任读完所有残响的人。它曾经握枪，现在只剩本能——身上的七道旧伤，是它自己打的。',
+    threat: '直冲撞击 · 打断它的节奏'
   }
 };
 

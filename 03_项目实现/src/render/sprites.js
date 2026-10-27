@@ -1278,6 +1278,16 @@ export function loadPngSprites() {
   ).then(() => loaded);
 }
 
+/**
+ * 取一个角色精灵（第 0 帧）的 dataURL，供图鉴 / 展示用。
+ * 返回 '' 表示不可用（桩环境无 toDataURL 时）。
+ */
+export function getSpriteDataUrl(key) {
+  const entry = CACHE.get(`${key}0`);
+  if (!entry) return '';
+  try { return entry.canvas.toDataURL('image/png'); } catch (err) { return ''; }
+}
+
 // ================= 地面（按层配色 + 按层材质） =================
 //
 // 分两层绘制，用来藏住"平铺感"：

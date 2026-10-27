@@ -300,3 +300,21 @@
 **验证**：`smoke` PASS · `PERKS_UI_OK` · `PICKUP_OK` · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.5 / 576.7 KB）。
 
 截图：`v-perks-rarity.png`（刻印三卡）、`v-pickup-toast.png`（武器对比）。
+
+---
+
+## 13. S14 · 图鉴页（2026-10-23，v0.4.6）
+
+菜单加「图鉴」入口，三个标签页：地渊造物 / 武器 / 刻印。复用已接入的 PNG 角色精灵 + 武器图标，与选择面板同一套极简卡片语言。
+
+- **敌人**：`ENEMY_TYPES` 补 `lore`（世界观描述，从 STORY.md 提炼）+ `threat`（威胁提示），6 种全配；卡片显示 PNG 精灵图 + 名字 + 「守门人/地渊造物」标签 + 威胁 + 描述
+- **武器**：17 把，PNG 图标 + 名字 + 阶数 + 特点 desc + 伤害/弹匣
+- **刻印**：25 个，徽标图标 + 名字 + 路线标签（叠层上限）+ 描述
+- `sprites.js` 新增 `getSpriteDataUrl(key)`：取角色精灵第 0 帧转 dataURL 供图鉴展示
+- 标签切换走 `$`（桩环境无 `querySelectorAll`）
+
+**验证**：`smoke` PASS · `CODEX_OK`（敌人 6 图 / 武器 17 图 / 刻印 25 徽标）· `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.4.6 / 583.8 KB）。
+
+截图：`v-codex-enemy.png` / `v-codex-weapon.png` / `v-codex-perk.png`。
+
+**踩坑**：dom-stub 桩环境没有 `document.querySelectorAll`，图鉴标签切换不能用动态选择器，改固定 id + `$`。

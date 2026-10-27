@@ -1,7 +1,8 @@
 import { DEATH_LINE } from './game/voice.js';
-import { synergyWith, RARITY_LABEL } from './game/perks.js';
+import { synergyWith, RARITY_LABEL, PERKS } from './game/perks.js';
 import { WEAPONS, magSize } from './game/weapons.js';
-import { getGunIcon } from './render/sprites.js';
+import { ENEMY_TYPES } from './game/enemies.js';
+import { getGunIcon, getSpriteDataUrl } from './render/sprites.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -19,7 +20,8 @@ export class UI {
       dead: $('p-dead'),
       pause: $('p-pause'),
       clear: $('p-clear'),
-      help: $('p-help')
+      help: $('p-help'),
+      codex: $('p-codex')
     };
     this.perkCards = $('perkCards');
     this.weaponNew = $('weaponNew');
@@ -27,6 +29,8 @@ export class UI {
     this.weaponChoiceHint = $('weaponChoiceHint');
     this.deadStats = $('deadStats');
     this.clearText = $('clearText');
+    this.codexGrid = $('codexGrid');
+    this.codexTab = 'enemy';
     this.nextIsLast = false;
     this._bind();
   }
@@ -41,6 +45,8 @@ export class UI {
     on('btnSurvival', () => g.start('survival'));
     on('btnQuest', () => g.start('quest'));
     on('btnHelp', () => this.show('help'));
+    on('btnCodex', () => this.showCodex('enemy'));
+    on('btnCodexBack', () => this.show('menu'));
     on('btnBack', () => this.show('menu'));
     on('btnRetry', () => g.start(g.mode));
     on('btnMenu', () => this.toMenu());
@@ -52,6 +58,11 @@ export class UI {
     on('btnEquip', () => g.chooseWeapon('equip'));
     on('btnSecondary', () => g.chooseWeapon('secondary'));
     on('btnSalvage', () => g.chooseWeapon('salvage'));
+
+    // 图鉴标签切换
+    on('tabEnemy', () => this.showCodex('enemy'));
+    on('tabWeapon', () => this.showCodex('weapon'));
+    on('tabPerk', () => this.showCodex('perk'));
   }
 
   toMenu() {
@@ -94,6 +105,83 @@ export class UI {
   hide() {
     this.overlay.classList.remove('on');
     for (const k of Object.keys(this.panels)) this.panels[k].classList.add('hidden');
+  }
+
+  /**
+   * 图鉴（S14）：三个标签页——地渊造物 / 武器 / 刻印。
+   * 复用 PNG 角色精灵 + 武器图标，数据驱动，与选择面板同一套极简卡片语言。
+   */
+  showCodex(tab = 'enemy') {
+    this.codexTab = tab;
+    // 标签高亮
+    const tabs = { enemy: $('tabEnemy'), weapon: $('tabWeapon'), perk: $('tabPerk') };
+    for (const [key, el] of Object.entries(tabs)) {
+      if (el) el.classList.toggle('on', key === tab);
+    }
+
+    if (tab === 'enemy') this.renderCodexEnemies();
+    else if (tab === 'weapon') this.renderCodexWeapons();
+    else this.renderCodexPerks();
+
+    this.show('codex');
+  }
+
+  renderCodexEnemies() {
+    this.codexGrid.innerHTML = '';
+    const order = ['zombie', 'runner', 'spider', 'lizard', 'alien', 'brute'];
+    for (const key of order) {
+      const e = ENEMY_TYPES[key];
+      const url = getSpriteDataUrl(key);
+      const cell = document.createElement('div');
+      cell.className = 'codex-cell';
+      cell.style.setProperty('--accent', e.blood || '#7ce7ff');
+      cell.innerHTML = `
+        ${url ? `<img class="c-icon" src="${url}" alt="" />` : `<span class="c-icon badge">${e.name[0]}</span>`}
+        <span class="c-name">${e.name}</span>
+        <span class="c-line">${e.isBoss ? '守 门 人' : '地 渊 造 物'}</span>
+        <span class="c-threat">${e.threat || ''}</span>
+        <span class="c-lore">${e.lore || ''}</span>
+      `;
+      this.codexGrid.appendChild(cell);
+    }
+  }
+
+  renderCodexWeapons() {
+    this.codexGrid.innerHTML = '';
+    const order = ['pistol', 'whistle', 'rifle', 'smg', 'shotgun', 'catechism', 'flamer', 'plasma', 'acidbag', 'bonesaw', 'lightning', 'gauss', 'rocket', 'minigun', 'cryo', 'hymn', 'laser'];
+    for (const id of order) {
+      const w = WEAPONS[id];
+      const icon = getGunIcon(id);
+      let url = '';
+      try { url = icon.canvas.toDataURL('image/png'); } catch (err) { /* 桩环境 */ }
+      const cell = document.createElement('div');
+      cell.className = 'codex-cell';
+      cell.style.setProperty('--accent', w.color || '#fff');
+      cell.innerHTML = `
+        ${url ? `<img class="c-icon" src="${url}" alt="" />` : `<span class="c-icon badge">${w.name[0]}</span>`}
+        <span class="c-name">${w.name}</span>
+        <span class="c-line">第 ${w.tier} 阶</span>
+        <span class="c-threat">${w.desc || ''}</span>
+        <span class="c-lore">伤害 ${w.dmg} · 弹匣 ${w.mag}</span>
+      `;
+      this.codexGrid.appendChild(cell);
+    }
+  }
+
+  renderCodexPerks() {
+    this.codexGrid.innerHTML = '';
+    for (const perk of PERKS) {
+      const cell = document.createElement('div');
+      cell.className = 'codex-cell';
+      cell.style.setProperty('--accent', perk.color || '#7ce7ff');
+      cell.innerHTML = `
+        <span class="c-icon badge">${perk.icon || perk.name[0]}</span>
+        <span class="c-name">${perk.name}</span>
+        <span class="c-line">${LINE_LABEL[perk.line] || '残响'}${perk.max ? ' · 叠 ' + perk.max : ''}</span>
+        <span class="c-lore">${perk.desc}</span>
+      `;
+      this.codexGrid.appendChild(cell);
+    }
   }
 
   showPerks(perks, player) {
