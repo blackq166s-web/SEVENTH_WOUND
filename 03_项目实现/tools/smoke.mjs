@@ -789,7 +789,7 @@ assert(game.rerollUsed === true, '重掷应被记为已用');
 assert(typeof beforeRoll === 'string', '重掷前后都应有候选');
 game.setState('playing');
 
-// 满血时不该出现"立即回满"类刻印
+// 满血 / 半血时不该出现"医学博士"（救命牌只在低血出现）
 game.start('survival');
 game.player.hp = game.player.maxHp;
 let doctorSeen = 0;
@@ -799,6 +799,31 @@ for (let i = 0; i < 30; i++) {
   if (game.state === 'levelup') game.pickPerk(game.perkChoices[0]);
 }
 assert(doctorSeen === 0, `满血时不应出现医学博士，出现了 ${doctorSeen} 次`);
+
+// 低血时医学博士应可被抽出
+game.start('survival');
+game.player.hp = game.player.maxHp * 0.3;   // 30% 血
+game.player.perkCounts = {};
+let doctorLowSeen = 0;
+for (let i = 0; i < 40; i++) {
+  for (const perk of game.perkChoices) if (perk.id === 'doctor') doctorLowSeen++;
+  game.gainXp(60);
+  if (game.state === 'levelup') game.pickPerk(game.perkChoices[0]);
+  if (game.player.hp >= game.player.maxHp * 0.6) game.player.hp = game.player.maxHp * 0.3;   // 保持低血
+}
+assert(doctorLowSeen > 0, '低血时应能抽到医学博士');
+
+// 双持依赖副武器槽：未解锁时不推（避免双持解锁槽导致备用武器废卡）
+game.start('survival');
+game.player.secondaryUnlocked = false;
+game.player.perkCounts = {};
+let dualNoSlot = 0;
+for (let i = 0; i < 30; i++) {
+  for (const perk of game.perkChoices) if (perk.id === 'dualwield') dualNoSlot++;
+  game.gainXp(60);
+  if (game.state === 'levelup') game.pickPerk(game.perkChoices[0]);
+}
+assert(dualNoSlot === 0, '未解锁副武器槽时不应推双持');
 
 // 协同：同时持有跳弹与穿透时应能识别出协同
 game.start('survival');

@@ -77,7 +77,7 @@ export const PERKS = [
   },
   {
     id: 'scatter', name: '散射改造', icon: '散', color: '#ff9f43', max: 3, line: 'steel',
-    desc: '所有武器 +1 弹丸，伤害 -8%',
+    desc: '所有武器 +1 弹丸，伤害 -8%（适合霰弹 / 转轮）',
     apply(p) { p.stats.pelletsBonus += 1; p.stats.dmgMul *= 0.92; }
   },
   {
@@ -133,7 +133,7 @@ export const PERKS = [
   },
   {
     id: 'dualwield', name: '双持', icon: '双', color: '#ff9f43', max: 1, line: 'steel', rarity: 'rare',
-    desc: '副武器与主武器同时开火（各自消耗弹药）',
+    desc: '副武器与主武器同时开火（需先解锁副武器槽）',
     apply(p) {
       p.stats.dualWield = 1;
       p.secondaryUnlocked = true;
@@ -196,8 +196,10 @@ export function rollPerks(p, n = 3) {
   const pool = PERKS.filter((perk) => {
     const have = perkStacks(p, perk.id);
     if (perk.id === 'alternate' && p.secondaryUnlocked) return false;
-    // 满血时别推"立即回满"——那是浪费一个格子
-    if (perk.id === 'doctor' && p.hp >= p.maxHp - 0.5) return false;
+    // 双持依赖副武器槽：未解锁时别推（否则它解锁了槽，备用武器就成废卡）
+    if (perk.id === 'dualwield' && !p.secondaryUnlocked) return false;
+    // 医学博士是"救命牌"：只在血量偏低时出现，满血/半血都不推（否则是浪费一个格子）
+    if (perk.id === 'doctor' && p.hp >= p.maxHp * 0.6) return false;
     return have < (perk.max || 1);
   });
 
