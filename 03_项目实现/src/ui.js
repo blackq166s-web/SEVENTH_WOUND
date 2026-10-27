@@ -202,14 +202,14 @@ export class UI {
       card.innerHTML = `
         <span class="key">${i + 1}</span>
         ${iconUrl ? `<img class="picon" src="${iconUrl}" alt="" />` : `<span class="icon">${perk.icon}</span>`}
-        <span class="tags">
-          <span class="ln ${perk.line}">${LINE_LABEL[perk.line] || '残响'}</span>
-          <span class="rar ${rarity}">${RARITY_LABEL[rarity] || ''}</span>
-        </span>
         <span class="name">${perk.name}</span>
         <span class="desc">${perk.desc}</span>
         ${syn.length ? `<span class="syn">＋协同 ${syn.map((x) => x.name).join(' · ')}</span>` : ''}
-        ${stacks > 0 ? `<span class="stacks">已持有 ×${stacks}</span>` : ''}
+        <span class="tags">
+          <span class="ln ${perk.line}">${LINE_LABEL[perk.line] || '残响'}</span>
+          <span class="rar ${rarity}">${RARITY_LABEL[rarity] || ''}</span>
+          ${stacks > 0 ? `<span class="stacks">已持有 ×${stacks}</span>` : ''}
+        </span>
       `;
       card.addEventListener('click', (e) => {
         e.stopPropagation();

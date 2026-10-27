@@ -280,10 +280,10 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 9px;
-    padding: 24px 20px 20px;
-    text-align: left;
+    align-items: center;
+    gap: 10px;
+    padding: 30px 20px 20px;
+    text-align: center;
     font: inherit;
     color: inherit;
     cursor: pointer;
@@ -292,6 +292,7 @@
     background: linear-gradient(180deg, rgba(34, 38, 46, 0.96), rgba(16, 18, 23, 0.96));
     box-shadow: 0 20px 50px -30px rgba(0, 0, 0, 0.9);
     overflow: hidden;
+    min-height: 240px;
     transition: transform 0.16s ease, border-color 0.16s ease;
   }
 
@@ -312,19 +313,22 @@
     border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   }
 
+  /* 快捷键角标：改成底部醒目的 1/2/3（数字键直接选） */
   .card .key {
     position: absolute;
-    top: 14px;
-    right: 14px;
-    width: 20px;
-    height: 20px;
-    border-radius: 5px;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
     display: grid;
     place-items: center;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 800;
-    color: rgba(255, 255, 255, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.04);
   }
 
   .card .icon {
@@ -341,17 +345,17 @@
     text-shadow: 0 0 22px var(--accent);
   }
 
-  /* 刻印几何图标（S17）：替代单字，浅色底板衬托矢量图形 */
+  /* 刻印几何图标：放大居中，是卡片视觉主角 */
   .card .picon {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
+    width: 68px;
+    height: 68px;
+    border-radius: 18px;
     object-fit: contain;
-    padding: 8px;
+    padding: 10px;
     box-sizing: border-box;
     background: color-mix(in srgb, var(--accent) 10%, rgba(255,255,255,0.03));
     border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 50%, transparent));
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 50%, transparent));
   }
 
   .card .name {
@@ -414,19 +418,23 @@
   .card .syn {
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
     color: #ffd166;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: rgba(255, 209, 102, 0.12);
+    border: 1px solid rgba(255, 209, 102, 0.35);
   }
 
   .card .desc {
-    font-size: 12.5px;
-    line-height: 1.65;
-    color: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.72);
   }
 
   .card .stacks {
     font-size: 11px;
-    color: var(--gold);
+    color: #ffd166;
     letter-spacing: 0.08em;
   }
 
@@ -713,7 +721,7 @@
       <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>升级时选择能力</span></li>
     </ul>
     <p class="hint">击杀敌人掉落魔素结晶，升级后可从三个刻印中选一个。<br />绿色十字是治疗包，金色箱子是武器补给。<br />按 L 锁定武器后，捡到更高等级的枪也不会自动换。</p>
-    <p class="hint ver" id="verLine">v0.5.0</p>
+    <p class="hint ver" id="verLine">v0.5.1</p>
     <button id="btnBack" class="btn">返回</button>
   </section>
 </div>
