@@ -21,7 +21,6 @@ export class UI {
       dead: $('p-dead'),
       pause: $('p-pause'),
       clear: $('p-clear'),
-      help: $('p-help'),
       codex: $('p-codex')
     };
     this.perkCards = $('perkCards');
@@ -44,10 +43,8 @@ export class UI {
     };
 
     on('btnSurvival', () => g.start('survival'));
-    on('btnHelp', () => this.show('help'));
     on('btnCodex', () => this.showCodex('enemy'));
     on('btnCodexBack', () => this.show('menu'));
-    on('btnBack', () => this.show('menu'));
     on('btnRetry', () => g.start(g.mode));
     on('btnMenu', () => this.toMenu());
     on('btnMenu2', () => this.toMenu());

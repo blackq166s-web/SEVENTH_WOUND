@@ -547,3 +547,21 @@
 回归：`smoke` PASS · `DETERMINISM_OK` · `PERKS_UI_OK` · `WEAPON_OK` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.8 / 696.3 KB）。
 
 截图：`v-codex-weapon-top.png`（首屏，卡片完整）、`v-codex-weapon-bottom.png`（滚到底，最后两把完整可见）。
+
+---
+
+## 25. S26 · 首页精简为两个按钮（2026-10-28，v0.5.9）
+
+用户：首页去掉「操作说明」按钮，只留开始 + 图鉴。
+
+**改动**：
+- 删除 `#btnHelp` 按钮
+- 删除 `#p-help` 面板整段（846 字符）——按钮没了就是无入口死代码
+- `ui.js`：清理 `panels.help`、`on('btnHelp')`、`on('btnBack')`（btnBack 是 help 面板的返回键）
+- **`verLine` 迁移**：版本号原先挂在 help 面板里，而 `pack.mjs` 依赖 `id="verLine">vX.Y.Z<` 提取版本 —— 移到主菜单底部（`.hint.ver`），打包链路不断
+
+操作指引不丢：主菜单 `.hint` 已列出 WASD / Shift / 鼠标 / 左键 / R / Q / L / ESC / M，比原 help 面板还多一个 M。
+
+**验证**：`smoke` PASS · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `CODEX_SCROLL_OK` · `PERKS_UI_OK` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.9 / 695.4 KB）。
+首页实测 `btns = ["竞技场 · 无尽潮汐", "图鉴"]`，`p-help` / `btnHelp` 均已不存在，`verLine` 正常显示 v0.5.9。
+截图 `v-menu.png`。
