@@ -526,3 +526,24 @@
 
 **验证**：`smoke` PASS · `DETERMINISM_OK` · `NO_PAGE_ERRORS` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.7 / 695.4 KB）。
 截图 `v-hud-weapon.png`：右下角只有米黄色手枪剪影 + 名称 + 弹药，无任何方框。
+
+---
+
+## 24. S25 · 图鉴滚动修复（2026-10-28，v0.5.8）
+
+用户：武器图鉴没法滚动。
+
+**根因**：`.panel` 与 `#overlay` 都没有高度约束和 overflow。17 把武器（3 列 = 6 行）总高 1677px，超出 720 视口后被直接裁掉，且无处可滚。
+
+**第一次修的坑**：给 `.codex-grid` 加 `flex:1 1 auto; min-height:0; overflow-y:auto` 后，grid 被压到 487px 高，**6 行卡片被压扁成 60px（只剩图标）**，实测 `scrollH === clientH === 487` 完全不能滚。
+→ 补 `align-content: start` + `grid-auto-rows: min-content`，行按内容高度排布后恢复正常（scrollH 1677 / clientH 487）。
+
+**最终改动**：
+- `.panel` 兜底：`max-height: calc(100vh - 48px)` + `overflow-y: auto` + `scrollbar-gutter: stable`（不写 padding，避免内容偏移）
+- `#p-codex`：`max-height: calc(100vh - 48px)`，标题 / 标签 / 返回按钮固定
+- `#p-codex .codex-grid`：`flex:1 1 auto; min-height:0; overflow-y:auto; align-content:start; grid-auto-rows:min-content` + 细滚动条皮肤（6px，白 20% 透明）
+
+**验证**（新增 `_staging/.../verify-codex-scroll.mjs`）：`CODEX_SCROLL_OK` —— 武器页 17 卡 / scrollH 1677 > clientH 487 / 能滚到底（1190/1190）、刻印页 25 卡 / scrollH 2112 / 可滚、地渊页 6 卡不溢出、面板不超视口、`NO_PAGE_ERRORS`。
+回归：`smoke` PASS · `DETERMINISM_OK` · `PERKS_UI_OK` · `WEAPON_OK` · `PACK_OK` + `PACK_VERIFY_OK`（v0.5.8 / 696.3 KB）。
+
+截图：`v-codex-weapon-top.png`（首屏，卡片完整）、`v-codex-weapon-bottom.png`（滚到底，最后两把完整可见）。
