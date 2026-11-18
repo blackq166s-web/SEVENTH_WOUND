@@ -1,7 +1,7 @@
 # STAGE — 当前阶段
 
-最后更新：2026-11-18（S27 仓库开源整理）
-当前推进：**v0.5.9 已发布**；仓库已具备开源条件（README / ARCHITECTURE / LICENSE / CI / Pages 部署）
+最后更新：2026-11-18（S28 GitHub 上线）
+当前推进：**v0.5.9 已发布并上线** — <https://blackq166s-web.github.io/SEVENTH_WOUND/>；CI 与 Pages 部署均已跑通
 
 ## 0. 阶段总览
 
@@ -33,7 +33,8 @@
 | **S24** | 右下角武器图标改纯剪影（去底板/描边，46px） | 已交付 |
 | **S25** | 图鉴滚动修复（grid 内滚 + panel 兜底） | 已交付 |
 | **S26** | 首页精简为两按钮（移除操作说明面板，verLine 迁到主页） | 已交付，v0.5.9 |
-| **S27** | 仓库开源整理：README 重写 / ARCHITECTURE / LICENSE / CI / Pages 部署 / 清理垃圾 | **已交付（待推送 GitHub）** |
+| **S27** | 仓库开源整理：README 重写 / ARCHITECTURE / LICENSE / CI / Pages 部署 / 清理垃圾 | 已交付 |
+| **S28** | GitHub 上线：仓库转 Public、CI 跑通、Pages 部署成功 | **已交付（线上可玩）** |
 
 > 顺序原因：用户先要故事地基，S1 的 D2/D3 属纯手感增量，与叙事互不依赖，可随时插回。
 > S6 来自 2026-10-21 真人试玩反馈（三条：美术粗糙且不符世界观 / 武器少且前中期捡不到 / 升级选项无聊）。
