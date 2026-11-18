@@ -143,6 +143,7 @@ node 03_项目实现/tools/pack.mjs           # 打包单文件 → release/
 AGENTS.md                    执行规则与权限边界（Agent 必读）
 STAGE.md                     当前阶段：目标 / 进展 / 阻塞 / 下一步
 README.md                    本文件
+DEPLOY.md                    推送到 GitHub + Pages 部署的完整步骤
 LICENSE                      MIT
 
 01_阶段成果/
