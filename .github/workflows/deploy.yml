@@ -1,9 +1,14 @@
 name: Deploy to GitHub Pages
 
+# 为什么用分支而不是 tag 触发：
+# 本仓库的 github-pages 环境配置了分支保护策略，允许部署的 ref 只有 `main`。
+# 从 tag 部署会被 environment 直接拒绝（job 起不来，steps 为空，2 秒失败）。
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    paths:
+      - '03_项目实现/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -48,7 +53,7 @@ jobs:
           cp "$FILE" _site/index.html
           cp "$FILE" "_site/SEVENTH-WOUND-${VERSION}.html"
           touch _site/.nojekyll
-          echo "部署版本 v${VERSION}"
+          echo "部署版本 v${VERSION}" >> "$GITHUB_STEP_SUMMARY"
           ls -la _site
 
       - name: Setup Pages
