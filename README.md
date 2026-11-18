@@ -3,6 +3,8 @@
 俯视角竞技场射击（Crimsonland / 血腥大地 风格的浏览器复刻）。
 **零依赖、零构建、单文件 700 KB，双击即玩。**
 
+**[▶ 在线试玩](https://blackq166s-web.github.io/SEVENTH_WOUND/)**
+
 ![主菜单](03_项目实现/docs/images/menu.png)
 
 ---
@@ -31,9 +33,11 @@
 
 ## 快速开始
 
-### 方式一：在线玩（GitHub Pages）
+### 方式一：在线玩
 
-推送 tag 后自动部署。地址形如 `https://<你的用户名>.github.io/my_game_2/`。
+**<https://blackq166s-web.github.io/SEVENTH_WOUND/>**
+
+推送 `main` 自动部署（GitHub Actions），细节见 [`DEPLOY.md`](DEPLOY.md)。
 
 ### 方式二：下载单文件（推荐分享给朋友）
 
@@ -176,6 +180,8 @@ SECRETS.local.md             本地敏感信息（不入库）
 
 **v0.5.9** — 竞技场模式可玩，核心循环完整（波次 / 刻印 / 武器二阶段 / 侵蚀 / 图鉴）。
 下潜模式已停用（代码保留，可回退）。详细进度见 `STAGE.md`。
+
+CI 每次推送自动跑 `smoke` + `determinism` + 版本一致性校验；`main` 分支同步部署到 Pages。
 
 ---
 
