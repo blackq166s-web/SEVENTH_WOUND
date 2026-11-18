@@ -9,9 +9,14 @@
 
 打开 <https://github.com/new>：
 
-- **Repository name**：`my_game_2`（或你喜欢的名字）
+- **Repository name**：`SEVENTH_WOUND`（或你喜欢的名字）
 - **不要**勾选 "Add a README / .gitignore / license"（本地已有）
-- Public 或 Private 都行，Pages 对两种都支持（Private 需付费计划才能开 Pages）
+
+> ⚠️ **Pages 对仓库可见性的要求**
+> GitHub 免费账号只能在 **Public** 仓库开启 Pages。
+> Private 仓库要开 Pages 需要 **GitHub Pro / Team / Enterprise**。
+> 如果仓库是 Private 且没升级，`deploy` 任务会在最后一步失败（build 能过），只能走"单文件 + Releases"这条路。
+> 本项目是 MIT 协议，本来就打算开源，直接建 Public 最省事。
 
 ## 2. 关联并推送
 
