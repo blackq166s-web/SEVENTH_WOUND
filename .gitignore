@@ -1,9 +1,25 @@
+# ---- 依赖与构建（本项目零依赖，仅作保险） ----
 node_modules/
-shots/*.png
+
+# ---- 生成物：随时可重跑，不入库 ----
+# 验证截图：node 03_项目实现/tools/shoot.mjs
 03_项目实现/shots/*.png
-# 发布产物由 tools/pack.mjs 生成，不入库（归档时另外拷一份到 01_阶段成果/）
+shots/*.png
+# 发布产物：node 03_项目实现/tools/pack.mjs
 03_项目实现/release/
-*.log
-SECRETS.local.md
+# CI 临时产物
+_site/
+
+# ---- 本地与临时 ----
 _staging/
 .workbuddy/
+*.log
+
+# ---- 敏感信息 ----
+SECRETS.local.md
+
+# ---- 系统垃圾 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp

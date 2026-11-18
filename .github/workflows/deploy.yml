@@ -1,0 +1,71 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Quality gate (smoke)
+        working-directory: 03_项目实现
+        run: node tools/smoke.mjs
+
+      - name: Quality gate (determinism)
+        working-directory: 03_项目实现
+        run: node tools/determinism.mjs
+
+      - name: Build single-file release
+        working-directory: 03_项目实现
+        run: node tools/pack.mjs
+
+      - name: Prepare Pages site
+        run: |
+          mkdir -p _site
+          VERSION=$(node -p "require('./03_项目实现/package.json').version")
+          FILE="03_项目实现/release/SEVENTH-WOUND-${VERSION}.html"
+          test -f "$FILE" || { echo "打包产物缺失: $FILE"; exit 1; }
+          cp "$FILE" _site/index.html
+          cp "$FILE" "_site/SEVENTH-WOUND-${VERSION}.html"
+          touch _site/.nojekyll
+          echo "部署版本 v${VERSION}"
+          ls -la _site
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

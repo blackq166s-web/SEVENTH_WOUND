@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Smoke test
+        working-directory: 03_项目实现
+        run: node tools/smoke.mjs
+
+      - name: Determinism check
+        working-directory: 03_项目实现
+        run: node tools/determinism.mjs
+
+      - name: Version consistency
+        working-directory: 03_项目实现
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          HTML=$(grep -o 'id="verLine">v[0-9.]*' index.html | sed 's/.*v//')
+          echo "package.json: $PKG / index.html: $HTML"
+          test "$PKG" = "$HTML" || { echo "版本号不一致，pack.mjs 会拒绝打包"; exit 1; }

@@ -63,14 +63,26 @@ SECRETS.local.md           敏感信息（不入库）
 
 ## 6. 项目技术铁律
 
-- **零依赖、零构建**：运行时只用浏览器原生 API；`tools/*.mjs` 只用 node 内置模块；仅 `tools/fps.mjs`、`tools/shoot.mjs` 使用本机已装的 playwright-core。
-- **美术资源规则（2026-10-22 更新，用户授权）**：角色精灵允许使用 PNG 图片（`assets/sprites/*.png`，由图像 Agent 产出），但**必须以 base64 内联进单文件**（`pack.mjs` 注入 `window.__SPRITE_ASSETS__`），不允许运行时外部文件依赖；加载失败自动回落到代码绘制精灵。图标/地面/特效仍程序化生成。
-- **必须走 http**：`start.bat` 或 `node tools/serve.mjs`，`file://` 下 ES Module 会被 CORS 拦。
-- **数据驱动**：新增武器 / 敌人 / Perk / 关卡只改对应数据表 + `sprites.js` 生成逻辑，不在 `game.js` 里堆 if。
+- **零依赖、零构建**：运行时只用浏览器原生 API；`tools/*.mjs` 只用 node 内置模块；仅 `tools/fps.mjs`、`tools/shoot.mjs` 使用本机已装的 playwright-core（**可选依赖**，缺失时这两个脚本不可用，不影响游戏与其它验证）。
+- **美术资源规则（2026-10-22 更新，用户授权）**：角色精灵 / 武器图标 / 刻印图标允许使用 PNG（`assets/sprites` 7 张、`assets/weapon-icons` 17 张、`assets/perk-icons` 25 张，由图像 Agent 生产），但**必须以 base64 内联进单文件**（`pack.mjs` 注入 `window.__SPRITE_ASSETS__` / `__WEAPON_ICON_ASSETS__` / `__PERK_ICON_ASSETS__`），不允许运行时外部文件依赖；加载失败自动回落到代码绘制版本。地面 / 特效 / 音效仍程序化生成。
+- **必须走 http**：`start.bat` 或 `node tools/serve.mjs`，`file://` 下 ES Module 会被 CORS 拦。打包后的单文件不受此限制（资源全内联）。
+- **数据驱动**：新增武器 / 敌人 / 刻印只改对应数据表（`weapons.js` / `enemies.js` / `perks.js`）+ `sprites.js` 生成逻辑，不在 `game.js` 里堆 if。
 - **更新渲染分离**：`update*` 不碰 `ctx`，`render` 不改状态。
 - **固定步长**：主循环 1/60，逻辑不得依赖真实帧时长。
-- **程序化美术与音效**：不引入图片、音频文件。
-- **随机性**：平衡数据需要可复现，但目前用 `Math.random`，同一用例两次结果不同（已知问题，见总结）。
+- **随机性（2026-10-21 起）**：影响玩法的随机一律走 `core/math.js` 的 `random() / rand() / chance()`（可注入种子）；表现层也走它。**唯一例外** `core/audio.js` 保留 `Math.random`——音效初始化时机不可控，若消耗种子流会让复现随交互时刻漂移。新增随机调用前先问：这是不是"每帧 / 每次交互"驱动的？
+- **音效**：WebAudio 实时合成，不引入音频文件。
+
+## 6.5 交接给新 Agent（GitHub 场景）
+
+本仓库已公开托管。新 Agent 接手时注意：
+
+1. **先读** `README.md`（项目是什么）→ `AGENTS.md`（本文件，规则）→ `STAGE.md`（现在做到哪）→ `01_阶段成果/当前总结.md`（踩过什么坑）。
+2. **代码地图**在 `03_项目实现/docs/ARCHITECTURE.md`：模块职责、状态机、三张数据表、扩展点、已知边界。
+3. **改动前先跑基线**：`node 03_项目实现/tools/smoke.mjs` 必须 `SMOKE_OK`，否则先修基线。
+4. **不提交**：`SECRETS.local.md`、`_staging/`、`shots/`、`release/`、`.workbuddy/`（均已在 `.gitignore`）。
+5. **不要动** `01_阶段成果/` 的历史归档（它是项目演进的证据链）。
+6. `03_项目实现/` 自成闭环，**单个文件不能搬到仓库根**，否则 `start.bat` / `serve.mjs` / 验证脚本的相对路径全断。
+
 
 ## 7. 记录规范
 
