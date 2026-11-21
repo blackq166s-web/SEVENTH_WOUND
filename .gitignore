@@ -16,6 +16,7 @@ _staging/
 *.log
 
 # ---- 敏感信息 ----
+.env
 SECRETS.local.md
 
 # ---- 系统垃圾 ----
