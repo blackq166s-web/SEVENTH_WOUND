@@ -6,6 +6,76 @@ import { ENEMY_TYPES } from './game/enemies.js';
 import { getGunIcon, getSpriteDataUrl, getPerkIcon } from './render/sprites.js';
 
 const $ = (id) => document.getElementById(id);
+let lastTouchTap = null;
+
+function bindTap(element, activate) {
+  let touch = null;
+  element.addEventListener('pointerdown', (e) => {
+    lastTouchTap = null;
+    touch = e.pointerType === 'touch' ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+  });
+  element.addEventListener('pointercancel', (e) => { if (touch?.id === e.pointerId) touch = null; });
+  element.addEventListener('pointerup', (e) => {
+    if (touch?.id !== e.pointerId) return;
+    const distance = Math.hypot(e.clientX - touch.x, e.clientY - touch.y);
+    touch = null;
+    // 记录触点，避免浏览器把合成 click 分配给刚重绘的刻印卡。
+    lastTouchTap = { id: e.pointerId, x: e.clientX, y: e.clientY, time: e.timeStamp };
+    if (element.disabled || distance > 12) return;
+    if (!element.contains(document.elementFromPoint(e.clientX, e.clientY))) return;
+    activate(e);
+  });
+  element.addEventListener('click', (e) => {
+    if (lastTouchTap && e.detail > 0) {
+      const samePointer = e.pointerType === 'touch' && e.pointerId === lastTouchTap.id;
+      const legacyTouch = !e.pointerType && e.timeStamp - lastTouchTap.time < 500
+        && Math.hypot(e.clientX - lastTouchTap.x, e.clientY - lastTouchTap.y) <= 2;
+      if (samePointer || legacyTouch) return;
+    }
+    activate(e);
+  });
+}
+
+function bindStick(element, onChange) {
+  const knob = element.firstElementChild;
+  let active = null;
+
+  function release() {
+    if (active === null) return;
+    // 清空游戏输入。浏览器在抬手或取消时释放捕获，让旧触点停留在摇杆上。
+    active = null;
+    knob.style.transform = '';
+    onChange(0, 0);
+  }
+
+  function move(e) {
+    if (e.pointerId !== active) return;
+    const bounds = element.getBoundingClientRect();
+    const dx = e.clientX - (bounds.left + bounds.width / 2);
+    const dy = e.clientY - (bounds.top + bounds.height / 2);
+    const distance = Math.hypot(dx, dy);
+    const radius = bounds.width / 3;
+    const limit = Math.min(radius, distance);
+    const nx = dx / (distance || 1);
+    const ny = dy / (distance || 1);
+    const strength = Math.max(0, (limit / radius - 0.15) / 0.85);
+    knob.style.transform = 'translate(' + nx * limit + 'px, ' + ny * limit + 'px)';
+    onChange(nx * strength, ny * strength);
+  }
+
+  element.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'touch' || active !== null) return;
+    e.preventDefault();
+    active = e.pointerId;
+    element.setPointerCapture(active);
+    move(e);
+  });
+  element.addEventListener('pointermove', move);
+  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    element.addEventListener(name, (e) => { if (e.pointerId === active) release(); });
+  }
+  return release;
+}
 
 // 刻印三路线（STORY §8）：钢铁=继承前人手艺 / 本能=身体被重铸 / 侵蚀=借地渊之力
 const LINE_LABEL = { steel: '钢铁', instinct: '本能', erosion: '侵蚀' };
@@ -14,6 +84,14 @@ export class UI {
   constructor(game) {
     this.game = game;
     this.overlay = $('overlay');
+    this.touchControls = $('touchControls');
+    this.touchDash = $('touchDash');
+    this.touchSwap = $('touchSwap');
+    this.coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches ?? false;
+    this.portrait = false;
+    this.panelName = 'menu';
+    this.displayedPanel = 'menu';
+    this.safeTop = this.safeLeft = this.safeRight = this.safeBottom = 0;
     this.panels = {
       menu: $('p-menu'),
       perks: $('p-perks'),
@@ -21,7 +99,8 @@ export class UI {
       dead: $('p-dead'),
       pause: $('p-pause'),
       clear: $('p-clear'),
-      codex: $('p-codex')
+      codex: $('p-codex'),
+      rotate: $('p-rotate')
     };
     this.perkCards = $('perkCards');
     this.weaponNew = $('weaponNew');
@@ -33,33 +112,93 @@ export class UI {
     this.codexTab = 'enemy';
     this.nextIsLast = false;
     this._bind();
+    this.setTouchLayout(this.coarsePointer);
+    this.releaseSticks = [
+      bindStick($('touchMove'), (x, y) => { game.input.touchMove.x = x; game.input.touchMove.y = y; }),
+      bindStick($('touchAim'), (x, y) => game.input.setTouchAim(x, y))
+    ];
   }
 
   _bind() {
     const g = this.game;
     const on = (id, fn) => {
       const el = $(id);
-      if (el) el.addEventListener('click', (e) => { e.stopPropagation(); g.audio.init(); g.audio.resume(); fn(); });
+      if (el) bindTap(el, (e) => { e.stopPropagation(); g.audio.init(); g.audio.resume(); fn(e); });
     };
 
-    on('btnSurvival', () => g.start('survival'));
+    on('btnSurvival', (e) => this.start('survival', e));
     on('btnCodex', () => this.showCodex('enemy'));
     on('btnCodexBack', () => this.show('menu'));
-    on('btnRetry', () => g.start(g.mode));
+    on('btnRetry', (e) => this.start(g.mode, e));
     on('btnMenu', () => this.toMenu());
     on('btnMenu2', () => this.toMenu());
-    on('btnResume', () => { g.setState('playing'); this.hide(); });
+    on('btnResume', () => g.resume());
     on('btnQuit', () => this.toMenu());
     on('btnNext', () => this.nextLevel());
-    on('btnReroll', () => { if (g.rerollPerks()) this.showPerks(g.perkChoices, g.player); });
+    on('btnReroll', () => g.rerollPerks());
     on('btnEquip', () => g.chooseWeapon('equip'));
     on('btnSecondary', () => g.chooseWeapon('secondary'));
     on('btnSalvage', () => g.chooseWeapon('salvage'));
+    on('btnMuteTouch', () => { g.audio.toggleMute(); this.updatePauseButtons(); });
+    on('btnLockTouch', () => { g.toggleWeaponLock(g.player); this.updatePauseButtons(); });
+    on('touchPause', () => g.pause());
+    on('touchDash', () => g.input.press('TouchDash'));
+    on('touchReload', () => g.input.press('KeyR'));
+    on('touchSwap', () => g.input.press('KeyQ'));
 
     // 图鉴标签切换
     on('tabEnemy', () => this.showCodex('enemy'));
     on('tabWeapon', () => this.showCodex('weapon'));
     on('tabPerk', () => this.showCodex('perk'));
+  }
+
+  setTouchLayout(enabled) {
+    this.game.input.touchMode = enabled;
+    document.body.classList.toggle('touch-layout', enabled);
+    this.syncPanel();
+  }
+
+  get canPlay() {
+    return !this.game.input.touchMode || !this.portrait;
+  }
+
+  setViewport(width, height) {
+    const style = getComputedStyle(document.documentElement);
+    this.safeTop = parseFloat(style.getPropertyValue('--safe-top')) || 0;
+    this.safeLeft = parseFloat(style.getPropertyValue('--safe-left')) || 0;
+    this.safeRight = parseFloat(style.getPropertyValue('--safe-right')) || 0;
+    this.safeBottom = parseFloat(style.getPropertyValue('--safe-bottom')) || 0;
+    // 浏览器工具栏会改变可用高度，即使页面仍然是横屏。
+    this.shortViewport = height - this.safeTop - this.safeBottom <= 330;
+    document.body.classList.toggle('short-viewport', this.shortViewport);
+    const portrait = height > width;
+    if (this.portrait === portrait) return;
+    this.portrait = portrait;
+    document.body.classList.toggle('portrait-view', portrait);
+    if (!this.canPlay) this.game.pause();
+    this.syncPanel();
+  }
+
+  start(mode, e) {
+    this.setTouchLayout(this.coarsePointer || e.pointerType === 'touch');
+    if (this.canPlay) this.game.start(mode);
+  }
+
+  releaseTouch() {
+    for (const release of this.releaseSticks) release();
+    this.game.input.pressed.delete('TouchDash');
+    if (this.game.input.touchMode) this.game.input.clear();
+  }
+
+  updateTouchHud() {
+    const { player, state, input } = this.game;
+    if (!input.touchMode || state !== 'playing') return;
+    this.touchSwap.classList.toggle('unavailable', !player.secondary);
+    const cooldown = Math.ceil(player.dashCd * 10) / 10;
+    if (cooldown === this.dashCooldown) return;
+    this.dashCooldown = cooldown;
+    this.touchDash.textContent = cooldown ? '冲刺 ' + cooldown.toFixed(1) : '冲刺';
+    this.touchDash.classList.toggle('cooldown', cooldown > 0);
   }
 
   toMenu() {
@@ -89,10 +228,9 @@ export class UI {
   }
 
   show(name) {
-    this.overlay.classList.add('on');
-    for (const k of Object.keys(this.panels)) {
-      this.panels[k].classList.toggle('hidden', k !== name);
-    }
+    this.panelName = name;
+    if (this.game.input.touchMode) this.releaseTouch();
+    this.syncPanel();
     if (name === 'menu') {
       const best = $('bestScore');
       if (best) best.textContent = String(this.game.best);
@@ -100,8 +238,22 @@ export class UI {
   }
 
   hide() {
-    this.overlay.classList.remove('on');
-    for (const k of Object.keys(this.panels)) this.panels[k].classList.add('hidden');
+    this.panelName = null;
+    this.syncPanel();
+  }
+
+  syncPanel() {
+    let name = this.panelName;
+    const needsLandscape = !this.canPlay;
+    if (needsLandscape && (name === 'perks' || name === 'weapon')) name = 'rotate';
+    for (const id of ['btnSurvival', 'btnRetry', 'btnResume']) $(id).disabled = needsLandscape;
+    if (name === this.displayedPanel) return;
+    this.displayedPanel = name;
+    this.overlay.classList.toggle('on', name !== null);
+    for (const k of Object.keys(this.panels)) this.panels[k].classList.toggle('hidden', k !== name);
+    const controlsVisible = name === null && this.game.input.touchMode;
+    this.touchControls.classList.toggle('active', controlsVisible);
+    this.touchControls.inert = !controlsVisible;
   }
 
   /**
@@ -212,11 +364,10 @@ export class UI {
           ${stacks > 0 ? `<span class="stacks">已持有 ×${stacks}</span>` : ''}
         </span>
       `;
-      card.addEventListener('click', (e) => {
+      bindTap(card, (e) => {
         e.stopPropagation();
         g.audio.init();
         g.audio.click();
-        this.hide();
         g.pickPerk(perk);
       });
       this.perkCards.appendChild(card);
@@ -226,7 +377,7 @@ export class UI {
     if (rr) {
       const used = this.game.rerollUsed;
       rr.disabled = used;
-      rr.textContent = used ? '本局已重掷过' : '重掷（R）· 本局一次';
+      rr.textContent = used ? '本局已重掷过' : g.input.touchMode ? '重掷 · 本局一次' : '重掷（R）· 本局一次';
     }
     this.show('perks');
   }
@@ -306,7 +457,20 @@ export class UI {
   }
 
   showPause() {
+    this.updatePauseButtons();
     this.show('pause');
+  }
+
+  updatePauseButtons() {
+    if (!this.game.input.touchMode) return;
+    const muted = this.game.audio.muted;
+    const locked = !!this.game.player?.weaponLocked;
+    const mute = $('btnMuteTouch');
+    const lock = $('btnLockTouch');
+    mute.textContent = muted ? '取消静音' : '静音';
+    mute.setAttribute('aria-pressed', String(muted));
+    lock.textContent = locked ? '解锁武器' : '锁定武器';
+    lock.setAttribute('aria-pressed', String(locked));
   }
 
   showClear(def, index, isLast, s) {

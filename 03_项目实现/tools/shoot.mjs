@@ -1,6 +1,7 @@
 // 用真实浏览器验证渲染与交互，并截图。node tools/shoot.mjs
 // 截图固定写到本项目的 shots/（与脚本位置绑定，不受执行目录影响）
 import { createRequire } from 'node:module';
+import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 const require = createRequire(import.meta.url);
@@ -153,5 +154,105 @@ await page.evaluate(() => {
 await page.waitForTimeout(400);
 await page.screenshot({ path: shot('v-wall.png') });
 
-console.log(logs.length ? '页面错误:\n' + logs.join('\n') : 'NO_PAGE_ERRORS');
-await browser.close();
+try {
+  const mobile = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    deviceScaleFactor: 3
+  });
+  mobile.on('pageerror', (e) => logs.push('mobile pageerror: ' + e.message));
+  await mobile.goto(URL + '?seed=touch-regression', { waitUntil: 'load' });
+  await mobile.locator('#p-menu .rotate-hint').waitFor();
+  assert.equal(await mobile.locator('#btnSurvival').isDisabled(), true);
+  await mobile.screenshot({ path: shot('v-mobile-menu.png'), scale: 'css' });
+  await mobile.setViewportSize({ width: 667, height: 375 });
+  await mobile.locator('#btnSurvival').tap();
+  await mobile.locator('#touchControls.active').waitFor();
+  const cdp = await mobile.context().newCDPSession(mobile);
+  const touch = (type, touchPoints = []) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+  const center = async (selector, id) => {
+    const box = await mobile.locator(selector).boundingBox();
+    return { id, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+  const left = await center('#touchMove', 1);
+  const right = await center('#touchAim', 2);
+  const moved = { ...left, x: left.x + 40 };
+  const aimed = { ...right, x: right.x - 40 };
+  await touch('touchStart', [left, right]);
+  await touch('touchMove', [moved, aimed]);
+  await mobile.waitForFunction(() => {
+    const g = window.__game;
+    return g.player.vx > 40 && g.stats.shots > 0;
+  });
+  await mobile.screenshot({ path: shot('v-mobile-combat.png'), scale: 'css' });
+  await touch('touchEnd', [moved]);
+  assert.equal(await mobile.evaluate(() => window.__game.input.firing), true);
+
+  // 按着射击时出现两次升级，旧触点不能选卡，一次新点按只选一张。
+  await touch('touchMove', [{ ...aimed, x: aimed.x - 200, y: aimed.y - 110 }]);
+  await mobile.evaluate(() => window.__game.gainXp(30));
+  await touch('touchEnd');
+  await mobile.locator('#p-perks').waitFor();
+  assert.equal(await mobile.evaluate(() => window.__game.player.pendingLevels), 2);
+  assert.equal(await mobile.evaluate(() => window.__game.input.firing), false);
+  await mobile.locator('#btnReroll').tap();
+  await mobile.waitForFunction(() => document.getElementById('btnReroll').disabled);
+  await mobile.screenshot({ path: shot('v-mobile-perks.png'), scale: 'css' });
+  await mobile.evaluate(() => {
+    const overlay = document.getElementById('overlay');
+    window.overlayObserver = new MutationObserver(() => { window.overlayChanged = true; });
+    window.overlayObserver.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+  });
+  await mobile.locator('#perkCards .card').first().tap();
+  const afterPick = await mobile.evaluate(() => {
+    window.overlayObserver.disconnect();
+    return {
+      pending: window.__game.player.pendingLevels,
+      changed: !!window.overlayChanged,
+      animation: getComputedStyle(document.getElementById('overlay')).animationName
+    };
+  });
+  assert.deepEqual(afterPick, { pending: 1, changed: false, animation: 'none' });
+  await mobile.locator('#perkCards .card').first().tap();
+
+  await mobile.setViewportSize({ width: 375, height: 667 });
+  await mobile.locator('#p-pause .rotate-hint').waitFor();
+  assert.equal(await mobile.locator('#btnResume').isDisabled(), true);
+  await mobile.screenshot({ path: shot('v-mobile-rotate.png'), scale: 'css' });
+  await mobile.setViewportSize({ width: 667, height: 375 });
+  await mobile.locator('#btnResume').tap();
+  assert.equal(await mobile.evaluate(() => window.__game.state), 'playing');
+  assert.equal(await mobile.evaluate(() => window.__game.input.firing), false);
+
+  // 矮视口模拟浏览器工具栏占用空间，危险按钮不能覆盖装填或换枪。
+  await mobile.setViewportSize({ width: 667, height: 265 });
+  await mobile.waitForFunction(() => window.__game.vh === 265);
+  await mobile.evaluate(() => {
+    const p = window.__game.player;
+    p.secondary = 'rifle';
+    p.secondaryAmmo = 30;
+    p.ammo = 4;
+  });
+  await mobile.locator('#touchSwap').waitFor();
+  const buttons = ['#touchReload', '#touchSwap', '#touchDash'];
+  const rects = await Promise.all(buttons.map(id => mobile.locator(id).boundingBox()));
+  for (const [index, a] of rects.entries()) {
+    assert.ok(a.width >= 44 && a.height >= 44);
+    for (const b of rects.slice(index + 1)) {
+      const overlaps = a.x < b.x + b.width && b.x < a.x + a.width
+        && a.y < b.y + b.height && b.y < a.y + a.height;
+      assert.equal(overlaps, false);
+    }
+  }
+  await mobile.screenshot({ path: shot('v-mobile-short.png'), scale: 'css' });
+  await mobile.locator('#touchReload').tap();
+  await mobile.waitForFunction(() => window.__game.player.reloading > 0);
+  assert.equal(await mobile.evaluate(() => window.__game.player.dashCd), 0);
+  console.log('MOBILE_SHORT_VIEWPORT_OK');
+  console.log('MOBILE_TOUCH_OK');
+  console.log(logs.length ? '页面错误:\n' + logs.join('\n') : 'NO_PAGE_ERRORS');
+  if (logs.length) process.exitCode = 1;
+} finally {
+  await browser.close();
+}

@@ -29,7 +29,8 @@ export class Audio {
   }
 
   resume() {
-    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    const state = this.ctx?.state;
+    if (state === 'suspended' || state === 'interrupted') this.ctx.resume().catch(() => {});
   }
 
   setMuted(m) {

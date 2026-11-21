@@ -20,8 +20,11 @@ export function offscreenThreats(g, w, h, max = MAX) {
   // 只在真正战斗时提示；暂停/升级/死亡/通关都不画
   if (!p || g.state !== 'playing') return [];
 
-  const halfW = Math.max(40, w / 2 - PAD);
-  const halfH = Math.max(40, h / 2 - PAD);
+  const touch = g.input?.touchMode;
+  const padX = touch ? 140 + Math.max(g.ui.safeLeft, g.ui.safeRight) : PAD;
+  const padY = touch ? PAD + Math.max(g.ui.safeTop, g.ui.safeBottom) : PAD;
+  const halfW = Math.max(40, w / 2 - padX);
+  const halfH = Math.max(40, h / 2 - padY);
   const cx = w / 2;
   const cy = h / 2;
   const px = (p.x - cam.x) * cam.zoom + cam.ox;
@@ -50,9 +53,17 @@ export function offscreenThreats(g, w, h, max = MAX) {
     const t = Math.min(tx, ty);
 
     const dist = Math.hypot(e.x - p.x, e.y - p.y);
+    const y = cy + dy * t;
+    let x = cx + dx * t;
+    if (touch && y < g.ui.safeTop + 164) {
+      // 上半屏让出两边的生命、弹药信息和武器按钮。
+      const left = Math.min(w * 0.42, g.ui.safeLeft + 186);
+      const right = Math.min(w * 0.42, g.ui.safeRight + (g.ui.shortViewport ? 230 : 192));
+      x = clamp(x, left, w - right);
+    }
     out.push({
-      x: cx + dx * t,
-      y: cy + dy * t,
+      x,
+      y,
       angle: Math.atan2(dy, dx),
       dist,
       boss: !!(e.def && e.def.isBoss),

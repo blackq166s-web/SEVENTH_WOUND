@@ -19,16 +19,20 @@ window.__game = game; // 调试入口
 
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.max(320, window.innerWidth);
-  const h = Math.max(240, window.innerHeight);
-  canvas.width = Math.floor(w * dpr);
-  canvas.height = Math.floor(h * dpr);
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  const width = Math.floor(w * dpr);
+  const height = Math.floor(h * dpr);
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
   game.setViewport(w, h, dpr);
+  game.ui.setViewport(w, h);
 }
 
-window.addEventListener('resize', resize);
+let viewportDirty = false;
+const requestResize = () => { viewportDirty = true; };
+window.addEventListener('resize', requestResize);
+window.visualViewport?.addEventListener('resize', requestResize);
 resize();
 game.cam.snapTo(game.W / 2, game.H / 2);
 
@@ -42,10 +46,15 @@ window.addEventListener('keydown', unlock, { once: true });
 
 // 切出窗口自动暂停
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && game.state === 'playing') {
-    game.setState('paused');
-    game.ui.showPause();
-  }
+  if (!document.hidden) return;
+  input.clear();
+  game.ui.releaseTouch();
+  game.pause();
+});
+window.addEventListener('blur', () => {
+  if (!input.touchMode) return;
+  game.ui.releaseTouch();
+  game.pause();
 });
 
 const STEP = 1 / 60;
@@ -53,6 +62,10 @@ let last = performance.now();
 let acc = 0;
 
 function frame(now) {
+  if (viewportDirty) {
+    viewportDirty = false;
+    resize();
+  }
   const raw = Math.min((now - last) / 1000, 0.1);
   last = now;
   acc += raw;
@@ -60,11 +73,12 @@ function frame(now) {
   let guard = 0;
   while (acc >= STEP && guard++ < 6) {
     game.update(STEP);
+    input.endFrame();
     acc -= STEP;
   }
 
+  game.ui.updateTouchHud();
   game.render();
-  input.endFrame();
   requestAnimationFrame(frame);
 }
 

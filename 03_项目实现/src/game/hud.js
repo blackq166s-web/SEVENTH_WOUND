@@ -37,12 +37,16 @@ function bar(ctx, x, y, w, h, ratio, c1, c2, bg = 'rgba(0,0,0,0.55)') {
 export function drawHud(ctx, g, w, h) {
   const p = g.player;
   if (!p) return;
+  const touch = g.input.touchMode;
+  const left = touch ? g.ui.safeLeft + 14 : 26;
+  const right = touch ? w - g.ui.safeRight - 70 : w - 26;
+  const top = touch ? g.ui.safeTop : 0;
 
   ctx.save();
   ctx.textBaseline = 'middle';
 
   // ---------- 左下：生命 + 经验 ----------
-  const bx = 26, by = h - 74, bw = 268;
+  const bx = left, by = touch ? top + 105 : h - 74, bw = touch ? 148 : 268;
 
   // 生命
   const hpRatio = p.hp / p.maxHp;
@@ -96,7 +100,7 @@ export function drawHud(ctx, g, w, h) {
   // ---------- 右下：武器 ----------
   const wDef = WEAPONS[p.weapon];
   const cap = magSize(p.weapon, p.stats);
-  const rx = w - 26;
+  const rx = right;
   ctx.textAlign = 'right';
 
   ctx.font = `800 15px ${FONT}`;
@@ -105,34 +109,36 @@ export function drawHud(ctx, g, w, h) {
   const mainName = `${wDef.name}${lockTag}`;
   const mainW = ctx.measureText(mainName).width;
   const mainIcon = getGunIcon(p.weapon, { bare: true });   // 纯剪影：不加底板/边框
-  const icoSize = 46;                                       // 精简展示，别抢弹药数字的视线
-  const iconY = h - 84;
+  const icoSize = touch ? 32 : 46;                                       // 精简展示，别抢弹药数字的视线
+  const iconY = touch ? top + 28 : h - 84;
+  const ammoY = touch ? top + 55 : h - 50;
+  const secondaryY = touch ? top + 80 : h - 26;
   ctx.drawImage(mainIcon.canvas, rx - mainW - icoSize - 3, iconY - icoSize / 2, icoSize, icoSize);
   ctx.fillText(mainName, rx, iconY);
 
   ctx.font = `800 40px ${FONT}`;
   ctx.fillStyle = p.reloading > 0 ? 'rgba(255,255,255,0.35)' : '#fff';
-  ctx.fillText(String(Math.ceil(p.ammo)), rx - 44, h - 50);
+  ctx.fillText(String(Math.ceil(p.ammo)), rx - 44, ammoY);
   ctx.font = `700 16px ${FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText('/ ' + cap, rx, h - 44);
+  ctx.fillText('/ ' + cap, rx, ammoY + 6);
 
   // 副武器常显：装在副武器槽里的枪必须一直看得见，
   // 否则"捡了三连发却没反应"会被当成 bug（原来装填时这一行会被藏掉）
   if (p.secondary) {
     ctx.font = `600 11px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.42)';
-    const secText = `Q 切换 → ${WEAPONS[p.secondary].name}`;
+    const secText = touch ? WEAPONS[p.secondary].name : `Q 切换 → ${WEAPONS[p.secondary].name}`;
     const secW = ctx.measureText(secText).width;
     const secIcon = getGunIcon(p.secondary, { bare: true });
     const secIco = 26;
-    ctx.drawImage(secIcon.canvas, rx - secW - secIco - 3, h - 26 - secIco / 2, secIco, secIco);
-    ctx.fillText(secText, rx, h - 26);
+    ctx.drawImage(secIcon.canvas, rx - secW - secIco - 3, secondaryY - secIco / 2, secIco, secIco);
+    ctx.fillText(secText, rx, secondaryY);
   }
 
   if (p.reloading > 0) {
     const r = 1 - p.reloading / p.reloadTotal;
-    const barY = p.secondary ? h - 15 : h - 28;
+    const barY = touch ? top + 97 : p.secondary ? h - 15 : h - 28;
     bar(ctx, rx - 130, barY, 130, 6, r, '#ffd166', '#ff9f43', 'rgba(255,255,255,0.1)');
     ctx.font = `600 10px ${FONT}`;
     ctx.fillStyle = 'rgba(255,209,102,0.9)';
@@ -144,32 +150,38 @@ export function drawHud(ctx, g, w, h) {
   ctx.textAlign = 'left';
   ctx.font = `800 13px ${FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.fillText(g.mode === 'quest' ? '层' : '潮汐', 26, 28);
+  ctx.fillText(g.mode === 'quest' ? '层' : '潮汐', left, top + 28);
 
   ctx.font = `800 26px ${FONT}`;
   ctx.fillStyle = '#fff';
-  ctx.fillText(g.mode === 'quest' ? (g.questName || '') : String(g.wave), 26, 52);
+  ctx.fillText(g.mode === 'quest' ? (g.questName || '') : String(g.wave), left, top + 52);
 
   ctx.font = `600 12px ${FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
   const t = g.time;
   const mm = String(Math.floor(t / 60)).padStart(2, '0');
   const ss = String(Math.floor(t % 60)).padStart(2, '0');
-  ctx.fillText(`${mm}:${ss}   击杀 ${g.kills}`, 26, 74);
+  ctx.fillText(`${mm}:${ss}   击杀 ${g.kills}`, left, top + 74);
 
   // ---------- 右上：分数 ----------
-  ctx.textAlign = 'right';
-  ctx.font = `700 12px ${FONT}`;
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText('SCORE', w - 26, 26);
-  ctx.font = `800 24px ${FONT}`;
-  ctx.fillStyle = '#ffd166';
-  ctx.fillText(String(g.score), w - 26, 50);
+  if (touch) {
+    ctx.font = `700 12px ${FONT}`;
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText('SCORE ' + g.score, left + 42, top + 28);
+  } else {
+    ctx.textAlign = 'right';
+    ctx.font = `700 12px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('SCORE', w - 26, 26);
+    ctx.font = `800 24px ${FONT}`;
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText(String(g.score), w - 26, 50);
 
-  // ---------- 敌人计数 ----------
-  ctx.font = `600 11px ${FONT}`;
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.fillText(`${g.enemies.length} 敌人在场`, w - 26, 74);
+    // ---------- 敌人计数 ----------
+    ctx.font = `600 11px ${FONT}`;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillText(`${g.enemies.length} 敌人在场`, w - 26, 74);
+  }
 
   // ---------- 中央横幅（潮汐 / 层间卡 / 层主条共用这一条通道） ----------
   if (g.banner.t > 0) {
@@ -289,7 +301,7 @@ export function drawHud(ctx, g, w, h) {
   }
 
   // ---------- 冲刺冷却（S1-D2）：血条左上方独立小圈，避免与血条重叠 ----------
-  if (p.dashCd > 0) {
+  if (p.dashCd > 0 && !touch) {
     const cx = 24, cy = h - 112, R = 11;
     ctx.save();
     ctx.beginPath();

@@ -160,6 +160,25 @@ export class Game {
 
   // ================= 生命周期 =================
 
+  pause() {
+    if (this.state !== 'playing') return;
+    this.setState('paused');
+    this.ui.showPause();
+  }
+
+  resume() {
+    if (this.state !== 'paused' || this.ui.canPlay === false) return;
+    this.setState('playing');
+    this.ui.hide();
+  }
+
+  toggleWeaponLock(p) {
+    p.weaponLocked = !p.weaponLocked;
+    this.particles.text(p.x, p.y - 40, p.weaponLocked ? '武器已锁定' : '武器已解锁',
+      p.weaponLocked ? '#ffd166' : '#9fb4c9', 14);
+    this.audio.click();
+  }
+
   start(mode) {
     // 下潜模式已停用（2026-10-27）：只保留竞技场。quest 逻辑保留但不可达，可回退。
     if (mode === 'quest') mode = 'survival';
@@ -167,6 +186,7 @@ export class Game {
     // 同一 seed 每局从头播同一条序列：重开即复现，不看上一局跑了多久
     if (this.seed) this.setSeed(this.seed);
     this.reset();
+    this.input.touchAim = null;
     this.state = 'playing';
     this.ui.hide();
     this.banner = { text: '第 1 波', sub: '生存下去', t: 2.6, total: 2.6 };
@@ -235,10 +255,9 @@ export class Game {
 
   update(dt) {
     // 升级选择（数字键）+ 每局一次重掷（R）
-    if (this.state === 'levelup') {
+    if (this.state === 'levelup' && this.ui.canPlay !== false) {
       for (let i = 0; i < this.perkChoices.length; i++) {
         if (this.input.tap('Digit' + (i + 1))) {
-          this.ui.hide();
           this.pickPerk(this.perkChoices[i]);
           break;
         }
@@ -247,7 +266,7 @@ export class Game {
     }
 
     // 武器选择（S9-A）：1 装备 / 2 副武器 / 3 放弃
-    if (this.state === 'weaponchoice') {
+    if (this.state === 'weaponchoice' && this.ui.canPlay !== false) {
       if (this.input.tap('Digit1')) this.chooseWeapon('equip');
       else if (this.input.tap('Digit2')) this.chooseWeapon('secondary');
       else if (this.input.tap('Digit3')) this.chooseWeapon('salvage');
@@ -255,8 +274,8 @@ export class Game {
 
     // 暂停切换
     if (this.input.tap('Escape') || this.input.tap('KeyP')) {
-      if (this.state === 'playing') { this.setState('paused'); this.ui.showPause(); }
-      else if (this.state === 'paused') { this.setState('playing'); this.ui.hide(); }
+      if (this.state === 'playing') this.pause();
+      else if (this.state === 'paused') this.resume();
     }
     if (this.input.tap('KeyM')) {
       const muted = this.audio.toggleMute();
@@ -266,7 +285,12 @@ export class Game {
     }
 
     // 世界鼠标坐标
-    if (this.player) {
+    if (this.player && this.input.touchMode) {
+      const angle = this.input.touchAim ?? this.player.aim;
+      const distance = this.input.touchAim === null ? 1 : 144;
+      this.mouseWorld.x = this.player.x + Math.cos(angle) * distance;
+      this.mouseWorld.y = this.player.y + Math.sin(angle) * distance;
+    } else if (this.player) {
       this.mouseWorld.x = this.cam.x + (this.input.mouse.x - this.cam.ox) / this.cam.zoom;
       this.mouseWorld.y = this.cam.y + (this.input.mouse.y - this.cam.oy) / this.cam.zoom;
     }
@@ -1302,7 +1326,7 @@ export class Game {
     drawThreatIndicators(ctx, this, w, h);
     drawHud(ctx, this, w, h);
     drawVoice(ctx, this, w, h);
-    this.drawCrosshair(ctx);
+    if (!this.input.touchMode) this.drawCrosshair(ctx);
   }
 
   drawArenaEdge(ctx) {

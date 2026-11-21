@@ -177,7 +177,7 @@ export function updatePlayer(g, p, dt) {
   if (p.boostT > 0) p.boostT = Math.max(0, p.boostT - dt);
 
   // ---- 冲刺（S1-D2）：Shift 触发，0.18s 位移 + 0.12s 无敌帧 + 1.2s 冷却 ----
-  const dashKey = input.isDown('ShiftLeft') || input.isDown('ShiftRight');
+  const dashKey = input.tap('TouchDash') || input.isDown('ShiftLeft') || input.isDown('ShiftRight');
   if (p.dashCd > 0) p.dashCd = Math.max(0, p.dashCd - dt);
   if (p.dashInv > 0) p.dashInv = Math.max(0, p.dashInv - dt);
 
@@ -202,7 +202,10 @@ export function updatePlayer(g, p, dt) {
     let dx = 0, dy = 0;
     const mvNow = input.moveVector();
     if (mvNow.x || mvNow.y) { dx = mvNow.x; dy = mvNow.y; }
-    else { dx = Math.cos(p.aim); dy = Math.sin(p.aim); }
+    else {
+      const aim = input.touchMode ? input.touchAim ?? p.aim : p.aim;
+      dx = Math.cos(aim); dy = Math.sin(aim);
+    }
     const l = Math.hypot(dx, dy) || 1;
     p.dashDirX = dx / l;
     p.dashDirY = dy / l;
@@ -227,7 +230,8 @@ export function updatePlayer(g, p, dt) {
   }
 
   // 瞄准
-  p.aim = Math.atan2(g.mouseWorld.y - p.y, g.mouseWorld.x - p.x);
+  if (input.touchMode) p.aim = input.touchAim ?? p.aim;
+  else p.aim = Math.atan2(g.mouseWorld.y - p.y, g.mouseWorld.x - p.x);
   p.body = angleLerp(p.body, p.aim, damp(16, dt));
 
   // 移动尾迹
@@ -273,7 +277,7 @@ export function updatePlayer(g, p, dt) {
   const s2w = stage2Of(p, p.weapon);
   const chargeTime = wDef.charge ? wDef.charge * (s2w.chargeMul || 1) : 0;
   if (wDef.charge) {
-    if (input.mouse.down && p.reloading <= 0) p.chargeT = Math.min(chargeTime, p.chargeT + dt);
+    if (input.firing && p.reloading <= 0) p.chargeT = Math.min(chargeTime, p.chargeT + dt);
     else p.chargeT = Math.max(0, p.chargeT - dt * 4);
   } else if (p.chargeT) {
     p.chargeT = 0;
@@ -283,14 +287,14 @@ export function updatePlayer(g, p, dt) {
   if (p.beamLife > 0) p.beamLife = Math.max(0, p.beamLife - dt);
   if (wDef.kind === 'beam') {
     p.beamOn = false;
-    if (input.mouse.down && p.reloading <= 0 && p.cd <= 0 && p.ammo > 0 && p.dashT <= 0) {
+    if (input.firing && p.reloading <= 0 && p.cd <= 0 && p.ammo > 0 && p.dashT <= 0) {
       p.beamAngle = p.aim;
       p.ammo--;
       p.cd = wDef.rate || 0.42;
       p.muzzle = 0.05;
       g.fireLaser(p);
       g.audio.shoot('gauss');
-    } else if (p.ammo <= 0 && input.mouse.down && p.reloading <= 0) {
+    } else if (p.ammo <= 0 && input.firing && p.reloading <= 0) {
       g.audio.empty();
       startReload(g, p);
     }
@@ -299,7 +303,7 @@ export function updatePlayer(g, p, dt) {
   }
 
   // 开火（beam 武器不走这里；冲刺中不可开火）
-  if (input.mouse.down && p.reloading <= 0 && p.cd <= 0 && wDef.kind !== 'beam' && p.dashT <= 0) {
+  if (input.firing && p.reloading <= 0 && p.cd <= 0 && wDef.kind !== 'beam' && p.dashT <= 0) {
     const charged = !wDef.charge || p.chargeT >= chargeTime;
     if (p.ammo > 0 && charged) {
       fireWeapon(g, p);
@@ -342,12 +346,7 @@ export function updatePlayer(g, p, dt) {
     swapWeapon(g, p);
   }
   // 锁定/解锁当前武器（L）：锁定时捡到更高等级也不自动换，只转补给
-  if (input.tap('KeyL')) {
-    p.weaponLocked = !p.weaponLocked;
-    g.particles.text(p.x, p.y - 40, p.weaponLocked ? '武器已锁定' : '武器已解锁',
-      p.weaponLocked ? '#ffd166' : '#9fb4c9', 14);
-    g.audio.click();
-  }
+  if (input.tap('KeyL')) g.toggleWeaponLock(p);
 
   // 自然回复
   if (p.stats.regen > 0 && p.hp > 0) {
