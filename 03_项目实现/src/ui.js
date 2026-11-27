@@ -99,8 +99,7 @@ export class UI {
       dead: $('p-dead'),
       pause: $('p-pause'),
       clear: $('p-clear'),
-      codex: $('p-codex'),
-      rotate: $('p-rotate')
+      codex: $('p-codex')
     };
     this.perkCards = $('perkCards');
     this.weaponNew = $('weaponNew');
@@ -161,10 +160,6 @@ export class UI {
     this.syncPanel();
   }
 
-  get canPlay() {
-    return !this.game.input.touchMode || !this.portrait;
-  }
-
   setViewport(width, height) {
     const style = getComputedStyle(document.documentElement);
     this.safeTop = parseFloat(style.getPropertyValue('--safe-top')) || 0;
@@ -178,13 +173,16 @@ export class UI {
     if (this.portrait === portrait) return;
     this.portrait = portrait;
     document.body.classList.toggle('portrait-view', portrait);
-    if (!this.canPlay) this.game.pause();
-    this.syncPanel();
+    if (this.game.input.touchMode) this.releaseTouch();
   }
 
   start(mode, e) {
     this.setTouchLayout(this.coarsePointer || e.pointerType === 'touch');
-    if (this.canPlay) this.game.start(mode);
+    if (this.game.input.touchMode && document.fullscreenEnabled && !document.fullscreenElement) {
+      // 保留点按产生的用户激活。浏览器拒绝全屏时仍可开局。
+      document.documentElement.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {});
+    }
+    this.game.start(mode);
   }
 
   releaseTouch() {
@@ -246,10 +244,7 @@ export class UI {
   }
 
   syncPanel() {
-    let name = this.panelName;
-    const needsLandscape = !this.canPlay;
-    if (needsLandscape && (name === 'perks' || name === 'weapon')) name = 'rotate';
-    for (const id of ['btnSurvival', 'btnRetry', 'btnResume']) $(id).disabled = needsLandscape;
+    const name = this.panelName;
     if (name === this.displayedPanel) return;
     this.displayedPanel = name;
     this.overlay.classList.toggle('on', name !== null);

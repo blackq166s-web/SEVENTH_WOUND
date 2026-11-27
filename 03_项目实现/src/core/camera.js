@@ -8,6 +8,7 @@ export class Camera {
     this.y = 0;
     this.vw = 1280;
     this.vh = 720;
+    this.defaultZoom = zoom;
     this.zoom = zoom;
     this.pad = 56; // 允许镜头略越过边界，避免贴墙时人卡在屏幕边缘
     this.shakeAmt = 0;
@@ -15,9 +16,13 @@ export class Camera {
     this.oy = 0;
   }
 
-  setViewport(w, h) {
+  setViewport(w, h, zoom = this.defaultZoom) {
+    if (w === this.vw && h === this.vh && zoom === this.zoom) return;
+    const x = this.cx, y = this.cy;
     this.vw = w;
     this.vh = h;
+    this.zoom = zoom;
+    this.snapTo(x, y);
   }
 
   /** 可视区域的世界尺寸（受缩放影响） */

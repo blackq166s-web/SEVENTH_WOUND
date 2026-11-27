@@ -155,7 +155,10 @@ export class Game {
     this.vw = w;
     this.vh = h;
     this.dpr = dpr;
-    this.cam.setViewport(w, h);
+    const zoom = this.input.touchMode && h > w
+      ? M.clamp(w / 480, 0.65, this.cam.defaultZoom)
+      : this.cam.defaultZoom;
+    this.cam.setViewport(w, h, zoom);
   }
 
   // ================= 生命周期 =================
@@ -167,7 +170,7 @@ export class Game {
   }
 
   resume() {
-    if (this.state !== 'paused' || this.ui.canPlay === false) return;
+    if (this.state !== 'paused') return;
     this.setState('playing');
     this.ui.hide();
   }
@@ -255,7 +258,7 @@ export class Game {
 
   update(dt) {
     // 升级选择（数字键）+ 每局一次重掷（R）
-    if (this.state === 'levelup' && this.ui.canPlay !== false) {
+    if (this.state === 'levelup') {
       for (let i = 0; i < this.perkChoices.length; i++) {
         if (this.input.tap('Digit' + (i + 1))) {
           this.pickPerk(this.perkChoices[i]);
@@ -266,7 +269,7 @@ export class Game {
     }
 
     // 武器选择（S9-A）：1 装备 / 2 副武器 / 3 放弃
-    if (this.state === 'weaponchoice' && this.ui.canPlay !== false) {
+    if (this.state === 'weaponchoice') {
       if (this.input.tap('Digit1')) this.chooseWeapon('equip');
       else if (this.input.tap('Digit2')) this.chooseWeapon('secondary');
       else if (this.input.tap('Digit3')) this.chooseWeapon('salvage');

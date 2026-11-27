@@ -38,6 +38,7 @@ export function drawHud(ctx, g, w, h) {
   const p = g.player;
   if (!p) return;
   const touch = g.input.touchMode;
+  const compact = touch && g.ui.portrait;
   const left = touch ? g.ui.safeLeft + 14 : 26;
   const right = touch ? w - g.ui.safeRight - 70 : w - 26;
   const top = touch ? g.ui.safeTop : 0;
@@ -46,7 +47,8 @@ export function drawHud(ctx, g, w, h) {
   ctx.textBaseline = 'middle';
 
   // ---------- 左下：生命 + 经验 ----------
-  const bx = left, by = touch ? top + 105 : h - 74, bw = touch ? 148 : 268;
+  const bx = left, by = touch ? top + 105 : h - 74;
+  const bw = compact ? Math.min(148, Math.round(w * 0.36)) : touch ? 148 : 268;
 
   // 生命
   const hpRatio = p.hp / p.maxHp;
@@ -103,13 +105,13 @@ export function drawHud(ctx, g, w, h) {
   const rx = right;
   ctx.textAlign = 'right';
 
-  ctx.font = `800 15px ${FONT}`;
+  ctx.font = `800 ${compact ? 12 : 15}px ${FONT}`;
   ctx.fillStyle = wDef.color || '#fff';
   const lockTag = p.weaponLocked ? ' 🔒' : '';
   const mainName = `${wDef.name}${lockTag}`;
   const mainW = ctx.measureText(mainName).width;
   const mainIcon = getGunIcon(p.weapon, { bare: true });   // 纯剪影：不加底板/边框
-  const icoSize = touch ? 32 : 46;                                       // 精简展示，别抢弹药数字的视线
+  const icoSize = compact ? 24 : touch ? 32 : 46;
   const iconY = touch ? top + 28 : h - 84;
   const ammoY = touch ? top + 55 : h - 50;
   const secondaryY = touch ? top + 80 : h - 26;
@@ -139,11 +141,12 @@ export function drawHud(ctx, g, w, h) {
   if (p.reloading > 0) {
     const r = 1 - p.reloading / p.reloadTotal;
     const barY = touch ? top + 97 : p.secondary ? h - 15 : h - 28;
-    bar(ctx, rx - 130, barY, 130, 6, r, '#ffd166', '#ff9f43', 'rgba(255,255,255,0.1)');
+    const barWidth = compact ? 68 : 130;
+    bar(ctx, rx - barWidth, barY, barWidth, 6, r, '#ffd166', '#ff9f43', 'rgba(255,255,255,0.1)');
     ctx.font = `600 10px ${FONT}`;
     ctx.fillStyle = 'rgba(255,209,102,0.9)';
     ctx.textAlign = 'right';
-    ctx.fillText('装填中', rx - 136, barY + 3);
+    ctx.fillText('装填中', rx - barWidth - 6, barY + 3);
   }
 
   // ---------- 左上：波次 / 击杀 ----------
@@ -167,7 +170,7 @@ export function drawHud(ctx, g, w, h) {
   if (touch) {
     ctx.font = `700 12px ${FONT}`;
     ctx.fillStyle = '#ffd166';
-    ctx.fillText('SCORE ' + g.score, left + 42, top + 28);
+    ctx.fillText('SCORE ' + g.score, left + 42, top + (compact ? 52 : 28));
   } else {
     ctx.textAlign = 'right';
     ctx.font = `700 12px ${FONT}`;

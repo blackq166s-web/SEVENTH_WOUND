@@ -1,25 +1,16 @@
 # STAGE — 当前阶段
 
-最后更新：2026-11-27（GitHub 发布 v0.6.0）
-当前游戏版本：**v0.6.0**。[在线试玩](https://blackq166s-web.github.io/SEVENTH_WOUND/) · [GitHub Release](https://github.com/blackq166s-web/SEVENTH_WOUND/releases/tag/v0.6.0)
+最后更新：2026-11-27（手机横竖屏与全屏）
+当前游戏版本：本地 **v0.6.1**。公开 [GitHub Release](https://github.com/blackq166s-web/SEVENTH_WOUND/releases/tag/v0.6.0) 为 v0.6.0。
 
-## 当前工作 · 桌面试玩与前端评估
+## 当前工作 · 手机横竖屏与全屏
 
-- 目标和完成标准。本地打开桌面版，验证首局链路，记录最先值得打磨的前端问题。
-- 结果。源码通过本机 HTTP 在 `127.0.0.1:18124` 运行。冒烟通过。桌面 Chrome 1280×720 覆盖图鉴、键鼠开局、移动开火、冲刺、暂停恢复、刻印、武器选择和结算重开。选卡、武器和结算使用受控局面，输出 `DESKTOP_REVIEW_OK` / `NO_PAGE_ERRORS`。
-- 首页标题已对齐。1920×1080 和 1280×720 为单行，320×640 窄窗与 390×844 触屏竖屏为双行，每行和按钮同轴。冒烟、`shoot.mjs` 的 `MENU_TITLE_ALIGNMENT_OK` / `NO_PAGE_ERRORS` 及单文件打包通过。本地预览端口为 8124。
-- 武器卡等宽等高，底部操作栏左侧保留、右侧替换，点卡片可做同样的选择。副武器槽空且已解锁时提供独立入口。残响卡去掉可见的数字角标并对齐底部标签。`shoot.mjs` 的桌面、触控和卡片回归均通过，本地静态包已更新。
-- `v0.6.0` 指向 `fbf3dda`。GitHub CI 与 Pages 部署均通过。公开 Release 附件和 Pages 首页均返回 HTTP 200，下载内容与本地 HTML 包一致。
-- 下一步建议。提高操作提示对比度，验证 Tab 焦点可见和 Enter 可开局。随后处理威胁箭头与生命条的占位、武器面板扫读。密集战斗性能仍待单独测量。
-
-## 待恢复 · 手机部署后验收
-
-[移动端与体验优化开发计划](03_项目实现/docs/PLAN_MOBILE.md)的阶段一已实现横屏触控，浏览器模拟通过，待真机验收。实现包括双摇杆、冲刺与武器操作、横竖屏切换、切后台暂停，以及触控完成升级、换武器、结算和重开。面板和禁忌刻印取消闪入与循环闪光，连续升级时面板保持可见。
-
-- `smoke.mjs` → `功能校验: PASS` / `SMOKE_OK`，`determinism.mjs` → `DETERMINISM_OK`，指纹仍为 `fb828254b4ed06de`。
-- `shoot.mjs` → `MOBILE_SHORT_VIEWPORT_OK` / `MOBILE_TOUCH_OK` / `NO_PAGE_ERRORS`。可用高度较低时装填、换枪和冲刺的点击区域无重叠，竖屏首页显示横屏提示。
-- 为用户的现有 Vercel 和 Cloudflare 站点准备了本地静态入口 `_site/index.html`，与 `03_项目实现/release/SEVENTH-WOUND-0.6.0.html` 内容一致。该文件通过 HTTP 在 Chrome 的 iPhone SE 和 Pixel 7 配置下，用受控局面通过开局、战斗、旋转恢复、选刻印、装备和结算重开。
-- 手机优化在部署后恢复。用 iPhone Safari 与 Android Chrome 从开局打到正常死亡、结算与重开，核对浏览器工具栏、安全区、旋转、声音恢复和双拇指手感。
+- 目标。修正真机截图里的竖屏拉伸。横竖屏都能触控开局并打到结算，同一局可随时旋转。支持全屏的浏览器在点按开局时进入全屏。
+- 完成标准。画布、HUD 和触控尺寸随方向与可用高度同步。旋转时清除旧触点，保留战斗及选卡进度。全屏请求失败时可正常开局。
+- 进展。画布、HUD 和触控共用视口，竖屏镜头拉远并调整 HUD 和按钮位置。全屏接在开局交互，iPhone 可从支持的主屏幕网页应用入口启动。
+- 验证。Chrome 跑源码、Edge 跑单文件包，均通过横竖屏、全屏及回退、触控和选择面板回归，输出 `NO_PAGE_ERRORS`。冒烟、确定性与打包通过。部署入口为本地 `_site/index.html`。
+- 阻塞。真机验证待部署后完成。iPhone 若限制网页全屏，普通标签页仍显示浏览器工具栏。
+- 下一步。在 iPhone 与 Android 的 Chrome、Edge 验收地址栏、两侧安全区、方向切换、触控战斗与结算重开。手感与性能按[开发计划](03_项目实现/docs/PLAN_MOBILE.md)推进。
 
 ## 0. 阶段总览
 

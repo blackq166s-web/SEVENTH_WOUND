@@ -81,7 +81,7 @@ async function assertWeaponChoices(page, touch = false) {
 }
 
 const browser = await chromium.launch({
-  executablePath: CHROME,
+  executablePath: process.env.GAME_BROWSER_EXE || CHROME,
   headless: true,
   args: ['--no-sandbox', '--disable-gpu']
 });
@@ -250,30 +250,65 @@ try {
     deviceScaleFactor: 3
   });
   mobile.on('pageerror', (e) => logs.push('mobile pageerror: ' + e.message));
+  const checkViewport = (width, height) => mobile.waitForFunction(({ width, height }) => {
+    const g = window.__game;
+    const canvas = g.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const controls = document.getElementById('touchControls').getBoundingClientRect();
+    const portrait = height > width;
+    return rect.width === width && rect.height === height
+      && controls.width === width && controls.height === height
+      && g.vw === width && g.vh === height && g.ui.portrait === portrait
+      && canvas.width === width * g.dpr && canvas.height === height * g.dpr
+      && g.cam.vw === width && g.cam.vh === height
+      && (portrait ? g.cam.vmw >= 479 : g.cam.zoom === g.cam.defaultZoom);
+  }, { width, height });
   await mobile.goto(URL + '?seed=touch-regression', { waitUntil: 'load' });
-  await mobile.locator('#p-menu .rotate-hint').waitFor();
-  assert.equal(await mobile.locator('#btnSurvival').isDisabled(), true);
+  await checkViewport(390, 844);
+  assert.equal(await mobile.evaluate(() => document.fullscreenElement), null);
   await assertMenuTitle(mobile, true);
   await mobile.screenshot({ path: shot('v-mobile-menu.png'), scale: 'css' });
-  await mobile.setViewportSize({ width: 667, height: 375 });
   await mobile.locator('#btnSurvival').tap();
   await mobile.locator('#touchControls.active').waitFor();
+  await mobile.waitForFunction(() => document.fullscreenElement === document.documentElement);
+  await checkViewport(390, 844);
+  console.log('MOBILE_FULLSCREEN_OK');
+  // CSS 可用高度变化也应同步画布像素大小，无需派发窗口 resize。
+  await mobile.evaluate(() => document.documentElement.style.setProperty('--view-height', '710px'));
+  await checkViewport(390, 710);
+  await mobile.evaluate(() => document.documentElement.style.removeProperty('--view-height'));
+  await checkViewport(390, 844);
   const cdp = await mobile.context().newCDPSession(mobile);
   const touch = (type, touchPoints = []) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
   const center = async (selector, id) => {
     const box = await mobile.locator(selector).boundingBox();
     return { id, x: box.x + box.width / 2, y: box.y + box.height / 2 };
   };
-  const left = await center('#touchMove', 1);
-  const right = await center('#touchAim', 2);
-  const moved = { ...left, x: left.x + 40 };
-  const aimed = { ...right, x: right.x - 40 };
-  await touch('touchStart', [left, right]);
-  await touch('touchMove', [moved, aimed]);
-  await mobile.waitForFunction(() => {
+  const useSticks = async () => {
+    const left = await center('#touchMove', 1);
+    const right = await center('#touchAim', 2);
+    const moved = { ...left, x: left.x + 40 };
+    const aimed = { ...right, x: right.x - 40 };
+    await touch('touchStart', [left, right]);
+    await touch('touchMove', [moved, aimed]);
+    await mobile.waitForFunction(() => {
+      const g = window.__game;
+      return g.player.vx > 40 && g.input.firing && g.stats.shots > 0;
+    });
+    return { moved, aimed };
+  };
+  await useSticks();
+  await mobile.screenshot({ path: shot('v-mobile-portrait-combat.png'), scale: 'css' });
+  await mobile.evaluate(() => { window.beforeRotation = window.__game.player; });
+  await mobile.setViewportSize({ width: 667, height: 375 });
+  await checkViewport(667, 375);
+  assert.equal(await mobile.evaluate(() => {
     const g = window.__game;
-    return g.player.vx > 40 && g.stats.shots > 0;
-  });
+    return g.state === 'playing' && g.player === window.beforeRotation
+      && !g.input.firing && g.input.touchMove.x === 0 && g.input.touchMove.y === 0;
+  }), true);
+  await touch('touchEnd');
+  const { moved, aimed } = await useSticks();
   await mobile.screenshot({ path: shot('v-mobile-combat.png'), scale: 'css' });
   await touch('touchEnd', [moved]);
   assert.equal(await mobile.evaluate(() => window.__game.input.firing), true);
@@ -286,9 +321,14 @@ try {
   assert.equal(await mobile.locator('#perkCards .key').count(), 0);
   assert.equal(await mobile.evaluate(() => window.__game.player.pendingLevels), 2);
   assert.equal(await mobile.evaluate(() => window.__game.input.firing), false);
+  await mobile.setViewportSize({ width: 375, height: 667 });
+  await checkViewport(375, 667);
+  assert.equal(await mobile.locator('#p-perks').isVisible(), true);
+  assert.equal(await mobile.evaluate(() => window.__game.player.pendingLevels), 2);
+  assert.ok(await mobile.locator('#p-perks').evaluate(panel => panel.scrollHeight <= panel.clientHeight + 1));
   await mobile.locator('#btnReroll').tap();
   await mobile.waitForFunction(() => document.getElementById('btnReroll').disabled);
-  await mobile.screenshot({ path: shot('v-mobile-perks.png'), scale: 'css' });
+  await mobile.screenshot({ path: shot('v-mobile-portrait-perks.png'), scale: 'css' });
   await mobile.evaluate(() => {
     const overlay = document.getElementById('overlay');
     window.overlayObserver = new MutationObserver(() => { window.overlayChanged = true; });
@@ -306,18 +346,21 @@ try {
   assert.deepEqual(afterPick, { pending: 1, changed: false, animation: 'none' });
   await mobile.locator('#perkCards .card').first().tap();
 
-  await mobile.setViewportSize({ width: 375, height: 667 });
-  await mobile.locator('#p-pause .rotate-hint').waitFor();
-  assert.equal(await mobile.locator('#btnResume').isDisabled(), true);
-  await mobile.screenshot({ path: shot('v-mobile-rotate.png'), scale: 'css' });
-  await mobile.setViewportSize({ width: 667, height: 375 });
+  await mobile.locator('#touchPause').tap();
+  await mobile.locator('#p-pause').waitFor();
   await mobile.locator('#btnResume').tap();
   assert.equal(await mobile.evaluate(() => window.__game.state), 'playing');
   assert.equal(await mobile.evaluate(() => window.__game.input.firing), false);
+  await assertWeaponChoices(mobile, true);
+  await mobile.evaluate(() => window.__game.hurtPlayer(9999, 1, 0));
+  await mobile.locator('#p-dead').waitFor();
+  await mobile.locator('#btnRetry').tap();
+  await mobile.locator('#touchControls.active').waitFor();
+  console.log('MOBILE_PORTRAIT_AND_ROTATION_OK');
 
   // 矮视口模拟浏览器工具栏占用空间，危险按钮不能覆盖装填或换枪。
   await mobile.setViewportSize({ width: 667, height: 265 });
-  await mobile.waitForFunction(() => window.__game.vh === 265);
+  await checkViewport(667, 265);
   await mobile.evaluate(() => {
     const p = window.__game.player;
     p.secondary = 'rifle';
@@ -340,6 +383,23 @@ try {
   await mobile.waitForFunction(() => window.__game.player.reloading > 0);
   assert.equal(await mobile.evaluate(() => window.__game.player.dashCd), 0);
   await assertWeaponChoices(mobile, true);
+
+  const fallback = await browser.newPage({
+    viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true
+  });
+  fallback.on('pageerror', (e) => logs.push('fullscreen fallback pageerror: ' + e.message));
+  await fallback.addInitScript(() => {
+    Element.prototype.requestFullscreen = function () {
+      window.fullscreenDenied = true;
+      return Promise.reject(new DOMException('Fullscreen unavailable', 'NotAllowedError'));
+    };
+  });
+  await fallback.goto(URL, { waitUntil: 'load' });
+  await fallback.locator('#btnSurvival').tap();
+  await fallback.locator('#touchControls.active').waitFor();
+  assert.equal(await fallback.evaluate(() => window.fullscreenDenied && !document.fullscreenElement), true);
+  await fallback.screenshot({ path: shot('v-mobile-portrait-fallback.png'), scale: 'css' });
+  console.log('MOBILE_FULLSCREEN_FALLBACK_OK');
   console.log('WEAPON_CHOICE_TOUCH_OK');
   console.log('PERK_CARD_LAYOUT_OK');
   console.log('MOBILE_SHORT_VIEWPORT_OK');

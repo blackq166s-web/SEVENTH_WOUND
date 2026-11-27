@@ -3,6 +3,7 @@ import { Input } from './core/input.js';
 import { Audio } from './core/audio.js';
 import { UI } from './ui.js';
 
+const viewport = document.getElementById('viewport');
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
 
@@ -17,22 +18,26 @@ game.ui = new UI(game);
 game.setSeed(params.get('seed'));
 window.__game = game; // 调试入口
 
+let viewportTouchMode;
 function resize() {
+  const { width: w, height: h } = viewport.getBoundingClientRect();
+  if (!w || !h) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  const width = Math.floor(w * dpr);
-  const height = Math.floor(h * dpr);
+  const width = Math.round(w * dpr);
+  const height = Math.round(h * dpr);
   if (canvas.width !== width) canvas.width = width;
   if (canvas.height !== height) canvas.height = height;
   game.setViewport(w, h, dpr);
   game.ui.setViewport(w, h);
+  viewportTouchMode = input.touchMode;
 }
 
 let viewportDirty = false;
 const requestResize = () => { viewportDirty = true; };
 window.addEventListener('resize', requestResize);
 window.visualViewport?.addEventListener('resize', requestResize);
+document.addEventListener('fullscreenchange', requestResize);
+new ResizeObserver(requestResize).observe(viewport);
 resize();
 game.cam.snapTo(game.W / 2, game.H / 2);
 
@@ -54,7 +59,6 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('blur', () => {
   if (!input.touchMode) return;
   game.ui.releaseTouch();
-  game.pause();
 });
 
 const STEP = 1 / 60;
@@ -62,7 +66,7 @@ let last = performance.now();
 let acc = 0;
 
 function frame(now) {
-  if (viewportDirty) {
+  if (viewportDirty || viewportTouchMode !== input.touchMode) {
     viewportDirty = false;
     resize();
   }

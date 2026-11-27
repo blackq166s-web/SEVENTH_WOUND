@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#07080a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23e01b3c'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%23ff7a8a'/%3E%3C/svg%3E" />
 <title>SEVENTH WOUND · 第七道伤</title>
 <style>
@@ -37,24 +39,30 @@
     cursor: default;
   }
 
-  #game {
+  #viewport {
     position: fixed;
-    inset: 0;
-    width: 100%;
+    inset: 0 0 auto;
     height: var(--view-height);
+  }
+
+  #game, #overlay, #touchControls {
+    position: absolute;
+    inset: 0;
+  }
+
+  #game {
+    width: 100%;
+    height: 100%;
     display: block;
     cursor: none;
   }
 
   /* ---------------- 覆盖层 ---------------- */
   #overlay {
-    position: fixed;
-    inset: 0;
     z-index: 20;
     display: none;
     align-items: center;
     justify-content: center;
-    height: var(--view-height);
     padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right))
       calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
     background:
@@ -715,9 +723,6 @@
     --left: calc(var(--safe-left) + 14px);
     --right: calc(var(--safe-right) + 14px);
     --bottom: calc(var(--safe-bottom) + 14px);
-    position: fixed;
-    inset: 0;
-    height: var(--view-height);
     z-index: 10;
     pointer-events: none;
     opacity: 0;
@@ -777,6 +782,12 @@
   #touchSwap { top: calc(var(--safe-top) + 108px); right: calc(var(--right) + 56px); }
   .short-viewport #touchReload { right: calc(var(--right) + 92px); }
   .short-viewport #touchSwap { right: calc(var(--right) + 148px); }
+  .portrait-view #touchReload, .portrait-view #touchSwap {
+    top: auto;
+    bottom: calc(var(--bottom) + var(--stick-size) + 64px);
+  }
+  .portrait-view #touchReload { right: var(--right); }
+  .portrait-view #touchSwap { right: calc(var(--right) + 56px); }
   #touchDash {
     right: var(--right);
     bottom: calc(var(--bottom) + var(--stick-size) + 10px);
@@ -786,10 +797,9 @@
   }
 
   #touchDash.cooldown { opacity: 0.64; }
-  .touch-only, .rotate-hint { display: none; }
+  .touch-only { display: none; }
   .touch-layout .touch-only { display: revert; }
   .touch-layout .desktop-only { display: none; }
-  .touch-layout.portrait-view .rotate-hint { display: block; }
   .touch-layout.portrait-view .logo { flex-direction: column; align-items: center; }
   .touch-layout .btn { min-height: 44px; transition: none; }
   .touch-layout .codex-tab { min-height: 44px; }
@@ -803,22 +813,21 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .rotate-hint { margin: 0; color: var(--cyan); text-align: center; }
-
-  .touch-layout:not(.portrait-view) .panel { gap: 10px; }
+  .touch-layout:not(.portrait-view) .panel, .touch-layout #p-perks { gap: 10px; }
+  .touch-layout .cards { gap: 8px; }
   .touch-layout:not(.portrait-view) .cards {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
   }
-  .touch-layout:not(.portrait-view) .card { min-height: 0; padding: 12px 8px; gap: 6px; }
-  .touch-layout:not(.portrait-view) .card .picon { width: 40px; height: 40px; }
-  .touch-layout:not(.portrait-view) .wcompare { gap: 9px; }
-  .touch-layout:not(.portrait-view) .wcard { padding: 14px 8px 10px; gap: 5px; }
-  .touch-layout:not(.portrait-view) .wcard .wicon { width: 48px; height: 48px; }
-  .touch-layout:not(.portrait-view) .wcard .wname { font-size: 15px; }
+  .touch-layout .card { min-height: 0; padding: 12px 8px; gap: 6px; }
+  .touch-layout .card .picon { width: 40px; height: 40px; padding: 5px; border-radius: 12px; }
+  .touch-layout .wcompare { gap: 9px; }
+  .touch-layout .wcard { padding: 14px 8px 10px; gap: 5px; }
+  .touch-layout .wcard .wicon { width: 48px; height: 48px; }
+  .touch-layout .wcard .wname { font-size: 15px; }
 </style>
 </head>
 <body>
+<main id="viewport">
 <canvas id="game"></canvas>
 
 <div id="touchControls" inert>
@@ -835,7 +844,6 @@
     <h1 class="logo"><span>SEVENTH</span> <span>WOUND</span></h1>
     <p class="tagline">地渊之下 · 无尽潮汐</p>
     <div class="best">最深残留<b id="bestScore">0</b></div>
-    <p class="rotate-hint">请横屏游玩</p>
     <div class="btns">
       <button id="btnSurvival" class="btn primary">竞技场 · 无尽潮汐</button>
       <button id="btnCodex" class="btn ghost">图鉴</button>
@@ -845,7 +853,7 @@
       R 手动装填 · Q 切换副武器 · L 锁定武器 · ESC 暂停 · M 静音
     </p>
     <p class="hint touch-only">左摇杆移动 · 右摇杆瞄准射击</p>
-    <p class="hint ver" id="verLine">v0.6.0</p>
+    <p class="hint ver" id="verLine">v0.6.1</p>
   </section>
 
   <section class="panel hidden" id="p-perks">
@@ -872,7 +880,6 @@
     <h2 class="danger">你的残响已被记录</h2>
     <p class="voice-line" id="deadVoice"></p>
     <div class="statgrid" id="deadStats"></div>
-    <p class="rotate-hint">横屏后可以再开一局</p>
     <div class="btns">
       <button id="btnRetry" class="btn primary">再入地渊</button>
       <button id="btnMenu" class="btn ghost">返回主菜单</button>
@@ -881,17 +888,12 @@
 
   <section class="panel hidden" id="p-pause">
     <h2>已暂停</h2>
-    <p class="rotate-hint">横屏后可继续本局</p>
     <div class="btns">
       <button id="btnResume" class="btn primary">继续</button>
       <button id="btnMuteTouch" class="btn touch-only" aria-pressed="false">静音</button>
       <button id="btnLockTouch" class="btn touch-only" aria-pressed="false">锁定武器</button>
       <button id="btnQuit" class="btn ghost">放弃本局</button>
     </div>
-  </section>
-
-  <section class="panel hidden" id="p-rotate">
-    <h2>请横屏继续选择</h2>
   </section>
 
   <section class="panel hidden" id="p-clear">
@@ -916,6 +918,7 @@
 
 
 </div>
+</main>
 
 <script type="module" src="./src/main.js"></script>
 </body>
