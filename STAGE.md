@@ -1,7 +1,7 @@
 # STAGE — 当前阶段
 
-最后更新：2026-11-27（武器与残响选择面板）
-当前本地游戏版本：**v0.6.0**。S28 的公开版本为 v0.5.9。<https://blackq166s-web.github.io/SEVENTH_WOUND/>
+最后更新：2026-11-27（GitHub 发布 v0.6.0）
+当前游戏版本：**v0.6.0**。[在线试玩](https://blackq166s-web.github.io/SEVENTH_WOUND/) · [GitHub Release](https://github.com/blackq166s-web/SEVENTH_WOUND/releases/tag/v0.6.0)
 
 ## 当前工作 · 桌面试玩与前端评估
 
@@ -9,6 +9,7 @@
 - 结果。源码通过本机 HTTP 在 `127.0.0.1:18124` 运行。冒烟通过。桌面 Chrome 1280×720 覆盖图鉴、键鼠开局、移动开火、冲刺、暂停恢复、刻印、武器选择和结算重开。选卡、武器和结算使用受控局面，输出 `DESKTOP_REVIEW_OK` / `NO_PAGE_ERRORS`。
 - 首页标题已对齐。1920×1080 和 1280×720 为单行，320×640 窄窗与 390×844 触屏竖屏为双行，每行和按钮同轴。冒烟、`shoot.mjs` 的 `MENU_TITLE_ALIGNMENT_OK` / `NO_PAGE_ERRORS` 及单文件打包通过。本地预览端口为 8124。
 - 武器卡等宽等高，底部操作栏左侧保留、右侧替换，点卡片可做同样的选择。副武器槽空且已解锁时提供独立入口。残响卡去掉可见的数字角标并对齐底部标签。`shoot.mjs` 的桌面、触控和卡片回归均通过，本地静态包已更新。
+- `v0.6.0` 指向 `fbf3dda`。GitHub CI 与 Pages 部署均通过。公开 Release 附件和 Pages 首页均返回 HTTP 200，下载内容与本地 HTML 包一致。
 - 下一步建议。提高操作提示对比度，验证 Tab 焦点可见和 Enter 可开局。随后处理威胁箭头与生命条的占位、武器面板扫读。密集战斗性能仍待单独测量。
 
 ## 待恢复 · 手机部署后验收
