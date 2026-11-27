@@ -127,6 +127,7 @@ export class Voice {
 }
 
 const FONT = '500 17px "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", sans-serif';
+const TOUCH_FONT = '500 12px "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", sans-serif';
 const CARET_FONT = '700 15px "Segoe UI", system-ui, sans-serif';
 
 export function drawVoice(ctx, g, w, h) {
@@ -140,29 +141,41 @@ export function drawVoice(ctx, g, w, h) {
 
   const full = v.cur.text;
   const shown = full.slice(0, v.visibleChars);
-  const y = h - 104;
+  const touch = g.input.touchMode;
+  const x = touch ? (w + g.ui.safeLeft - g.ui.safeRight) / 2 : w / 2;
+  const y = !touch ? h - 104 : g.ui.portrait
+    ? h - g.ui.safeBottom - 120
+    : h - Math.max(g.ui.safeTop, g.ui.safeBottom) - 48;
+  const bubbleHeight = touch ? 22 : 34;
 
   ctx.save();
   ctx.globalAlpha = a;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = FONT;
+  ctx.font = touch ? TOUCH_FONT : FONT;
 
   // 暗底衬条：混战里字必须压得住血迹和敌人
   const tw = ctx.measureText(full).width;
-  const bw = Math.min(w - 120, tw + 52);
+  const maxWidth = touch
+    ? w - g.ui.safeLeft - g.ui.safeRight - (g.ui.portrait ? 32 : 224)
+    : w - 120;
+  const bw = Math.min(maxWidth, tw + (touch ? 22 : 52));
+  if (bw <= 20) {
+    ctx.restore();
+    return;
+  }
   ctx.fillStyle = 'rgba(6,7,9,0.45)';
   ctx.beginPath();
-  ctx.roundRect(w / 2 - bw / 2, y - 17, bw, 34, 17);
+  ctx.roundRect(x - bw / 2, y - bubbleHeight / 2, bw, bubbleHeight, bubbleHeight / 2);
   ctx.fill();
 
   ctx.fillStyle = 'rgba(0,0,0,0.8)';
-  ctx.fillText(shown, w / 2 + 1, y + 1);
+  ctx.fillText(shown, x + 1, y + 1, touch ? bw - 16 : w);
   ctx.fillStyle = 'rgba(228,234,242,0.95)';
-  ctx.fillText(shown, w / 2, y);
+  ctx.fillText(shown, x, y, touch ? bw - 16 : w);
 
   // 打字光标：字没打完时在末尾闪
-  if (v.visibleChars < full.length) {
+  if (!touch && v.visibleChars < full.length) {
     const caretX = w / 2 + tw / 2 + 6;
     ctx.fillStyle = `rgba(255,120,130,${0.35 + Math.sin(g.time * 12) * 0.25})`;
     ctx.font = CARET_FONT;

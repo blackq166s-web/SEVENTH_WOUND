@@ -155,9 +155,11 @@ export class Game {
     this.vw = w;
     this.vh = h;
     this.dpr = dpr;
-    const zoom = this.input.touchMode && h > w
-      ? M.clamp(w / 480, 0.65, this.cam.defaultZoom)
-      : this.cam.defaultZoom;
+    let zoom = this.cam.defaultZoom;
+    if (this.input.touchMode) {
+      // 竖屏保留横向视野，横屏使角色比例随可用高度变化。
+      zoom = h > w ? M.clamp(w / 500, 0.62, 1) : M.clamp(h / 365, 0.70, 1);
+    }
     this.cam.setViewport(w, h, zoom);
   }
 

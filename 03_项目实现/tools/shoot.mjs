@@ -250,7 +250,7 @@ try {
     deviceScaleFactor: 3
   });
   mobile.on('pageerror', (e) => logs.push('mobile pageerror: ' + e.message));
-  const assertBattleControls = async () => {
+  const assertBattleControls = async (insets = {}) => {
     const controls = mobile.locator('#touchControls.active');
     assert.equal(await controls.locator('.stick').count(), 2);
     const pause = controls.getByRole('button', { name: '暂停', exact: true });
@@ -258,6 +258,17 @@ try {
     assert.equal(await pause.textContent(), '');
     const { width, height } = await pause.boundingBox();
     assert.ok(width >= 44 && height >= 44, '暂停图标须保留足够的触控区域');
+    for (const stick of await controls.locator('.stick').all()) {
+      const box = await stick.boundingBox();
+      assert.ok(box.width >= 64 && box.width <= 88 && Math.abs(box.width - box.height) < 1);
+    }
+    const view = mobile.viewportSize();
+    for (const id of ['#touchMove', '#touchAim', '#touchPause']) {
+      const box = await controls.locator(id).boundingBox();
+      assert.ok(box.x >= (insets.left ?? 0) && box.y >= (insets.top ?? 0));
+      assert.ok(box.x + box.width <= view.width - (insets.right ?? 0));
+      assert.ok(box.y + box.height <= view.height - (insets.bottom ?? 0));
+    }
   };
   const checkViewport = (width, height) => mobile.waitForFunction(({ width, height }) => {
     const g = window.__game;
@@ -270,7 +281,7 @@ try {
       && g.vw === width && g.vh === height && g.ui.portrait === portrait
       && canvas.width === width * g.dpr && canvas.height === height * g.dpr
       && g.cam.vw === width && g.cam.vh === height
-      && (portrait ? g.cam.vmw >= 479 : g.cam.zoom === g.cam.defaultZoom);
+      && (portrait ? g.cam.vmw >= 499 : g.cam.zoom <= 1 && g.cam.vmh >= 360);
   }, { width, height });
   await mobile.goto(URL + '?seed=touch-regression', { waitUntil: 'load' });
   await checkViewport(390, 844);
@@ -405,6 +416,40 @@ try {
   await assertBattleControls();
   console.log('MOBILE_MINIMAL_CONTROLS_AND_AUTO_RELOAD_OK');
   await assertWeaponChoices(mobile, true);
+
+  // iPhone 17 Pro / Pro Max 显示像素除以 3，另模拟工具栏占高与安全区。
+  // 固定同一战斗画面，方便比较两款尺寸和方向。
+  await mobile.evaluate(() => {
+    const g = window.__game;
+    g.update = () => {};
+    g.toast = null;
+    g.player.ammo = 7;
+    g.particles.list.length = 0;
+    g.cam.snapTo(g.player.x, g.player.y);
+  });
+  for (const [name, width, height] of [['iphone-17-pro', 402, 874], ['iphone-17-pro-max', 440, 956]]) {
+    for (const [direction, w, h, toolbar, safe] of [
+      ['portrait', width, height, 200, { top: 62, right: 0, bottom: 34, left: 0 }],
+      ['landscape', height, width, 70, { top: 0, right: 62, bottom: 21, left: 62 }]
+    ]) {
+      await mobile.evaluate(safe => {
+        for (const [edge, inset] of Object.entries(safe)) {
+          document.documentElement.style.setProperty('--safe-' + edge, inset + 'px');
+        }
+      }, safe);
+      for (const [availableHeight, suffix] of [[h, ''], [h - toolbar, '-toolbar']]) {
+        await mobile.setViewportSize({ width: w, height: availableHeight });
+        await checkViewport(w, availableHeight);
+        assert.deepEqual(await mobile.evaluate(() => {
+          const ui = window.__game.ui;
+          return { top: ui.safeTop, right: ui.safeRight, bottom: ui.safeBottom, left: ui.safeLeft };
+        }), safe);
+        await assertBattleControls(safe);
+        await mobile.screenshot({ path: shot(name + '-' + direction + suffix + '.png') });
+      }
+    }
+  }
+  console.log('IPHONE_17_PRO_AND_MAX_LAYOUT_OK');
 
   const fallback = await browser.newPage({
     viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true

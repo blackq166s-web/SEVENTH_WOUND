@@ -34,24 +34,85 @@ function bar(ctx, x, y, w, h, ratio, c1, c2, bg = 'rgba(0,0,0,0.55)') {
   ctx.stroke();
 }
 
-export function drawHud(ctx, g, w, h) {
+function clockText(t) {
+  const mm = String(Math.floor(t / 60)).padStart(2, '0');
+  const ss = String(Math.floor(t % 60)).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+function drawMobileStatus(ctx, g, w, hpRatio) {
   const p = g.player;
-  if (!p) return;
-  const touch = g.input.touchMode;
-  const compact = touch && g.ui.portrait;
-  const left = touch ? g.ui.safeLeft + 14 : 26;
-  const right = touch ? w - g.ui.safeRight - 70 : w - 26;
-  const top = touch ? g.ui.safeTop : 0;
+  const { safeTop: top, safeLeft, safeRight } = g.ui;
+  const left = safeLeft + 14;
+  const right = w - safeRight - 66;
+  const width = clamp((w - safeLeft - safeRight) * 0.31, 92, 116);
+  const low = hpRatio < 0.3;
 
-  ctx.save();
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = `800 13px ${FONT}`;
+  ctx.fillStyle = '#f4f5f8';
+  const wave = g.mode === 'quest' ? (g.questName || '') : `潮汐 ${g.wave}`;
+  ctx.fillText(wave, left, top + 19, width - 37);
+  ctx.textAlign = 'right';
+  ctx.font = `600 11px ${FONT}`;
+  ctx.fillStyle = 'rgba(235,239,247,0.72)';
+  ctx.fillText(clockText(g.time), left + width, top + 19);
 
-  // ---------- 左下：生命 + 经验 ----------
-  const bx = left, by = touch ? top + 105 : h - 74;
-  const bw = compact ? Math.min(148, Math.round(w * 0.36)) : touch ? 148 : 268;
+  bar(ctx, left, top + 31, width, 13, hpRatio, low ? '#ff3b4d' : '#b41833', low ? '#ff8a72' : '#dc3451');
+  bar(ctx, left, top + 48, width, 4, p.xp / p.xpNext, '#2fb4ff', '#7ce7ff', 'rgba(255,255,255,0.13)');
+  ctx.textAlign = 'left';
+  ctx.font = `700 10px ${FONT}`;
+  ctx.fillStyle = '#fff';
+  ctx.fillText(`${Math.ceil(p.hp)} / ${Math.round(p.maxHp)}`, left + 6, top + 37.5);
+  ctx.font = `600 11px ${FONT}`;
+  ctx.fillStyle = 'rgba(235,239,247,0.72)';
+  ctx.fillText(`Lv.${p.level}  ·  ${g.score} 分`, left, top + 63);
 
-  // 生命
-  const hpRatio = p.hp / p.maxHp;
+  ctx.font = `600 10px ${FONT}`;
+  if (p.shield > 0) {
+    ctx.fillStyle = '#b8e7ff';
+    ctx.fillText(`护盾 ${Math.ceil(p.shield)}`, left, top + 78);
+  }
+  if (p.erosion > 0) {
+    ctx.textAlign = 'right';
+    ctx.fillStyle = p.erosion >= 70 ? '#ff9c8a' : '#d5b0ef';
+    ctx.fillText(`侵蚀 ${Math.round(p.erosion)}`, left + width, top + 78);
+  }
+
+  const def = WEAPONS[p.weapon];
+  const name = def.name.split(' · ').pop() + (p.weaponLocked ? ' 🔒' : '');
+  const icon = getGunIcon(p.weapon, { bare: true });
+  ctx.textAlign = 'right';
+  ctx.font = `700 11px ${FONT}`;
+  ctx.fillStyle = def.color || '#fff';
+  const nameWidth = ctx.measureText(name).width;
+  ctx.drawImage(icon.canvas, right - nameWidth - 23, top + 10, 18, 18);
+  ctx.fillText(name, right, top + 19);
+
+  const cap = '/ ' + magSize(p.weapon, p.stats);
+  ctx.fillStyle = 'rgba(235,239,247,0.66)';
+  ctx.fillText(cap, right, top + 41);
+  const capWidth = ctx.measureText(cap).width;
+  ctx.font = `800 22px ${FONT}`;
+  ctx.fillStyle = p.reloading > 0 ? 'rgba(255,255,255,0.55)' : '#fff';
+  ctx.fillText(String(Math.ceil(p.ammo)), right - capWidth - 5, top + 39);
+
+  ctx.font = `600 10px ${FONT}`;
+  if (p.secondary) {
+    ctx.fillStyle = 'rgba(235,239,247,0.70)';
+    ctx.fillText('副 · ' + WEAPONS[p.secondary].name.split(' · ').pop(), right, top + 58);
+  }
+  if (p.reloading > 0) {
+    const y = top + (p.secondary ? 73 : 59);
+    bar(ctx, right - 44, y - 2, 44, 4, 1 - p.reloading / p.reloadTotal, '#ffd166', '#ff9f43');
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText('装填', right - 49, y);
+  }
+}
+
+function drawDesktopStatus(ctx, g, w, h, hpRatio) {
+  const p = g.player;
+  const bx = 26, by = h - 74, bw = 268;
   const low = hpRatio < 0.3;
   bar(ctx, bx, by, bw, 18, hpRatio, low ? '#ff3b4d' : '#e01b3c', low ? '#ff8a72' : '#ff5f6d');
   ctx.font = `700 12px ${FONT}`;
@@ -102,19 +163,19 @@ export function drawHud(ctx, g, w, h) {
   // ---------- 右下：武器 ----------
   const wDef = WEAPONS[p.weapon];
   const cap = magSize(p.weapon, p.stats);
-  const rx = right;
+  const rx = w - 26;
   ctx.textAlign = 'right';
 
-  ctx.font = `800 ${compact ? 12 : 15}px ${FONT}`;
+  ctx.font = `800 15px ${FONT}`;
   ctx.fillStyle = wDef.color || '#fff';
   const lockTag = p.weaponLocked ? ' 🔒' : '';
   const mainName = `${wDef.name}${lockTag}`;
   const mainW = ctx.measureText(mainName).width;
   const mainIcon = getGunIcon(p.weapon, { bare: true });   // 纯剪影：不加底板/边框
-  const icoSize = compact ? 24 : touch ? 32 : 46;
-  const iconY = touch ? top + 28 : h - 84;
-  const ammoY = touch ? top + 55 : h - 50;
-  const secondaryY = touch ? top + 80 : h - 26;
+  const icoSize = 46;
+  const iconY = h - 84;
+  const ammoY = h - 50;
+  const secondaryY = h - 26;
   ctx.drawImage(mainIcon.canvas, rx - mainW - icoSize - 3, iconY - icoSize / 2, icoSize, icoSize);
   ctx.fillText(mainName, rx, iconY);
 
@@ -130,7 +191,7 @@ export function drawHud(ctx, g, w, h) {
   if (p.secondary) {
     ctx.font = `600 11px ${FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.42)';
-    const secText = touch ? WEAPONS[p.secondary].name : `Q 切换 → ${WEAPONS[p.secondary].name}`;
+    const secText = `Q 切换 → ${WEAPONS[p.secondary].name}`;
     const secW = ctx.measureText(secText).width;
     const secIcon = getGunIcon(p.secondary, { bare: true });
     const secIco = 26;
@@ -140,51 +201,112 @@ export function drawHud(ctx, g, w, h) {
 
   if (p.reloading > 0) {
     const r = 1 - p.reloading / p.reloadTotal;
-    const barY = touch ? top + 97 : p.secondary ? h - 15 : h - 28;
-    const barWidth = compact ? 68 : 130;
-    bar(ctx, rx - barWidth, barY, barWidth, 6, r, '#ffd166', '#ff9f43', 'rgba(255,255,255,0.1)');
+    const barY = p.secondary ? h - 15 : h - 28;
+    bar(ctx, rx - 130, barY, 130, 6, r, '#ffd166', '#ff9f43', 'rgba(255,255,255,0.1)');
     ctx.font = `600 10px ${FONT}`;
     ctx.fillStyle = 'rgba(255,209,102,0.9)';
     ctx.textAlign = 'right';
-    ctx.fillText('装填中', rx - barWidth - 6, barY + 3);
+    ctx.fillText('装填中', rx - 136, barY + 3);
   }
 
   // ---------- 左上：波次 / 击杀 ----------
   ctx.textAlign = 'left';
   ctx.font = `800 13px ${FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.fillText(g.mode === 'quest' ? '层' : '潮汐', left, top + 28);
+  ctx.fillText(g.mode === 'quest' ? '层' : '潮汐', bx, 28);
 
   ctx.font = `800 26px ${FONT}`;
   ctx.fillStyle = '#fff';
-  ctx.fillText(g.mode === 'quest' ? (g.questName || '') : String(g.wave), left, top + 52);
+  ctx.fillText(g.mode === 'quest' ? (g.questName || '') : String(g.wave), bx, 52);
 
   ctx.font = `600 12px ${FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  const t = g.time;
-  const mm = String(Math.floor(t / 60)).padStart(2, '0');
-  const ss = String(Math.floor(t % 60)).padStart(2, '0');
-  ctx.fillText(`${mm}:${ss}   击杀 ${g.kills}`, left, top + 74);
+  ctx.fillText(`${clockText(g.time)}   击杀 ${g.kills}`, bx, 74);
 
   // ---------- 右上：分数 ----------
-  if (touch) {
-    ctx.font = `700 12px ${FONT}`;
-    ctx.fillStyle = '#ffd166';
-    ctx.fillText('SCORE ' + g.score, left + 42, top + (compact ? 52 : 28));
-  } else {
-    ctx.textAlign = 'right';
-    ctx.font = `700 12px ${FONT}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText('SCORE', w - 26, 26);
-    ctx.font = `800 24px ${FONT}`;
-    ctx.fillStyle = '#ffd166';
-    ctx.fillText(String(g.score), w - 26, 50);
+  ctx.textAlign = 'right';
+  ctx.font = `700 12px ${FONT}`;
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillText('SCORE', rx, 26);
+  ctx.font = `800 24px ${FONT}`;
+  ctx.fillStyle = '#ffd166';
+  ctx.fillText(String(g.score), rx, 50);
+  ctx.font = `600 11px ${FONT}`;
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillText(`${g.enemies.length} 敌人在场`, rx, 74);
+}
 
-    // ---------- 敌人计数 ----------
-    ctx.font = `600 11px ${FONT}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillText(`${g.enemies.length} 敌人在场`, w - 26, 74);
-  }
+function drawDesktopToast(ctx, tst, modeText, w, alpha) {
+  const col = TIER_COLORS_HUD[tst.tier] || TIER_COLORS_HUD[1];
+  ctx.font = `900 22px ${FONT}`;
+  const nameText = tst.name;
+  const nameW = ctx.measureText(nameText).width;
+  ctx.font = `700 11px ${FONT}`;
+  const tagW = 46;
+  const modeW = ctx.measureText(modeText).width;
+  const toastIcon = getGunIcon(tst.id, { bare: true });
+  const toastIco = 38;
+  const wBox = Math.min(w - 60, toastIco + nameW + tagW + modeW + 92);
+  const yb = 92;
+  const x0 = w / 2 - wBox / 2;
+
+  // 底板
+  ctx.fillStyle = 'rgba(8,10,12,0.82)';
+  ctx.beginPath();
+  ctx.roundRect(x0, yb - 23, wBox, 46, 9);
+  ctx.fill();
+  ctx.strokeStyle = col;
+  ctx.globalAlpha = alpha * 0.9;
+  ctx.lineWidth = 1.6;
+  ctx.shadowColor = col;
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.roundRect(x0 + 0.8, yb - 22.2, wBox - 1.6, 44.4, 9);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = alpha;
+
+  // 等级色条
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.roundRect(x0 + 1, yb - 22, 5, 44, 2.5);
+  ctx.fill();
+
+  // 「拾取」
+  ctx.textAlign = 'left';
+  ctx.font = `800 11px ${FONT}`;
+  ctx.fillStyle = col;
+  ctx.fillText('拾 取', x0 + 16, yb);
+
+  // 枪械矢量图标
+  ctx.drawImage(toastIcon.canvas, x0 + 16 + tagW, yb - toastIco / 2, toastIco, toastIco);
+
+  // 武器名
+  ctx.font = `900 22px ${FONT}`;
+  ctx.fillStyle = '#fff';
+  ctx.fillText(nameText, x0 + 18 + tagW + toastIco, yb);
+
+  // 结果
+  ctx.font = `700 12px ${FONT}`;
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillText(modeText, x0 + 16 + tagW + toastIco + nameW + 12, yb);
+}
+
+export function drawHud(ctx, g, w, h) {
+  const p = g.player;
+  if (!p) return;
+  const touch = g.input.touchMode;
+  const hpRatio = p.hp / p.maxHp;
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  if (touch) drawMobileStatus(ctx, g, w, hpRatio);
+  else drawDesktopStatus(ctx, g, w, h, hpRatio);
+
+  const safeWidth = touch ? w - g.ui.safeLeft - g.ui.safeRight : w;
+  const noticeBelowHud = touch && (g.ui.portrait || safeWidth < 520);
+  const noticeX = touch ? g.ui.safeLeft + safeWidth / 2 : w / 2;
+  const noticeY = touch ? g.ui.safeTop + (noticeBelowHud ? 102 : 27) : h * 0.24;
+  const noticeWidth = noticeBelowHud ? safeWidth - 32 : Math.min(280, safeWidth - 360);
 
   // ---------- 中央横幅（潮汐 / 层间卡 / 层主条共用这一条通道） ----------
   if (g.banner.t > 0) {
@@ -193,11 +315,11 @@ export function drawHud(ctx, g, w, h) {
     const elapsed = total - b.t;
     // 淡入 0.28s + 淡出 0.5s；不再"啪"地弹出来
     const a = Math.min(clamp(elapsed / 0.28, 0, 1), clamp(b.t / 0.5, 0, 1));
-    const cy = h * 0.24;
+    const cy = noticeY;
     ctx.globalAlpha = a;
     ctx.textAlign = 'center';
 
-    if (b.kicker) {
+    if (b.kicker && !touch) {
       ctx.font = `800 13px ${FONT}`;
       ctx.fillStyle = 'rgba(255,146,158,0.95)';
       ctx.fillText(b.kicker, w / 2, cy - 40);
@@ -213,12 +335,12 @@ export function drawHud(ctx, g, w, h) {
       ctx.stroke();
     }
 
-    ctx.font = `900 46px ${FONT}`;
+    ctx.font = `900 ${touch ? 18 : 46}px ${FONT}`;
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillText(b.text, w / 2 + 2, cy + 2);
+    ctx.fillText(b.text, noticeX + 2, cy + 2, touch ? noticeWidth : w);
     ctx.fillStyle = '#fff';
-    ctx.fillText(b.text, w / 2, cy);
-    if (b.sub) {
+    ctx.fillText(b.text, noticeX, cy, touch ? noticeWidth : w);
+    if (b.sub && !touch) {
       ctx.font = `600 14px ${FONT}`;
       ctx.fillStyle = 'rgba(255,120,130,0.95)';
       ctx.fillText(b.sub, w / 2, cy + 34);
@@ -230,66 +352,26 @@ export function drawHud(ctx, g, w, h) {
   if (g.toast) {
     const tst = g.toast;
     const a = Math.min(1, (tst.total - tst.t) / 0.14, tst.t / 0.45);
-    const col = TIER_COLORS_HUD[tst.tier] || TIER_COLORS_HUD[1];
     const modeText = tst.mode === 'secondary' ? '已放入副武器槽'
       : tst.mode === 'salvage' ? '已放弃 · 转为补给'
         : tst.mode === 'ammo' ? '弹药补满' : '已装备';
     ctx.save();
     ctx.globalAlpha = Math.max(0, a);
-    ctx.textBaseline = 'middle';
-
-    ctx.font = `900 22px ${FONT}`;
-    const nameText = tst.name;
-    const nameW = ctx.measureText(nameText).width;
-    ctx.font = `700 11px ${FONT}`;
-    const tagW = 46;
-    const modeW = ctx.measureText(modeText).width;
-    const toastIcon = getGunIcon(tst.id, { bare: true });
-    const toastIco = 38;
-    const wBox = Math.min(w - 60, toastIco + nameW + tagW + modeW + 92);
-    const yb = 92;
-    const x0 = w / 2 - wBox / 2;
-
-    // 底板
-    ctx.fillStyle = 'rgba(8,10,12,0.82)';
-    ctx.beginPath();
-    ctx.roundRect(x0, yb - 23, wBox, 46, 9);
-    ctx.fill();
-    ctx.strokeStyle = col;
-    ctx.globalAlpha = Math.max(0, a) * 0.9;
-    ctx.lineWidth = 1.6;
-    ctx.shadowColor = col;
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    ctx.roundRect(x0 + 0.8, yb - 22.2, wBox - 1.6, 44.4, 9);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = Math.max(0, a);
-
-    // 等级色条
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.roundRect(x0 + 1, yb - 22, 5, 44, 2.5);
-    ctx.fill();
-
-    // 「拾取」
-    ctx.textAlign = 'left';
-    ctx.font = `800 11px ${FONT}`;
-    ctx.fillStyle = col;
-    ctx.fillText('拾 取', x0 + 16, yb);
-
-    // 枪械矢量图标
-    ctx.drawImage(toastIcon.canvas, x0 + 16 + tagW, yb - toastIco / 2, toastIco, toastIco);
-
-    // 武器名
-    ctx.font = `900 22px ${FONT}`;
-    ctx.fillStyle = '#fff';
-    ctx.fillText(nameText, x0 + 18 + tagW + toastIco, yb);
-
-    // 结果
-    ctx.font = `700 12px ${FONT}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.fillText(modeText, x0 + 16 + tagW + toastIco + nameW + 12, yb);
+    if (touch) {
+      ctx.font = `700 12px ${FONT}`;
+      ctx.textAlign = 'center';
+      const y = noticeY + (g.banner.t > 0 ? 24 : 0);
+      const message = tst.name + ' · ' + modeText;
+      const width = Math.min(ctx.measureText(message).width + 22, noticeWidth);
+      ctx.fillStyle = 'rgba(6,7,9,0.66)';
+      ctx.beginPath();
+      ctx.roundRect(noticeX - width / 2, y - 11, width, 22, 11);
+      ctx.fill();
+      ctx.fillStyle = '#f0f2f8';
+      ctx.fillText(message, noticeX, y, width - 16);
+    } else {
+      drawDesktopToast(ctx, tst, modeText, w, Math.max(0, a));
+    }
     ctx.restore();
   }
 
@@ -330,6 +412,7 @@ export function drawHud(ctx, g, w, h) {
     ctx.save();
     ctx.translate(w / 2, h / 2);
     ctx.rotate(a);
+    if (touch) ctx.scale(0.8, 0.8);
     ctx.globalAlpha = Math.min(1, alpha);
     ctx.fillStyle = 'rgba(255,70,60,0.7)';
     ctx.beginPath();

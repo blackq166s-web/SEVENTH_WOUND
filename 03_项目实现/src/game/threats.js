@@ -21,7 +21,7 @@ export function offscreenThreats(g, w, h, max = MAX) {
   if (!p || g.state !== 'playing') return [];
 
   const touch = g.input?.touchMode;
-  const padX = touch ? 140 + Math.max(g.ui.safeLeft, g.ui.safeRight) : PAD;
+  const padX = touch ? 112 + Math.max(g.ui.safeLeft, g.ui.safeRight) : PAD;
   const padY = touch ? PAD + Math.max(g.ui.safeTop, g.ui.safeBottom) : PAD;
   const halfW = Math.max(40, w / 2 - padX);
   const halfH = Math.max(40, h / 2 - padY);
@@ -55,10 +55,10 @@ export function offscreenThreats(g, w, h, max = MAX) {
     const dist = Math.hypot(e.x - p.x, e.y - p.y);
     const y = cy + dy * t;
     let x = cx + dx * t;
-    if (touch && y < g.ui.safeTop + 164) {
+    if (touch && y < g.ui.safeTop + 86) {
       // 上半屏让出两边的生命和弹药信息。
-      const left = Math.min(w * 0.42, g.ui.safeLeft + 186);
-      const right = Math.min(w * 0.42, g.ui.safeRight + 192);
+      const left = Math.min(w * 0.42, g.ui.safeLeft + 146);
+      const right = Math.min(w * 0.42, g.ui.safeRight + 174);
       x = clamp(x, left, w - right);
     }
     out.push({
@@ -85,6 +85,7 @@ export function drawThreatIndicators(ctx, g, w, h) {
   if (!list.length) return;
 
   const pulse = 0.82 + Math.sin(g.time * 5) * 0.18;
+  const touch = g.input?.touchMode;
 
   for (const it of list) {
     ctx.save();
@@ -92,7 +93,7 @@ export function drawThreatIndicators(ctx, g, w, h) {
     ctx.rotate(it.angle);
     ctx.globalAlpha = it.alpha * (it.boss ? pulse : 1);
 
-    const s = it.boss ? 18 : 11;
+    const s = touch ? (it.boss ? 13 : 8) : (it.boss ? 18 : 11);
     ctx.beginPath();
     ctx.moveTo(s, 0);
     ctx.lineTo(-s * 0.62, s * 0.8);
@@ -103,7 +104,7 @@ export function drawThreatIndicators(ctx, g, w, h) {
     // 先描深色轮廓再填充，保证在血迹/地面上都能看清
     ctx.lineJoin = 'round';
     ctx.strokeStyle = 'rgba(12,6,8,0.85)';
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = touch ? 2.5 : 3.5;
     ctx.stroke();
     ctx.fillStyle = it.boss ? '#ff2d3f' : '#ff8a3d';
     ctx.fill();
