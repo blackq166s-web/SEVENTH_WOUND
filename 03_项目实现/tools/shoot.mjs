@@ -29,6 +29,57 @@ async function assertMenuTitle(page, wrapped) {
   }
 }
 
+async function assertWeaponChoices(page, touch = false) {
+  const openChoice = secondaryUnlocked => page.evaluate(secondaryUnlocked => {
+    const g = window.__game;
+    g.player.weapon = 'pistol';
+    g.player.weaponStacks = { pistol: 1 };
+    g.player.weaponStage2 = {};
+    g.player.secondaryUnlocked = secondaryUnlocked;
+    g.player.secondary = null;
+    g.openWeaponChoice('catechism');
+  }, secondaryUnlocked);
+  const select = selector => {
+    const item = page.locator(selector);
+    return touch ? item.tap() : item.click();
+  };
+
+  await openChoice(false);
+  const [current, next, keep, replace] = await Promise.all(
+    ['#weaponCur', '#weaponNew', '#btnSalvage', '#btnEquip'].map(selector => page.locator(selector).boundingBox())
+  );
+  const center = box => box.x + box.width / 2;
+  for (const prop of ['y', 'width', 'height']) {
+    assert.ok(Math.abs(current[prop] - next[prop]) <= 1, '两张武器卡应等宽等高且顶部对齐');
+  }
+  assert.ok(Math.abs(keep.y - replace.y) <= 1 && Math.abs(keep.width - replace.width) <= 1, '保留和替换应在同一行各占一半');
+  assert.ok(keep.x < replace.x);
+  assert.ok(Math.abs((center(keep) + center(replace)) / 2 - (center(current) + center(next)) / 2) <= 1);
+  assert.equal(await page.locator('#btnSecondary').isVisible(), false);
+  await page.screenshot({ path: shot(touch ? 'v-mobile-weapon-choice.png' : 'v-weapon-choice.png'), scale: 'css' });
+
+  for (const [selector, weapon] of [
+    ['#weaponCur', 'pistol'],
+    ['#weaponNew', 'catechism'],
+    ['#btnSalvage', 'pistol'],
+    ['#btnEquip', 'catechism']
+  ]) {
+    await openChoice(false);
+    await select(selector);
+    await page.waitForFunction(weapon => {
+      const g = window.__game;
+      return g.state === 'playing' && g.player.weapon === weapon;
+    }, weapon);
+  }
+
+  await openChoice(true);
+  await select('#btnSecondary');
+  await page.waitForFunction(() => {
+    const g = window.__game;
+    return g.state === 'playing' && g.player.weapon === 'pistol' && g.player.secondary === 'catechism';
+  });
+}
+
 const browser = await chromium.launch({
   executablePath: CHROME,
   headless: true,
@@ -51,15 +102,20 @@ for (const [width, height, wrapped] of [[1920, 1080, false], [1280, 720, false],
 await page.setViewportSize({ width: 1440, height: 900 });
 console.log('MENU_TITLE_ALIGNMENT_OK');
 
+await page.locator('#btnSurvival').click();
+await assertWeaponChoices(page);
+console.log('WEAPON_CHOICE_DESKTOP_OK');
+
 // 开局 + 机器人快进到有战斗画面的时刻
 await page.goto(URL + '?auto=survival&warm=1500&bot=1', { waitUntil: 'load' });
 await page.waitForTimeout(1200);
 
-// 若停在升级界面，先选完技能再截图
+// 机器人可能停在升级或捡枪面板，处理选择后再截图。
 for (let i = 0; i < 6; i++) {
   const st = await page.evaluate(() => window.__game.state);
-  if (st !== 'levelup') break;
-  await page.click('#perkCards .card');
+  if (st === 'levelup') await page.click('#perkCards .card');
+  else if (st === 'weaponchoice') await page.click('#btnSalvage');
+  else break;
   await page.waitForTimeout(150);
 }
 await page.screenshot({ path: shot('v-play.png') });
@@ -87,9 +143,17 @@ console.log('state:', state);
 // 升级界面
 await page.evaluate(() => {
   const g = window.__game;
+  if (g.state === 'weaponchoice') g.chooseWeapon('salvage');
+  if (g.state === 'dead') g.start('survival');
   g.gainXp(200);
 });
+await page.locator('#p-perks').waitFor();
 await page.waitForTimeout(400);
+await page.mouse.move(0, 0);
+assert.equal(await page.locator('#perkCards .key').count(), 0);
+const tagBottoms = await page.locator('#perkCards .tags').evaluateAll(tags => tags.map(tag => tag.getBoundingClientRect().bottom));
+assert.equal(tagBottoms.length, 3);
+assert.ok(Math.max(...tagBottoms) - Math.min(...tagBottoms) <= 1, '残响卡标签应底部对齐');
 await page.screenshot({ path: shot('v-perks.png') });
 
 const perkInfo = await page.evaluate(() => ({
@@ -219,6 +283,7 @@ try {
   await mobile.evaluate(() => window.__game.gainXp(30));
   await touch('touchEnd');
   await mobile.locator('#p-perks').waitFor();
+  assert.equal(await mobile.locator('#perkCards .key').count(), 0);
   assert.equal(await mobile.evaluate(() => window.__game.player.pendingLevels), 2);
   assert.equal(await mobile.evaluate(() => window.__game.input.firing), false);
   await mobile.locator('#btnReroll').tap();
@@ -274,6 +339,9 @@ try {
   await mobile.locator('#touchReload').tap();
   await mobile.waitForFunction(() => window.__game.player.reloading > 0);
   assert.equal(await mobile.evaluate(() => window.__game.player.dashCd), 0);
+  await assertWeaponChoices(mobile, true);
+  console.log('WEAPON_CHOICE_TOUCH_OK');
+  console.log('PERK_CARD_LAYOUT_OK');
   console.log('MOBILE_SHORT_VIEWPORT_OK');
   console.log('MOBILE_TOUCH_OK');
   console.log(logs.length ? '页面错误:\n' + logs.join('\n') : 'NO_PAGE_ERRORS');

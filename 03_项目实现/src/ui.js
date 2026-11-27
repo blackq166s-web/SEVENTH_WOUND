@@ -105,7 +105,6 @@ export class UI {
     this.perkCards = $('perkCards');
     this.weaponNew = $('weaponNew');
     this.weaponCur = $('weaponCur');
-    this.weaponChoiceHint = $('weaponChoiceHint');
     this.deadStats = $('deadStats');
     this.clearText = $('clearText');
     this.codexGrid = $('codexGrid');
@@ -136,9 +135,13 @@ export class UI {
     on('btnQuit', () => this.toMenu());
     on('btnNext', () => this.nextLevel());
     on('btnReroll', () => g.rerollPerks());
-    on('btnEquip', () => g.chooseWeapon('equip'));
+    const equip = () => g.chooseWeapon('equip');
+    const keep = () => g.chooseWeapon('salvage');
+    on('weaponNew', equip);
+    on('btnEquip', equip);
     on('btnSecondary', () => g.chooseWeapon('secondary'));
-    on('btnSalvage', () => g.chooseWeapon('salvage'));
+    on('weaponCur', keep);
+    on('btnSalvage', keep);
     on('btnMuteTouch', () => { g.audio.toggleMute(); this.updatePauseButtons(); });
     on('btnLockTouch', () => { g.toggleWeaponLock(g.player); this.updatePauseButtons(); });
     on('touchPause', () => g.pause());
@@ -351,9 +354,9 @@ export class UI {
       try { iconUrl = icon.canvas.toDataURL('image/png'); } catch (err) { /* 桩环境 */ }
       const card = document.createElement('button');
       card.className = 'card rar-' + rarity;
+      card.setAttribute('aria-keyshortcuts', String(i + 1));
       card.style.setProperty('--accent', perk.color);
       card.innerHTML = `
-        <span class="key">${i + 1}</span>
         ${iconUrl ? `<img class="picon" src="${iconUrl}" alt="" />` : `<span class="icon">${perk.icon}</span>`}
         <span class="name">${perk.name}</span>
         <span class="desc">${perk.desc}</span>
@@ -377,20 +380,18 @@ export class UI {
     if (rr) {
       const used = this.game.rerollUsed;
       rr.disabled = used;
-      rr.textContent = used ? '本局已重掷过' : g.input.touchMode ? '重掷 · 本局一次' : '重掷（R）· 本局一次';
+      rr.textContent = used ? '本局已重掷过' : '重掷 · 本局一次';
     }
     this.show('perks');
   }
 
   /**
    * 武器选择面板（S9-A 手动替换）：新武器 vs 当前武器，玩家明确选择。
-   * 1 装备 / 2 副武器（槽空时）/ 3 放弃。
+   * 1 替换 / 2 副武器（槽空时）/ 3 保留。
    */
   showWeaponChoice(id) {
     const g = this.game;
     const p = g.player;
-    const nw = WEAPONS[id];
-    const cw = WEAPONS[p.weapon];
 
     // 射程（S21）：子弹存活时间 × 飞行速度；激光为贯穿全屏
     const rangeOf = (w) => {
@@ -406,34 +407,28 @@ export class UI {
       return null;
     };
 
-    const card = (w, key, wid, accent) => {
+    const renderCard = (element, wid, label, action) => {
+      const w = WEAPONS[wid];
       const icon = getGunIcon(wid);
       let iconUrl = '';
       try { iconUrl = icon.canvas.toDataURL('image/png'); } catch (err) { /* 桩环境无 toDataURL，跳过图标 */ }
       const iconHtml = iconUrl ? `<img class="wicon" src="${iconUrl}" alt="" />` : '';
       const s2 = stageOf(wid);
-      return `
-      <div class="wcard" style="--accent:${accent || w.color || '#fff'}">
-        <span class="key">${key}</span>
+      element.style.setProperty('--accent', w.color || '#fff');
+      element.setAttribute('aria-label', action + w.name);
+      element.innerHTML = `
+        <span class="key">${label}</span>
         ${iconHtml}
         <span class="wname">${w.name}</span>
         <span class="wdesc">${w.desc || ''}</span>
         <span class="wstat">伤害 ${w.dmg} · 射速 ${(1 / (w.rate || 0.1)).toFixed(1)}/s · 弹匣 ${w.mag}</span>
         <span class="wstat">射程 ${rangeOf(w)}</span>
-        ${s2 ? `<span class="wstage ${s2.cls}">${s2.text}</span>` : ''}
-      </div>`;
+        ${s2 ? `<span class="wstage ${s2.cls}">${s2.text}</span>` : ''}`;
     };
 
-    const hasSecondary = p.secondaryUnlocked && !p.secondary;
-    this.weaponNew.innerHTML = card(nw, '新', id, nw.color);
-    this.weaponCur.innerHTML = card(cw, '现', p.weapon, cw.color);
-    this.weaponChoiceHint.textContent = hasSecondary
-      ? '按 1 装备 · 2 放副武器 · 3 放弃'
-      : '按 1 装备 · 3 放弃（副武器槽未解锁）';
-
-    const btnSec = $('btnSecondary');
-    if (btnSec) btnSec.style.display = hasSecondary ? '' : 'none';
-
+    renderCard(this.weaponCur, p.weapon, '当前', '保留 ');
+    renderCard(this.weaponNew, id, '新拾取', '替换为 ');
+    $('btnSecondary').hidden = !p.secondaryUnlocked || !!p.secondary;
     this.show('weapon');
   }
 
