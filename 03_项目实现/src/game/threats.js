@@ -56,9 +56,9 @@ export function offscreenThreats(g, w, h, max = MAX) {
     const y = cy + dy * t;
     let x = cx + dx * t;
     if (touch && y < g.ui.safeTop + 164) {
-      // 上半屏让出两边的生命、弹药信息和武器按钮。
+      // 上半屏让出两边的生命和弹药信息。
       const left = Math.min(w * 0.42, g.ui.safeLeft + 186);
-      const right = Math.min(w * 0.42, g.ui.safeRight + (g.ui.shortViewport ? 230 : 192));
+      const right = Math.min(w * 0.42, g.ui.safeRight + 192);
       x = clamp(x, left, w - right);
     }
     out.push({

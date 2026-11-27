@@ -106,7 +106,7 @@ export const PERKS = [
   },
   {
     id: 'alternate', name: '备用武器', icon: '副', color: '#ffd166', max: 1, line: 'steel',
-    desc: '解锁副武器槽，按 Q / 右键切换',
+    desc: '解锁副武器槽，可切换主副武器',
     apply(p) { p.secondaryUnlocked = true; }
   },
 

@@ -1,7 +1,7 @@
 import { DEATH_LINE } from './game/voice.js';
 import { synergyWith, RARITY_LABEL, PERKS } from './game/perks.js';
 import { WEAPONS, magSize, isStage2 } from './game/weapons.js';
-import { weaponStackCount } from './game/player.js';
+import { swapWeapon, weaponStackCount } from './game/player.js';
 import { ENEMY_TYPES } from './game/enemies.js';
 import { getGunIcon, getSpriteDataUrl, getPerkIcon } from './render/sprites.js';
 
@@ -85,8 +85,6 @@ export class UI {
     this.game = game;
     this.overlay = $('overlay');
     this.touchControls = $('touchControls');
-    this.touchDash = $('touchDash');
-    this.touchSwap = $('touchSwap');
     this.coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches ?? false;
     this.portrait = false;
     this.panelName = 'menu';
@@ -143,10 +141,8 @@ export class UI {
     on('btnSalvage', keep);
     on('btnMuteTouch', () => { g.audio.toggleMute(); this.updatePauseButtons(); });
     on('btnLockTouch', () => { g.toggleWeaponLock(g.player); this.updatePauseButtons(); });
+    on('btnSwapTouch', () => { swapWeapon(g, g.player); g.resume(); });
     on('touchPause', () => g.pause());
-    on('touchDash', () => g.input.press('TouchDash'));
-    on('touchReload', () => g.input.press('KeyR'));
-    on('touchSwap', () => g.input.press('KeyQ'));
 
     // 图鉴标签切换
     on('tabEnemy', () => this.showCodex('enemy'));
@@ -166,9 +162,6 @@ export class UI {
     this.safeLeft = parseFloat(style.getPropertyValue('--safe-left')) || 0;
     this.safeRight = parseFloat(style.getPropertyValue('--safe-right')) || 0;
     this.safeBottom = parseFloat(style.getPropertyValue('--safe-bottom')) || 0;
-    // 浏览器工具栏会改变可用高度，即使页面仍然是横屏。
-    this.shortViewport = height - this.safeTop - this.safeBottom <= 330;
-    document.body.classList.toggle('short-viewport', this.shortViewport);
     const portrait = height > width;
     if (this.portrait === portrait) return;
     this.portrait = portrait;
@@ -187,19 +180,7 @@ export class UI {
 
   releaseTouch() {
     for (const release of this.releaseSticks) release();
-    this.game.input.pressed.delete('TouchDash');
     if (this.game.input.touchMode) this.game.input.clear();
-  }
-
-  updateTouchHud() {
-    const { player, state, input } = this.game;
-    if (!input.touchMode || state !== 'playing') return;
-    this.touchSwap.classList.toggle('unavailable', !player.secondary);
-    const cooldown = Math.ceil(player.dashCd * 10) / 10;
-    if (cooldown === this.dashCooldown) return;
-    this.dashCooldown = cooldown;
-    this.touchDash.textContent = cooldown ? '冲刺 ' + cooldown.toFixed(1) : '冲刺';
-    this.touchDash.classList.toggle('cooldown', cooldown > 0);
   }
 
   toMenu() {
@@ -457,6 +438,7 @@ export class UI {
     const locked = !!this.game.player?.weaponLocked;
     const mute = $('btnMuteTouch');
     const lock = $('btnLockTouch');
+    $('btnSwapTouch').hidden = !this.game.player?.secondary;
     mute.textContent = muted ? '取消静音' : '静音';
     mute.setAttribute('aria-pressed', String(muted));
     lock.textContent = locked ? '解锁武器' : '锁定武器';

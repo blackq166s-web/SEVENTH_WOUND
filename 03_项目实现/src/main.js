@@ -81,7 +81,6 @@ function frame(now) {
     acc -= STEP;
   }
 
-  game.ui.updateTouchHud();
   game.render();
   requestAnimationFrame(frame);
 }

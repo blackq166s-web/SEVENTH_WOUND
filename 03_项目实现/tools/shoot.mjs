@@ -250,6 +250,15 @@ try {
     deviceScaleFactor: 3
   });
   mobile.on('pageerror', (e) => logs.push('mobile pageerror: ' + e.message));
+  const assertBattleControls = async () => {
+    const controls = mobile.locator('#touchControls.active');
+    assert.equal(await controls.locator('.stick').count(), 2);
+    const pause = controls.getByRole('button', { name: '暂停', exact: true });
+    assert.equal(await controls.locator('button').count(), 1);
+    assert.equal(await pause.textContent(), '');
+    const { width, height } = await pause.boundingBox();
+    assert.ok(width >= 44 && height >= 44, '暂停图标须保留足够的触控区域');
+  };
   const checkViewport = (width, height) => mobile.waitForFunction(({ width, height }) => {
     const g = window.__game;
     const canvas = g.canvas;
@@ -270,6 +279,7 @@ try {
   await mobile.screenshot({ path: shot('v-mobile-menu.png'), scale: 'css' });
   await mobile.locator('#btnSurvival').tap();
   await mobile.locator('#touchControls.active').waitFor();
+  await assertBattleControls();
   await mobile.waitForFunction(() => document.fullscreenElement === document.documentElement);
   await checkViewport(390, 844);
   console.log('MOBILE_FULLSCREEN_OK');
@@ -348,6 +358,7 @@ try {
 
   await mobile.locator('#touchPause').tap();
   await mobile.locator('#p-pause').waitFor();
+  assert.equal(await mobile.locator('#btnSwapTouch').isVisible(), false);
   await mobile.locator('#btnResume').tap();
   assert.equal(await mobile.evaluate(() => window.__game.state), 'playing');
   assert.equal(await mobile.evaluate(() => window.__game.input.firing), false);
@@ -358,30 +369,41 @@ try {
   await mobile.locator('#touchControls.active').waitFor();
   console.log('MOBILE_PORTRAIT_AND_ROTATION_OK');
 
-  // 矮视口模拟浏览器工具栏占用空间，危险按钮不能覆盖装填或换枪。
+  // 矮横屏也只有双摇杆和暂停图标，即使已装备副武器。
   await mobile.setViewportSize({ width: 667, height: 265 });
   await checkViewport(667, 265);
-  await mobile.evaluate(() => {
-    const p = window.__game.player;
+  const lastRound = await mobile.evaluate(() => {
+    const g = window.__game;
+    const p = g.player;
+    p.secondaryUnlocked = true;
     p.secondary = 'rifle';
     p.secondaryAmmo = 30;
-    p.ammo = 4;
+    p.ammo = 1;
+    return g.stats.shots;
   });
-  await mobile.locator('#touchSwap').waitFor();
-  const buttons = ['#touchReload', '#touchSwap', '#touchDash'];
-  const rects = await Promise.all(buttons.map(id => mobile.locator(id).boundingBox()));
-  for (const [index, a] of rects.entries()) {
-    assert.ok(a.width >= 44 && a.height >= 44);
-    for (const b of rects.slice(index + 1)) {
-      const overlaps = a.x < b.x + b.width && b.x < a.x + a.width
-        && a.y < b.y + b.height && b.y < a.y + a.height;
-      assert.equal(overlaps, false);
-    }
-  }
+  await assertBattleControls();
   await mobile.screenshot({ path: shot('v-mobile-short.png'), scale: 'css' });
-  await mobile.locator('#touchReload').tap();
-  await mobile.waitForFunction(() => window.__game.player.reloading > 0);
+  const aim = await center('#touchAim', 2);
+  await touch('touchStart', [aim]);
+  await touch('touchMove', [{ ...aim, x: aim.x - 30 }]);
+  await mobile.waitForFunction(shots => {
+    const g = window.__game;
+    return g.stats.shots > shots && g.player.ammo === 0 && g.player.reloading > 0;
+  }, lastRound);
+  await touch('touchEnd');
+  await mobile.waitForFunction(() => {
+    const p = window.__game.player;
+    return p.reloading === 0 && p.ammo === 12;
+  });
   assert.equal(await mobile.evaluate(() => window.__game.player.dashCd), 0);
+  await mobile.locator('#touchPause').tap();
+  await mobile.locator('#btnSwapTouch').tap();
+  assert.deepEqual(await mobile.evaluate(() => {
+    const g = window.__game;
+    return [g.state, g.player.weapon, g.player.secondary];
+  }), ['playing', 'rifle', 'pistol']);
+  await assertBattleControls();
+  console.log('MOBILE_MINIMAL_CONTROLS_AND_AUTO_RELOAD_OK');
   await assertWeaponChoices(mobile, true);
 
   const fallback = await browser.newPage({

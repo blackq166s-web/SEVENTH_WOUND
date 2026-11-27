@@ -177,7 +177,7 @@ export function updatePlayer(g, p, dt) {
   if (p.boostT > 0) p.boostT = Math.max(0, p.boostT - dt);
 
   // ---- 冲刺（S1-D2）：Shift 触发，0.18s 位移 + 0.12s 无敌帧 + 1.2s 冷却 ----
-  const dashKey = input.tap('TouchDash') || input.isDown('ShiftLeft') || input.isDown('ShiftRight');
+  const dashKey = input.isDown('ShiftLeft') || input.isDown('ShiftRight');
   if (p.dashCd > 0) p.dashCd = Math.max(0, p.dashCd - dt);
   if (p.dashInv > 0) p.dashInv = Math.max(0, p.dashInv - dt);
 

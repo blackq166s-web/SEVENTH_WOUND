@@ -731,15 +731,14 @@
   #touchControls.active { opacity: 1; }
   .touch-layout #game { touch-action: none; }
 
-  .stick, .touch-button {
+  .stick, #touchPause {
     position: absolute;
     touch-action: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
-    border: 1px solid rgba(219, 232, 245, 0.34);
   }
 
-  #touchControls.active .stick, #touchControls.active .touch-button { pointer-events: auto; }
+  #touchControls.active .stick, #touchControls.active #touchPause { pointer-events: auto; }
 
   .stick {
     bottom: var(--bottom);
@@ -747,6 +746,7 @@
     place-items: center;
     width: var(--stick-size);
     height: var(--stick-size);
+    border: 1px solid rgba(219, 232, 245, 0.34);
     border-radius: 50%;
     background: rgba(9, 17, 24, 0.45);
   }
@@ -763,42 +763,33 @@
   #touchMove { left: var(--left); }
   #touchAim { right: var(--right); }
 
-  .touch-button {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0 10px;
-    border-radius: 10px;
-    background: rgba(11, 18, 28, 0.82);
-    color: #f0f6ff;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .touch-button:active { background: #293e54; }
-  .touch-button.unavailable { visibility: hidden; }
-  #touchPause { top: calc(var(--safe-top) + 12px); right: var(--right); }
-  #touchReload { top: calc(var(--safe-top) + 108px); right: var(--right); }
-  #touchSwap { top: calc(var(--safe-top) + 108px); right: calc(var(--right) + 56px); }
-  .short-viewport #touchReload { right: calc(var(--right) + 92px); }
-  .short-viewport #touchSwap { right: calc(var(--right) + 148px); }
-  .portrait-view #touchReload, .portrait-view #touchSwap {
-    top: auto;
-    bottom: calc(var(--bottom) + var(--stick-size) + 64px);
-  }
-  .portrait-view #touchReload { right: var(--right); }
-  .portrait-view #touchSwap { right: calc(var(--right) + 56px); }
-  #touchDash {
+  #touchPause {
+    top: calc(var(--safe-top) + 6px);
     right: var(--right);
-    bottom: calc(var(--bottom) + var(--stick-size) + 10px);
-    width: 76px;
-    border-color: rgba(124, 231, 255, 0.6);
-    color: #bbedfb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(235, 241, 250, 0.7);
   }
 
-  #touchDash.cooldown { opacity: 0.64; }
+  #touchPause::before, #touchPause::after {
+    content: "";
+    width: 3px;
+    height: 12px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+
+  #touchPause:active { color: #fff; }
   .touch-only { display: none; }
-  .touch-layout .touch-only { display: revert; }
+  .touch-layout .touch-only:not([hidden]) { display: revert; }
   .touch-layout .desktop-only { display: none; }
   .touch-layout.portrait-view .logo { flex-direction: column; align-items: center; }
   .touch-layout .btn { min-height: 44px; transition: none; }
@@ -833,10 +824,7 @@
 <div id="touchControls" inert>
   <div id="touchMove" class="stick" aria-hidden="true"><span></span></div>
   <div id="touchAim" class="stick" aria-hidden="true"><span></span></div>
-  <button id="touchPause" class="touch-button" type="button">暂停</button>
-  <button id="touchReload" class="touch-button" type="button">装填</button>
-  <button id="touchSwap" class="touch-button unavailable" type="button">换枪</button>
-  <button id="touchDash" class="touch-button" type="button">冲刺</button>
+  <button id="touchPause" type="button" aria-label="暂停"></button>
 </div>
 
 <div id="overlay" class="on">
@@ -853,7 +841,7 @@
       R 手动装填 · Q 切换副武器 · L 锁定武器 · ESC 暂停 · M 静音
     </p>
     <p class="hint touch-only">左摇杆移动 · 右摇杆瞄准射击</p>
-    <p class="hint ver" id="verLine">v0.6.1</p>
+    <p class="hint ver" id="verLine">v0.6.2</p>
   </section>
 
   <section class="panel hidden" id="p-perks">
@@ -892,6 +880,7 @@
       <button id="btnResume" class="btn primary">继续</button>
       <button id="btnMuteTouch" class="btn touch-only" aria-pressed="false">静音</button>
       <button id="btnLockTouch" class="btn touch-only" aria-pressed="false">锁定武器</button>
+      <button id="btnSwapTouch" class="btn ghost touch-only" hidden>换枪并继续</button>
       <button id="btnQuit" class="btn ghost">放弃本局</button>
     </div>
   </section>

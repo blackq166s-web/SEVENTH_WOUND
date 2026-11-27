@@ -44,7 +44,6 @@ export class Input {
 
   isDown(code) { return this.keys.has(code); }
   wasPressed(code) { return this.pressed.has(code); }
-  press(code) { this.pressed.add(code); }
 
   get firing() { return this.touchMode ? this.touchFiring : this.mouse.down; }
 
