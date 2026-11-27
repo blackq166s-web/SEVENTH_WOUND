@@ -12,6 +12,23 @@ const URL = process.env.GAME_URL || 'http://127.0.0.1:8124/';
 const SHOTS = join(dirname(fileURLToPath(import.meta.url)), '..', 'shots');
 const shot = (name) => join(SHOTS, name);
 
+async function assertMenuTitle(page, wrapped) {
+  const layout = await page.evaluate(() => {
+    const words = Array.from(document.querySelectorAll('#p-menu .logo span'), word => word.getBoundingClientRect());
+    const buttons = document.querySelector('#p-menu .btns').getBoundingClientRect();
+    const wrapped = words[0].top !== words[1].top;
+    const centers = wrapped
+      ? words.map(word => word.x + word.width / 2)
+      : [(words[0].left + words[1].right) / 2];
+    return { wrapped, centers, buttonCenter: buttons.x + buttons.width / 2, pageCenter: innerWidth / 2 };
+  });
+  assert.equal(layout.wrapped, wrapped);
+  assert.ok(Math.abs(layout.buttonCenter - layout.pageCenter) <= 1, '主菜单按钮应居中');
+  for (const center of layout.centers) {
+    assert.ok(Math.abs(center - layout.buttonCenter) <= 1, '标题每行应与主菜单按钮同轴');
+  }
+}
+
 const browser = await chromium.launch({
   executablePath: CHROME,
   headless: true,
@@ -26,6 +43,13 @@ page.on('pageerror', (e) => logs.push('pageerror: ' + e.message));
 await page.goto(URL, { waitUntil: 'load' });
 await page.waitForTimeout(600);
 await page.screenshot({ path: shot('v-menu.png') });
+for (const [width, height, wrapped] of [[1920, 1080, false], [1280, 720, false], [320, 640, true]]) {
+  await page.setViewportSize({ width, height });
+  await assertMenuTitle(page, wrapped);
+  if (width !== 1920) await page.screenshot({ path: shot('v-title-' + width + '.png') });
+}
+await page.setViewportSize({ width: 1440, height: 900 });
+console.log('MENU_TITLE_ALIGNMENT_OK');
 
 // 开局 + 机器人快进到有战斗画面的时刻
 await page.goto(URL + '?auto=survival&warm=1500&bot=1', { waitUntil: 'load' });
@@ -165,6 +189,7 @@ try {
   await mobile.goto(URL + '?seed=touch-regression', { waitUntil: 'load' });
   await mobile.locator('#p-menu .rotate-hint').waitFor();
   assert.equal(await mobile.locator('#btnSurvival').isDisabled(), true);
+  await assertMenuTitle(mobile, true);
   await mobile.screenshot({ path: shot('v-mobile-menu.png'), scale: 'css' });
   await mobile.setViewportSize({ width: 667, height: 375 });
   await mobile.locator('#btnSurvival').tap();

@@ -83,26 +83,31 @@
   .panel.hidden { display: none; }
 
   /* ---------------- 标题 ---------------- */
+  #p-menu { scrollbar-gutter: stable both-edges; }
+
   .logo {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.08em 0.18em;
+    max-width: 100%;
     margin: 0;
-    font-size: clamp(38px, 7vw, 76px);
+    font-size: clamp(32px, 6vw, 72px);
     font-weight: 900;
     letter-spacing: 0.1em;
     line-height: 1;
+    filter: drop-shadow(0 4px 14px rgba(224, 27, 60, 0.25));
+  }
+
+  .logo span {
     background: linear-gradient(180deg, #fff 10%, #ff5d6e 55%, #8f0d1f 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 60px rgba(224, 27, 60, 0.35);
   }
 
-  .logo span {
-    display: inline-block;
-    margin-left: 0.18em;
-    background: linear-gradient(180deg, #dfe8f2 10%, #7f93a8 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  .logo span + span {
+    background-image: linear-gradient(180deg, #dfe8f2 10%, #7f93a8 100%);
   }
 
   .tagline {
@@ -765,8 +770,7 @@
   .touch-layout .touch-only { display: revert; }
   .touch-layout .desktop-only { display: none; }
   .touch-layout.portrait-view .rotate-hint { display: block; }
-  .touch-layout.portrait-view .logo { text-align: center; }
-  .touch-layout.portrait-view .logo span { display: block; margin-left: 0; }
+  .touch-layout.portrait-view .logo { flex-direction: column; align-items: center; }
   .touch-layout .btn { min-height: 44px; transition: none; }
   .touch-layout .codex-tab { min-height: 44px; }
   .touch-layout .btn, .touch-layout .card, .touch-layout .codex-tab { touch-action: manipulation; }
@@ -810,7 +814,7 @@
 
 <div id="overlay" class="on">
   <section class="panel" id="p-menu">
-    <h1 class="logo">SEVENTH<span>WOUND</span></h1>
+    <h1 class="logo"><span>SEVENTH</span> <span>WOUND</span></h1>
     <p class="tagline">地渊之下 · 无尽潮汐</p>
     <div class="best">最深残留<b id="bestScore">0</b></div>
     <p class="rotate-hint">请横屏游玩</p>
