@@ -1,14 +1,15 @@
 # STAGE — 当前阶段
 
-最后更新：2026-11-28（手机真机反馈）
-当前游戏版本：本地 **v0.6.4**。公开 [GitHub Release](https://github.com/blackq166s-web/SEVENTH_WOUND/releases/tag/v0.6.3) 为 v0.6.3。
+最后更新：2026-11-28（GitHub 发布 v0.6.4）
+当前游戏版本：**v0.6.4**。[手机试玩](https://blackq166s-web.github.io/SEVENTH_WOUND/SEVENTH-WOUND-0.6.4.html) · [GitHub Release](https://github.com/blackq166s-web/SEVENTH_WOUND/releases/tag/v0.6.4)
 
 ## 当前工作 · 手机地面、边缘提示与浮动摇杆
 
 - 目标和完成标准。手机竞技场移除方格，屏外敌人提示随方位沿安全区边缘移动，屏内不加箭头。选卡后从任意可操作触点恢复移动和射击。
 - 进展。去掉手机竞技场的砖缝与半透明网格。威胁提示逐帧投射到可视边缘，过密时保留较近的标记。双摇杆在左右半区按住出现，滑动操作，松手收起。
 - 验证。Chrome 源码和 Edge 单文件包均通过 `MOBILE_FLOATING_STICKS_AND_PANEL_RECOVERY_OK`、`IPHONE_17_PRO_AND_MAX_LAYOUT_OK` 与 `NO_PAGE_ERRORS`。四边投射、沿边移动及屏内撤除通过冒烟。目检同场景手机前后截图。
-- 下一步。用本地部署入口 `_site/index.html` 更新测试站点后，在 iPhone 17 Pro 和 Pro Max 的 Chrome、Edge 复测摇杆手感、选卡和密集波次箭头。手感与性能按[开发计划](03_项目实现/docs/PLAN_MOBILE.md)推进。
+- 发布。标签 `v0.6.4` 对应 `6bd8bcd`。CI 与 GitHub Pages 部署通过。Pages 首页、带版本号的试玩页和 Release 附件均与本地包字节一致。
+- 下一步。在 iPhone 17 Pro 和 Pro Max 的 Chrome、Edge 打开 v0.6.4 试玩页，复测摇杆手感、选卡和密集波次箭头。手感与性能按[开发计划](03_项目实现/docs/PLAN_MOBILE.md)推进。
 
 ## 0. 阶段总览
 
