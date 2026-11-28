@@ -3,6 +3,7 @@
 import { clamp } from '../core/math.js';
 
 const PAD = 26;      // 指示器距屏幕边缘的内缩
+const TOUCH_PAD = 20; // 还要容下首领箭头的描边和光环
 const MAX = 8;       // 同屏最多显示数量
 const FADE_FAR = 2200; // 超过这个距离完全淡出（仍保留最小可见度）
 
@@ -21,14 +22,14 @@ export function offscreenThreats(g, w, h, max = MAX) {
   if (!p || g.state !== 'playing') return [];
 
   const touch = g.input?.touchMode;
-  const padX = touch ? 112 + Math.max(g.ui.safeLeft, g.ui.safeRight) : PAD;
-  const padY = touch ? PAD + Math.max(g.ui.safeTop, g.ui.safeBottom) : PAD;
-  const halfW = Math.max(40, w / 2 - padX);
-  const halfH = Math.max(40, h / 2 - padY);
-  const cx = w / 2;
-  const cy = h / 2;
+  const left = touch ? g.ui.safeLeft + TOUCH_PAD : PAD;
+  const right = w - (touch ? g.ui.safeRight + TOUCH_PAD : PAD);
+  const top = touch ? g.ui.safeTop + TOUCH_PAD : PAD;
+  const bottom = h - (touch ? g.ui.safeBottom + TOUCH_PAD : PAD);
   const px = (p.x - cam.x) * cam.zoom + cam.ox;
   const py = (p.y - cam.y) * cam.zoom + cam.oy;
+  const originX = touch ? clamp(px, left, right) : w / 2;
+  const originY = touch ? clamp(py, top, bottom) : h / 2;
   const out = [];
 
   for (const e of g.enemies) {
@@ -40,26 +41,27 @@ export function offscreenThreats(g, w, h, max = MAX) {
     // 已在视野内（含少量边距）就不用提示
     if (sx > -8 && sx < w + 8 && sy > -8 && sy < h + 8) continue;
 
-    let dx = sx - px;
-    let dy = sy - py;
-    const len = Math.hypot(dx, dy);
-    if (len < 1e-6) continue;
-    dx /= len;
-    dy /= len;
+    const dx = sx - px;
+    const dy = sy - py;
+    if (!dx && !dy) continue;
 
-    // 沿方向投射到内缩矩形边界
-    const tx = Math.abs(dx) > 1e-6 ? halfW / Math.abs(dx) : Infinity;
-    const ty = Math.abs(dy) > 1e-6 ? halfH / Math.abs(dy) : Infinity;
+    // 找朝向敌人的射线与安全区边框的首个交点。
+    const tx = dx ? ((dx > 0 ? right : left) - originX) / dx : Infinity;
+    const ty = dy ? ((dy > 0 ? bottom : top) - originY) / dy : Infinity;
     const t = Math.min(tx, ty);
 
     const dist = Math.hypot(e.x - p.x, e.y - p.y);
-    const y = cy + dy * t;
-    let x = cx + dx * t;
-    if (touch && y < g.ui.safeTop + 86) {
-      // 上半屏让出两边的生命和弹药信息。
-      const left = Math.min(w * 0.42, g.ui.safeLeft + 146);
-      const right = Math.min(w * 0.42, g.ui.safeRight + 174);
-      x = clamp(x, left, w - right);
+    let x = originX + dx * t;
+    let y = originY + dy * t;
+    if (touch && tx <= ty) {
+      // 侧边保留原有 x 坐标，沿边向下让出顶部 HUD。
+      y = Math.max(y, Math.min(bottom, g.ui.safeTop + 86));
+    } else if (touch && dy < 0) {
+      const safeWidth = right - left + TOUCH_PAD * 2;
+      const leftHud = Math.min(safeWidth / 2, 146);
+      const minX = g.ui.safeLeft + leftHud;
+      const maxX = w - g.ui.safeRight - Math.min(safeWidth - leftHud, 174);
+      x = clamp(x, minX, maxX);
     }
     out.push({
       x,
@@ -73,7 +75,14 @@ export function offscreenThreats(g, w, h, max = MAX) {
 
   // 近的优先：先按距离排序再截断
   out.sort((a, b) => a.dist - b.dist);
-  return out.slice(0, Math.max(0, max));
+  if (!touch) return out.slice(0, Math.max(0, max));
+
+  const spaced = [];
+  for (const item of out) {
+    if (spaced.length >= max) break;
+    if (!spaced.some(other => Math.hypot(item.x - other.x, item.y - other.y) < 24)) spaced.push(item);
+  }
+  return spaced;
 }
 
 /**

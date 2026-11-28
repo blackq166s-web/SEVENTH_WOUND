@@ -259,11 +259,12 @@ try {
     const { width, height } = await pause.boundingBox();
     assert.ok(width >= 44 && height >= 44, '暂停图标须保留足够的触控区域');
     for (const stick of await controls.locator('.stick').all()) {
-      const box = await stick.boundingBox();
-      assert.ok(box.width >= 64 && box.width <= 88 && Math.abs(box.width - box.height) < 1);
+      assert.equal(await stick.isHidden(), true);
+      const size = await stick.evaluate(el => [el.offsetWidth, el.offsetHeight]);
+      assert.ok(size[0] >= 64 && size[0] <= 88 && size[0] === size[1]);
     }
     const view = mobile.viewportSize();
-    for (const id of ['#touchMove', '#touchAim', '#touchPause']) {
+    for (const id of ['#touchMoveZone', '#touchAimZone', '#touchPause']) {
       const box = await controls.locator(id).boundingBox();
       assert.ok(box.x >= (insets.left ?? 0) && box.y >= (insets.top ?? 0));
       assert.ok(box.x + box.width <= view.width - (insets.right ?? 0));
@@ -301,16 +302,21 @@ try {
   await checkViewport(390, 844);
   const cdp = await mobile.context().newCDPSession(mobile);
   const touch = (type, touchPoints = []) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
-  const center = async (selector, id) => {
+  const pointIn = async (selector, id, x = 0.5, y = 0.5) => {
     const box = await mobile.locator(selector).boundingBox();
-    return { id, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    return { id, x: box.x + box.width * x, y: box.y + box.height * y };
   };
   const useSticks = async () => {
-    const left = await center('#touchMove', 1);
-    const right = await center('#touchAim', 2);
+    const left = await pointIn('#touchMoveZone', 1, 0.56, 0.57);
+    const right = await pointIn('#touchAimZone', 2, 0.44, 0.61);
     const moved = { ...left, x: left.x + 40 };
     const aimed = { ...right, x: right.x - 40 };
     await touch('touchStart', [left, right]);
+    for (const [selector, at] of [['#touchMove', left], ['#touchAim', right]]) {
+      const center = await pointIn(selector, at.id);
+      assert.ok(Math.hypot(center.x - at.x, center.y - at.y) <= 1);
+    }
+    assert.equal(await mobile.evaluate(() => window.__game.input.firing), false);
     await touch('touchMove', [moved, aimed]);
     await mobile.waitForFunction(() => {
       const g = window.__game;
@@ -333,6 +339,8 @@ try {
   await mobile.screenshot({ path: shot('v-mobile-combat.png'), scale: 'css' });
   await touch('touchEnd', [moved]);
   assert.equal(await mobile.evaluate(() => window.__game.input.firing), true);
+  assert.equal(await mobile.locator('#touchMove').isHidden(), true);
+  assert.equal(await mobile.locator('#touchAim').isVisible(), true);
 
   // 按着射击时出现两次升级，旧触点不能选卡，一次新点按只选一张。
   await touch('touchMove', [{ ...aimed, x: aimed.x - 200, y: aimed.y - 110 }]);
@@ -367,6 +375,17 @@ try {
   assert.deepEqual(afterPick, { pending: 1, changed: false, animation: 'none' });
   await mobile.locator('#perkCards .card').first().tap();
 
+  const beforeFreshTouch = await mobile.evaluate(() => {
+    const g = window.__game;
+    return [g.state, g.input.firing, g.input.touchMove.x, g.input.touchMove.y];
+  });
+  assert.deepEqual(beforeFreshTouch, ['playing', false, 0, 0]);
+  await assertBattleControls();
+  await useSticks();
+  await touch('touchEnd');
+  await assertBattleControls();
+  console.log('MOBILE_FLOATING_STICKS_AND_PANEL_RECOVERY_OK');
+
   await mobile.locator('#touchPause').tap();
   await mobile.locator('#p-pause').waitFor();
   assert.equal(await mobile.locator('#btnSwapTouch').isVisible(), false);
@@ -394,7 +413,7 @@ try {
   });
   await assertBattleControls();
   await mobile.screenshot({ path: shot('v-mobile-short.png'), scale: 'css' });
-  const aim = await center('#touchAim', 2);
+  const aim = await pointIn('#touchAimZone', 2, 0.47, 0.68);
   await touch('touchStart', [aim]);
   await touch('touchMove', [{ ...aim, x: aim.x - 30 }]);
   await mobile.waitForFunction(shots => {

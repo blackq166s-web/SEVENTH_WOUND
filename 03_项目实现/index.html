@@ -720,9 +720,7 @@
   /* 触控层只让实际控件接收手势，面板仍可滚动。 */
   #touchControls {
     --stick-size: clamp(64px, min(calc(var(--view-height) / 4.5), 22vw), 88px);
-    --left: calc(var(--safe-left) + 14px);
     --right: calc(var(--safe-right) + 14px);
-    --bottom: calc(var(--safe-bottom) + 14px);
     z-index: 10;
     pointer-events: none;
     opacity: 0;
@@ -731,25 +729,40 @@
   #touchControls.active { opacity: 1; }
   .touch-layout #game { touch-action: none; }
 
-  .stick, #touchPause {
+  .stick-zone, #touchPause {
     position: absolute;
     touch-action: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
 
-  #touchControls.active .stick, #touchControls.active #touchPause { pointer-events: auto; }
+  #touchControls.active .stick-zone, #touchControls.active #touchPause { pointer-events: auto; }
+
+  .stick-zone {
+    top: calc(var(--safe-top) + 84px);
+    bottom: var(--safe-bottom);
+  }
+
+  #touchMoveZone { left: var(--safe-left); right: 50%; }
+  #touchAimZone { left: 50%; right: var(--safe-right); }
 
   .stick {
-    bottom: var(--bottom);
+    position: absolute;
+    top: 0;
+    left: 0;
     display: grid;
     place-items: center;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
     width: var(--stick-size);
     height: var(--stick-size);
     border: 1px solid rgba(219, 232, 245, 0.30);
     border-radius: 50%;
     background: rgba(9, 17, 24, 0.34);
   }
+
+  .stick.engaged { visibility: visible; }
 
   .stick span {
     width: 34%;
@@ -759,9 +772,6 @@
     background: rgba(171, 212, 233, 0.36);
     pointer-events: none;
   }
-
-  #touchMove { left: var(--left); }
-  #touchAim { right: var(--right); }
 
   #touchPause {
     top: calc(var(--safe-top) + 6px);
@@ -824,8 +834,8 @@
 <canvas id="game"></canvas>
 
 <div id="touchControls" inert>
-  <div id="touchMove" class="stick" aria-hidden="true"><span></span></div>
-  <div id="touchAim" class="stick" aria-hidden="true"><span></span></div>
+  <div id="touchMoveZone" class="stick-zone" aria-hidden="true"><div id="touchMove" class="stick"><span></span></div></div>
+  <div id="touchAimZone" class="stick-zone" aria-hidden="true"><div id="touchAim" class="stick"><span></span></div></div>
   <button id="touchPause" type="button" aria-label="暂停"></button>
 </div>
 
@@ -842,8 +852,8 @@
       WASD 移动 · Shift 冲刺 · 鼠标瞄准 · 按住左键射击<br />
       R 手动装填 · Q 切换副武器 · L 锁定武器 · ESC 暂停 · M 静音
     </p>
-    <p class="hint touch-only">左摇杆移动 · 右摇杆瞄准射击</p>
-    <p class="hint ver" id="verLine">v0.6.3</p>
+    <p class="hint touch-only">左半屏滑动移动 · 右半屏滑动瞄准射击</p>
+    <p class="hint ver" id="verLine">v0.6.4</p>
   </section>
 
   <section class="panel hidden" id="p-perks">

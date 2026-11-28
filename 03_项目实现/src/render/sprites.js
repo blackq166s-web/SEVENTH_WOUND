@@ -1968,8 +1968,8 @@ function groundCrystal(ctx, S, g) {
   }
 }
 
-/** 砖缝：128px 分块 + 铆钉 + 血渍（六层 / 竞技场） */
-function groundPlate(ctx, S, g) {
+/** 砖缝、分块和铆钉。触屏版使用没有接缝的材质。 */
+function groundPlateSeams(ctx, S, g) {
   const T = S / 4;
   ctx.strokeStyle = 'rgba(0,0,0,0.55)';
   ctx.lineWidth = 3;
@@ -2004,6 +2004,10 @@ function groundPlate(ctx, S, g) {
       ctx.fill();
     }
   }
+}
+
+function groundPlate(ctx, S, g, seamless = false) {
+  if (!seamless) groundPlateSeams(ctx, S, g);
   for (let i = 0; i < 9; i++) {
     softBlob(ctx, S, fxRandom() * S, fxRandom() * S, S * (0.05 + fxRandom() * 0.13), g.accent);
   }
@@ -2054,8 +2058,8 @@ function groundGrain(ctx, S, g) {
 /**
  * 某层的主地面瓦片（512px，repeat）。同 palette 只生成一次。
  */
-export function makeGroundTile(pal = LAYER_PALETTES[0] || ARENA_PALETTE) {
-  const key = `tile:${pal.id || 'default'}`;
+export function makeGroundTile(pal = LAYER_PALETTES[0] || ARENA_PALETTE, seamless = false) {
+  const key = `tile:${pal.id || 'default'}:${seamless}`;
   if (GROUND_CACHE.has(key)) return GROUND_CACHE.get(key);
 
   const S = GROUND_S;
@@ -2069,7 +2073,7 @@ export function makeGroundTile(pal = LAYER_PALETTES[0] || ARENA_PALETTE) {
   else if (pal.style === 'web') groundWeb(ctx, S, g);
   else if (pal.style === 'acid') groundAcid(ctx, S, g);
   else if (pal.style === 'crystal') groundCrystal(ctx, S, g);
-  else groundPlate(ctx, S, g);
+  else groundPlate(ctx, S, g, seamless);
 
   groundGrain(ctx, S, g);
 

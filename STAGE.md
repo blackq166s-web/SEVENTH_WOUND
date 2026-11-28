@@ -1,15 +1,14 @@
 # STAGE — 当前阶段
 
-最后更新：2026-11-27（GitHub 发布 v0.6.3）
-当前游戏版本：**v0.6.3**。[在线试玩](https://blackq166s-web.github.io/SEVENTH_WOUND/) · [GitHub Release](https://github.com/blackq166s-web/SEVENTH_WOUND/releases/tag/v0.6.3)
+最后更新：2026-11-28（手机真机反馈）
+当前游戏版本：本地 **v0.6.4**。公开 [GitHub Release](https://github.com/blackq166s-web/SEVENTH_WOUND/releases/tag/v0.6.3) 为 v0.6.3。
 
-## 当前工作 · 手机战斗比例与布局
+## 当前工作 · 手机地面、边缘提示与浮动摇杆
 
-- 目标和完成标准。横屏扩大视野，横竖屏缩减 HUD 与提示占位。以 iPhone 17 Pro（402×874 CSS 像素）和 Pro Max（440×956 CSS 像素）为布局基准，两款各验横竖屏、模拟工具栏和安全区。
-- 进展。横屏按可用高度缩放镜头，竖屏参考尺寸横向可见约 500 世界单位。精简两侧 HUD、波次提示、武器提示及摇杆。控制项保留双摇杆与暂停图标。
-- 验证。iPhone 17 Pro 的 874×332 短横屏纵向视野由 255 扩至 365 世界单位。Chrome 源码与 Edge 打包版通过 `IPHONE_17_PRO_AND_MAX_LAYOUT_OK` 和 `NO_PAGE_ERRORS`。3× 截图在 `03_项目实现/shots/`，本地部署入口为 `_site/index.html`。
-- 发布。标签 `v0.6.3` 对应 `9b86707`。CI 与 GitHub Pages 部署均成功，公开 Release 附件和 Pages 首页的字节与本地包一致。
-- 下一步。在两款 iPhone 的 Chrome、Edge 实测字幕可读性、横屏远近、工具栏、安全区、触控和结算重开。手感与性能按[开发计划](03_项目实现/docs/PLAN_MOBILE.md)推进。
+- 目标和完成标准。手机竞技场移除方格，屏外敌人提示随方位沿安全区边缘移动，屏内不加箭头。选卡后从任意可操作触点恢复移动和射击。
+- 进展。去掉手机竞技场的砖缝与半透明网格。威胁提示逐帧投射到可视边缘，过密时保留较近的标记。双摇杆在左右半区按住出现，滑动操作，松手收起。
+- 验证。Chrome 源码和 Edge 单文件包均通过 `MOBILE_FLOATING_STICKS_AND_PANEL_RECOVERY_OK`、`IPHONE_17_PRO_AND_MAX_LAYOUT_OK` 与 `NO_PAGE_ERRORS`。四边投射、沿边移动及屏内撤除通过冒烟。目检同场景手机前后截图。
+- 下一步。用本地部署入口 `_site/index.html` 更新测试站点后，在 iPhone 17 Pro 和 Pro Max 的 Chrome、Edge 复测摇杆手感、选卡和密集波次箭头。手感与性能按[开发计划](03_项目实现/docs/PLAN_MOBILE.md)推进。
 
 ## 0. 阶段总览
 

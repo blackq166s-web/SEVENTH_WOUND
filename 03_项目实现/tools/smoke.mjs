@@ -912,6 +912,33 @@ game.setState('paused');
 assert(offscreenThreats(game, 1280, 720).length === 0, '暂停时不应显示边缘指示器');
 game.setState('playing');
 
+// 模拟 iPhone 17 Pro 竖屏内容区，四向威胁应贴安全区边缘。
+input.touchMode = true;
+game.setViewport(402, 674, 1);
+Object.assign(game.ui, { safeTop: 62, safeBottom: 34 });
+assert(game.groundPattern && !game.macroPattern && game.seamlessGround, '手机竞技场应使用无砖缝地面');
+game.cam.snapTo(game.player.x, game.player.y);
+const enemyAt = (x, y) => ({
+  x: game.cam.x + (x - game.cam.ox) / game.cam.zoom,
+  y: game.cam.y + (y - game.cam.oy) / game.cam.zoom
+});
+const rightEnemy = enemyAt(445, 337);
+game.enemies = [enemyAt(-45, 337), rightEnemy, enemyAt(450, 338), enemyAt(201, -45), enemyAt(201, 719)];
+const edgeThreats = offscreenThreats(game, 402, 674);
+assert(edgeThreats.length === 4, '同向威胁重叠时只应保留较近的标记');
+for (const [axis, edge] of [['x', 20], ['x', 382], ['y', 82], ['y', 620]]) {
+  assert(edgeThreats.some(t => Math.abs(t[axis] - edge) < 0.01), '手机威胁标记应投射到安全区四边');
+}
+rightEnemy.y = enemyAt(445, 240).y;
+assert(offscreenThreats(game, 402, 674).some(t => Math.abs(t.x - 382) < 0.01 && t.y < 330),
+  '屏外敌人移动时，箭头应沿边更新位置');
+game.enemies = [enemyAt(300, 337)];
+assert(offscreenThreats(game, 402, 674).length === 0, '敌人入屏后应撤掉边缘提示');
+input.touchMode = false;
+game.setViewport(1280, 720, 1);
+Object.assign(game.ui, { safeTop: 0, safeBottom: 0 });
+assert(game.macroPattern && !game.seamlessGround, '桌面切回时应恢复原材质');
+
 // 关卡推进：下潜模式已停用，quest 逻辑不再触发（保留 clear 面板但不可达）
 game.start('quest');
 assert(game.mode === 'survival', 'quest 应被拒绝');

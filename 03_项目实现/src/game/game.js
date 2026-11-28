@@ -143,11 +143,14 @@ export class Game {
 
   /** 切换该层的视觉配色：地面瓦片、雾、血迹、浮尘（缓存按 palette.id 复用） */
   setPalette(pal) {
-    if (!pal || pal === this.palette && this.groundPattern) return;
+    if (!pal) return;
+    const seamless = this.input.touchMode && pal.style === 'plate';
+    if (pal === this.palette && this.groundPattern && seamless === this.seamlessGround) return;
     this.palette = pal;
-    this.ground = makeGroundTile(pal);
+    this.seamlessGround = seamless;
+    this.ground = makeGroundTile(pal, seamless);
     this.groundPattern = this.ctx.createPattern(this.ground, 'repeat');
-    this.macroPattern = this.ctx.createPattern(makeGroundMacro(pal), 'repeat');
+    this.macroPattern = seamless ? null : this.ctx.createPattern(makeGroundMacro(pal), 'repeat');
     this._ambient = null; // 浮尘按层重建
   }
 
@@ -155,6 +158,7 @@ export class Game {
     this.vw = w;
     this.vh = h;
     this.dpr = dpr;
+    this.setPalette(this.palette);
     let zoom = this.cam.defaultZoom;
     if (this.input.touchMode) {
       // 竖屏保留横向视野，横屏使角色比例随可用高度变化。
@@ -1298,14 +1302,16 @@ export class Game {
     if (gw > 0 && gh > 0) {
       ctx.fillStyle = this.groundPattern;
       ctx.fillRect(gx, gy, gw, gh);
-      // 宏观污渍叠层：放大 2.7 倍，把平铺周期从 512 拉到 ~1380
-      ctx.save();
-      ctx.globalAlpha = 0.5 + Math.sin(this.time * 0.35) * 0.05;
-      ctx.translate(gx, gy);
-      ctx.scale(GROUND_MACRO_SCALE, GROUND_MACRO_SCALE);
-      ctx.fillStyle = this.macroPattern;
-      ctx.fillRect(0, 0, gw / GROUND_MACRO_SCALE, gh / GROUND_MACRO_SCALE);
-      ctx.restore();
+      if (this.macroPattern) {
+        // 宏观污渍叠层：放大 2.7 倍，把平铺周期从 512 拉到 ~1380。
+        ctx.save();
+        ctx.globalAlpha = 0.5 + Math.sin(this.time * 0.35) * 0.05;
+        ctx.translate(gx, gy);
+        ctx.scale(GROUND_MACRO_SCALE, GROUND_MACRO_SCALE);
+        ctx.fillStyle = this.macroPattern;
+        ctx.fillRect(0, 0, gw / GROUND_MACRO_SCALE, gh / GROUND_MACRO_SCALE);
+        ctx.restore();
+      }
     }
 
     // 边界：内侧红光渐隐 + 边线

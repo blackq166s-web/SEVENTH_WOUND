@@ -3,6 +3,7 @@ import { synergyWith, RARITY_LABEL, PERKS } from './game/perks.js';
 import { WEAPONS, magSize, isStage2 } from './game/weapons.js';
 import { swapWeapon, weaponStackCount } from './game/player.js';
 import { ENEMY_TYPES } from './game/enemies.js';
+import { clamp } from './core/math.js';
 import { getGunIcon, getSpriteDataUrl, getPerkIcon } from './render/sprites.js';
 
 const $ = (id) => document.getElementById(id);
@@ -36,25 +37,25 @@ function bindTap(element, activate) {
   });
 }
 
-function bindStick(element, onChange) {
+function bindStick(zone, element, onChange) {
   const knob = element.firstElementChild;
   let active = null;
 
   function release() {
     if (active === null) return;
-    // 清空游戏输入。浏览器在抬手或取消时释放捕获，让旧触点停留在摇杆上。
+    // 保留浏览器对旧触点的捕获，避免抬手时点到刚出现的面板。
     active = null;
+    element.classList.remove('engaged');
     knob.style.transform = '';
     onChange(0, 0);
   }
 
   function move(e) {
-    if (e.pointerId !== active) return;
-    const bounds = element.getBoundingClientRect();
-    const dx = e.clientX - (bounds.left + bounds.width / 2);
-    const dy = e.clientY - (bounds.top + bounds.height / 2);
+    if (e.pointerId !== active?.id) return;
+    const dx = e.clientX - active.x;
+    const dy = e.clientY - active.y;
     const distance = Math.hypot(dx, dy);
-    const radius = bounds.width / 3;
+    const radius = active.radius;
     const limit = Math.min(radius, distance);
     const nx = dx / (distance || 1);
     const ny = dy / (distance || 1);
@@ -63,16 +64,23 @@ function bindStick(element, onChange) {
     onChange(nx * strength, ny * strength);
   }
 
-  element.addEventListener('pointerdown', (e) => {
+  zone.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'touch' || active !== null) return;
     e.preventDefault();
-    active = e.pointerId;
-    element.setPointerCapture(active);
-    move(e);
+    const { left, top, width, height } = zone.getBoundingClientRect();
+    const size = element.getBoundingClientRect().width;
+    const insetX = Math.min(size / 2, width / 2);
+    const insetY = Math.min(size / 2, height / 2);
+    // 靠边时将图标往内挪，手势仍以原始落指点为起点。
+    element.style.left = clamp(e.clientX - left, insetX, width - insetX) + 'px';
+    element.style.top = clamp(e.clientY - top, insetY, height - insetY) + 'px';
+    active = { id: e.pointerId, x: e.clientX, y: e.clientY, radius: size / 3 };
+    zone.setPointerCapture(e.pointerId);
+    element.classList.add('engaged');
   });
-  element.addEventListener('pointermove', move);
+  zone.addEventListener('pointermove', move);
   for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    element.addEventListener(name, (e) => { if (e.pointerId === active) release(); });
+    zone.addEventListener(name, (e) => { if (e.pointerId === active?.id) release(); });
   }
   return release;
 }
@@ -110,8 +118,8 @@ export class UI {
     this._bind();
     this.setTouchLayout(this.coarsePointer);
     this.releaseSticks = [
-      bindStick($('touchMove'), (x, y) => { game.input.touchMove.x = x; game.input.touchMove.y = y; }),
-      bindStick($('touchAim'), (x, y) => game.input.setTouchAim(x, y))
+      bindStick($('touchMoveZone'), $('touchMove'), (x, y) => { game.input.touchMove.x = x; game.input.touchMove.y = y; }),
+      bindStick($('touchAimZone'), $('touchAim'), (x, y) => game.input.setTouchAim(x, y))
     ];
   }
 
@@ -162,11 +170,15 @@ export class UI {
     this.safeLeft = parseFloat(style.getPropertyValue('--safe-left')) || 0;
     this.safeRight = parseFloat(style.getPropertyValue('--safe-right')) || 0;
     this.safeBottom = parseFloat(style.getPropertyValue('--safe-bottom')) || 0;
+    if (this.game.input.touchMode && (width !== this.viewportWidth || height !== this.viewportHeight)) {
+      this.releaseTouch();
+    }
+    this.viewportWidth = width;
+    this.viewportHeight = height;
     const portrait = height > width;
     if (this.portrait === portrait) return;
     this.portrait = portrait;
     document.body.classList.toggle('portrait-view', portrait);
-    if (this.game.input.touchMode) this.releaseTouch();
   }
 
   start(mode, e) {
